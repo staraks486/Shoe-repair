@@ -1,14 +1,30 @@
+import { useState } from 'react';
 import { useAppStore } from '../store';
 import { format } from 'date-fns';
 
 export default function Customers() {
   const { customers } = useAppStore();
+  const [search, setSearch] = useState('');
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    c.phoneNumber.includes(search)
+  );
 
   return (
     <div className="space-y-6">
-      <header className="bg-white p-6 border-b border-brand-border rounded-xl shadow-sm">
-        <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Customers</h2>
-        <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">View customer history and details</p>
+      <header className="bg-white p-6 border-b border-brand-border rounded-xl shadow-sm flex justify-between items-center">
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Customers</h2>
+          <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">View customer history and details</p>
+        </div>
+        <input 
+          type="text" 
+          placeholder="Search by name or phone..." 
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="border border-brand-border rounded-md p-2 text-sm bg-brand-bg w-64"
+        />
       </header>
 
       <div className="bg-white border border-brand-border rounded-xl shadow-sm overflow-hidden">
@@ -22,7 +38,7 @@ export default function Customers() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-brand-border-dark">
-            {customers.map((c) => (
+            {filteredCustomers.map((c) => (
               <tr key={c.phoneNumber}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-brand-dark">{c.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark">
@@ -39,10 +55,10 @@ export default function Customers() {
                 </td>
               </tr>
             ))}
-            {customers.length === 0 && (
+            {filteredCustomers.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-10 text-center text-sm text-brand-muted italic">
-                  No customers found. Customers are automatically added when you create a repair request.
+                  No customers found.
                 </td>
               </tr>
             )}

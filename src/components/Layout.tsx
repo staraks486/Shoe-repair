@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { 
@@ -11,34 +11,43 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
-  Shield
+  Shield,
+  Menu,
+  X
 } from 'lucide-react';
 import clsx from 'clsx';
+import IntroBanner from './IntroBanner';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { settings, updateSettings, syncAllPending, repairs } = useAppStore();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pendingSyncCount = repairs.filter(r => !r.isSynced).length;
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/new-repair', icon: PlusCircle, label: 'New Repair' },
-    { to: '/inventory', icon: Package, label: 'Inventory' },
+    { to: '/inventory', icon: Package, label: 'Add-ons' },
     { to: '/customers', icon: Users, label: 'Customers' },
     { to: '/insurance', icon: Shield, label: 'Insurance' },
-    { to: '/chat', icon: MessageSquare, label: 'AI Assistant' },
     { to: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
   return (
     <div className="flex h-screen bg-brand-bg text-brand-dark font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-brand-dark text-brand-bg flex flex-col">
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
+      <aside className="hidden md:flex w-64 bg-brand-dark text-brand-bg flex-col relative z-20 h-screen transition-transform duration-300">
         <div className="p-8">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center text-brand-dark">
-              <Package className="w-6 h-6" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center text-brand-dark">
+                <Package className="w-6 h-6" />
+              </div>
+              <h1 className="font-serif text-xl font-bold tracking-tight">{settings.storeName}</h1>
             </div>
-            <h1 className="font-serif text-xl font-bold tracking-tight">{settings.storeName}</h1>
           </div>
         </div>
         <nav className="flex-1 px-4 space-y-4 overflow-y-auto">
@@ -85,20 +94,46 @@ export default function Layout({ children }: { children: ReactNode }) {
               </button>
             </div>
           </div>
-          <div className="mt-4 text-center">
-            <p className="text-[10px] text-brand-bg opacity-40 uppercase tracking-widest">Designed & Developed by AI Studio</p>
+          <div className="mt-4 text-center space-y-1">
+            <p className="text-[10px] text-brand-bg opacity-40 uppercase tracking-widest">Designed by Arvind Kumar Shukla</p>
+            <p className="text-[10px] text-brand-bg opacity-40">© 2026 ShoeRepair Pro</p>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 overflow-auto bg-brand-bg">
-          <div className="p-8 h-full">
+        <header className="bg-white border-b border-brand-border py-4 flex items-center justify-center gap-2">
+            <img src={settings.logoUrl || "/logo.png"} alt="Logo" className="h-8 w-8 object-contain" />
+            <h1 className="font-serif text-xl font-bold tracking-tight">Cordwainers Studio</h1>
+        </header>
+        <div className="flex-1 overflow-auto bg-brand-bg pb-16 md:pb-0">
+          <div className="p-4 md:p-8 h-full">
             {children}
           </div>
         </div>
       </main>
+
+      {/* Mobile Footer Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-brand-border flex justify-around p-2 z-20">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              clsx(
+                'flex flex-col items-center gap-1 p-2 rounded-md transition-colors text-[10px] font-medium',
+                isActive 
+                  ? 'text-brand-accent' 
+                  : 'text-brand-muted hover:text-brand-dark'
+              )
+            }
+          >
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

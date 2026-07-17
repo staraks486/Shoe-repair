@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
@@ -11,9 +12,14 @@ export default function Insurance() {
 
   return (
     <div className="space-y-6">
-      <header className="bg-white p-6 border-b border-brand-border rounded-xl shadow-sm">
-        <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Insurance Policies</h2>
-        <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">Track active protection plans</p>
+      <header className="bg-white p-6 border-b border-brand-border rounded-xl shadow-sm flex justify-between items-center">
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Insurance Policies</h2>
+          <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">Track active protection plans</p>
+        </div>
+        <Link to="/add-insurance" className="bg-brand-dark text-white px-4 py-2 rounded-md text-sm font-bold uppercase tracking-widest hover:opacity-90">
+          Add Policy
+        </Link>
       </header>
 
       <div className="bg-white border border-brand-border rounded-xl shadow-sm overflow-hidden">

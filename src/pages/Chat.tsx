@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import clsx from 'clsx';

@@ -1,8 +1,11 @@
+import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { RepairStatus, ShoeRepairRequest } from '../types';
 import { format } from 'date-fns';
-import { Phone, Clock, AlertCircle } from 'lucide-react';
+import { Phone, History, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import clsx from 'clsx';
+import DashboardSummary from '../components/DashboardSummary';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Dashboard() {
   const { repairs, updateRepairStatus } = useAppStore();
@@ -14,28 +17,52 @@ export default function Dashboard() {
     { title: 'Delivered', status: 'Delivered' },
   ];
 
+  const chartData = columns.map(col => ({
+    name: col.title,
+    count: repairs.filter(r => r.status === col.status).length
+  }));
+
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      <header className="flex justify-between items-center bg-white p-6 border-b border-brand-border rounded-xl shadow-sm mb-6">
+    <div className="space-y-6 h-full flex flex-col p-6">
+      <header className="flex justify-between items-center bg-white p-6 border border-brand-border rounded-xl shadow-sm">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Kanban Workflow</h2>
-          <span className="text-xs font-sans font-medium text-brand-muted bg-brand-border px-2 py-0.5 rounded-full uppercase tracking-wider">{format(new Date(), 'MMMM d')}</span>
+          <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Dashboard</h2>
+          <span className="text-xs font-sans font-medium text-brand-muted bg-brand-border px-2 py-0.5 rounded-full uppercase tracking-wider">{format(new Date(), 'MMMM d, yyyy')}</span>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 flex-1 overflow-y-auto">
+      <DashboardSummary />
+      
+      <div className="bg-white p-6 border border-brand-border rounded-xl shadow-sm h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <XAxis dataKey="name" fontSize={12} />
+            <YAxis fontSize={12} />
+            <Tooltip />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={index === 2 ? '#22c55e' : '#475569'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
         {columns.map((col) => {
           const colRepairs = repairs.filter((r) => r.status === col.status);
           return (
             <div key={col.status} className="flex flex-col space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold uppercase tracking-widest text-brand-olive">
-                  {col.title} ({colRepairs.length})
+              <div className="flex items-center justify-between px-2 py-2 bg-white rounded-lg border border-brand-border">
+                <span className="text-xs font-bold uppercase tracking-widest text-brand-dark">
+                  {col.title}
                 </span>
-                <span className="text-lg text-brand-olive">•</span>
+                <span className="text-xs font-bold bg-brand-border text-brand-dark px-2 py-0.5 rounded-full">
+                  {colRepairs.length}
+                </span>
               </div>
               
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                 {colRepairs.map((repair) => (
                   <RepairCard 
                     key={repair.id} 
@@ -43,11 +70,6 @@ export default function Dashboard() {
                     onStatusChange={updateRepairStatus}
                   />
                 ))}
-                {colRepairs.length === 0 && col.status === 'Completed' && (
-                  <div className="bg-brand-olive bg-opacity-5 rounded-xl p-4 border-2 border-dashed border-brand-olive flex items-center justify-center h-32">
-                    <p className="text-brand-olive text-xs font-medium italic text-center">Move items here to trigger WhatsApp notification</p>
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -57,15 +79,18 @@ export default function Dashboard() {
   );
 }
 
+interface RepairCardProps {
+  key?: string;
+  repair: ShoeRepairRequest;
+  onStatusChange: (id: string, status: RepairStatus) => void;
+}
+
 function RepairCard({ 
   repair, 
   onStatusChange 
-}: { 
-  repair: ShoeRepairRequest; 
-  onStatusChange: (id: string, status: RepairStatus) => void 
-}) {
+}: RepairCardProps) {
   const { settings } = useAppStore();
-  const isOverdue = new Date(repair.dueDate) < new Date() && repair.status !== 'Delivered';
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const triggerWhatsApp = (status: RepairStatus) => {
     const template = settings.whatsappTemplate || 'Hello {customerName}, your shoe repair ({repairType}) is now {status}. Invoice: {invoiceNumber}';
@@ -76,10 +101,6 @@ function RepairCard({
       .replace('{invoiceNumber}', repair.invoiceNumber);
     const url = `https://wa.me/${repair.phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
-  };
-
-  const sendWhatsApp = () => {
-    triggerWhatsApp(repair.status);
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -93,58 +114,51 @@ function RepairCard({
 
   return (
     <div className={clsx(
-      "bg-brand-surface rounded-xl p-4 border border-brand-border-dark flex flex-col space-y-3",
-      repair.status === 'Completed' ? 'bg-white shadow-sm border-green-200' : '',
-      repair.status === 'In Progress' ? 'bg-white shadow-sm' : ''
+      "bg-white rounded-lg p-4 border border-brand-border shadow-sm flex flex-col space-y-3 transition-all hover:shadow-md",
+      repair.status === 'Completed' ? 'border-green-200' : ''
     )}>
-      <div className="flex justify-between items-start">
-        <span className={clsx(
-          "text-xs font-bold", 
-          repair.status === 'Completed' ? "text-green-700" : "text-brand-accent"
-        )}>{repair.invoiceNumber}</span>
-        
-        <div className="flex gap-2">
-          {!repair.isSynced && (
-            <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-brand-border-dark flex items-center gap-1">
-              <AlertCircle className="w-3 h-3 text-amber-500" /> Unsynced
-            </span>
-          )}
-        </div>
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">{repair.invoiceNumber}</span>
+        {!repair.isSynced && <AlertCircle className="w-3 h-3 text-amber-500" />}
       </div>
       
       <div>
-        <p className="font-medium text-brand-dark">{repair.shoeModel}</p>
+        <p className="text-sm font-bold text-brand-dark">{repair.shoeModel}</p>
         <p className="text-xs text-brand-muted">{repair.repairType}</p>
       </div>
       
-      <div className="flex items-center justify-between pt-2 border-t border-brand-border-dark">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-brand-olive">Customer: {repair.customerName}</span>
-          {repair.receivedBy && <span className="text-[10px] text-brand-muted">Assisted by: {repair.receivedBy}</span>}
-        </div>
-        <span className="text-xs font-bold font-serif text-brand-dark">₹{repair.price.toFixed(2)}</span>
+      <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+        <p className="text-xs font-medium text-brand-dark truncate">{repair.customerName}</p>
+        <span className="text-sm font-serif font-bold text-brand-dark">₹{repair.price.toFixed(0)}</span>
       </div>
 
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand-border-dark">
-        <button
-          onClick={sendWhatsApp}
-          className="text-brand-muted hover:text-green-600 transition-colors"
-          title="Send WhatsApp Update"
-        >
+      <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+        <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-green-600 transition-colors">
           <Phone className="w-4 h-4" />
         </button>
         
-        <select
-          value={repair.status}
-          onChange={handleStatusChange}
-          className="text-xs border-brand-border-dark rounded-md py-1 pl-2 pr-6 focus:ring-brand-accent focus:border-brand-accent bg-white"
-        >
+        <select value={repair.status} onChange={handleStatusChange} className="text-[10px] border-none bg-brand-bg rounded px-2 py-1">
           <option value="Received">Received</option>
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
           <option value="Delivered">Delivered</option>
         </select>
+        
+        <button onClick={() => setShowTimeline(!showTimeline)} className="text-brand-muted">
+          {showTimeline ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
       </div>
+
+      {showTimeline && (
+        <div className="pt-2 border-t border-brand-border space-y-1">
+          {repair.statusHistory.map((item, idx) => (
+            <div key={idx} className="flex justify-between text-[9px] text-brand-muted">
+              <span>{format(new Date(item.timestamp), 'MMM d, HH:mm')}</span>
+              <span>{item.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

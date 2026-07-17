@@ -21,6 +21,8 @@ interface AppState {
   updateInventoryItem: (id: string, data: Partial<InventoryItem>) => void;
   deleteInventoryItem: (id: string) => void;
   
+  addInsurance: (policy: Omit<ShoeInsurance, 'id' | 'createdAt'>) => void;
+  
   updateSettings: (settings: Partial<Settings>) => void;
   
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
@@ -42,20 +44,33 @@ export const useAppStore = create<AppState>()(
       ],
       insurance: [],
       settings: {
-        storeName: 'CordwainerPro',
+        storeName: 'Cordwainers Studio',
         address: '123 Main St, Cityville',
         hours: 'Mon-Sat: 9AM - 6PM',
         logo: '',
+        logoUrl: '',
         cobblerBio: 'Master cobbler with 20 years of experience.',
         googleSheetsId: '',
         googleSheetsToken: '',
         googleSheetsWebAppUrl: '',
+        paymentLink: '',
+        qrCode: '',
         isOfflineMode: false,
         whatsappTemplate: 'Hello {customerName}, your shoe repair ({repairType}) is now {status}. Invoice: {invoiceNumber}',
         insurancePlans: [
           { id: '1', name: 'Basic', description: '1 Year, Minor Fixes', price: 499 },
           { id: '2', name: 'Premium', description: 'Lifetime, All Fixes', price: 1499 }
-        ]
+        ],
+        offers: [
+          { id: '1', name: 'Welcome 10%', code: 'WELCOME10', discountPercentage: 10 }
+        ],
+        employees: [],
+        cobblers: [],
+        repairCharges: [
+          { id: '1', service: 'Heel Repair', price: 200 },
+          { id: '2', service: 'Sole Repair', price: 500 }
+        ],
+        theme: 'olive'
       },
       chatHistory: [],
 
@@ -68,6 +83,11 @@ export const useAppStore = create<AppState>()(
             isSynced: false,
             createdAt: new Date().toISOString(),
             invoiceNumber: generateInvoice(),
+            statusHistory: [{
+              timestamp: new Date().toISOString(),
+              user: repairData.receivedBy || 'System',
+              status: repairData.status
+            }]
           };
           
           const existingCustomerIndex = state.customers.findIndex(c => c.phoneNumber === repairData.phoneNumber);
@@ -98,7 +118,16 @@ export const useAppStore = create<AppState>()(
       },
       
       updateRepairStatus: (id, status) => set((state) => ({
-        repairs: state.repairs.map(r => r.id === id ? { ...r, status, isSynced: false } : r)
+        repairs: state.repairs.map(r => r.id === id ? { 
+          ...r, 
+          status, 
+          isSynced: false,
+          statusHistory: [...r.statusHistory, {
+            timestamp: new Date().toISOString(),
+            user: 'Staff',
+            status
+          }]
+        } : r)
       })),
       
       syncAllPending: async () => {
@@ -139,6 +168,10 @@ export const useAppStore = create<AppState>()(
       
       deleteInventoryItem: (id) => set((state) => ({
         inventory: state.inventory.filter(i => i.id !== id)
+      })),
+      
+      addInsurance: (policy) => set((state) => ({
+        insurance: [...state.insurance, { ...policy, id: generateId(), createdAt: new Date().toISOString() }]
       })),
       
       updateSettings: (newSettings) => set((state) => ({
