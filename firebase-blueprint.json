@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "Repair": {
+      "title": "Repair",
+      "description": "Shoe repair request ticket details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" },
+        "shoeModel": { "type": "string" },
+        "repairType": { "type": "array" },
+        "description": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "price": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "isSynced": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "receivedBy": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "addonType": { "type": "string" },
+        "addonPrice": { "type": "number" },
+        "hasInsurance": { "type": "boolean" },
+        "insuranceType": { "type": "string" }
+      }
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer contact and order count details",
+      "type": "object",
+      "properties": {
+        "phoneNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "totalOrders": { "type": "number" },
+        "lastVisit": { "type": "string" }
+      }
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Store inventory stock level metrics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "minThreshold": { "type": "number" }
+      }
+    },
+    "Insurance": {
+      "title": "Insurance",
+      "description": "Shoe repair insurance policy coverage documentation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "shoeId": { "type": "string" },
+        "planName": { "type": "string" },
+        "usageCount": { "type": "number" },
+        "maxUsage": { "type": "number" },
+        "status": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "repairs": {
+      "schema": "Repair",
+      "description": "Collection of shoe repair requests"
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "Collection of customer contact info and history"
+    },
+    "inventory": {
+      "schema": "InventoryItem",
+      "description": "Collection of material inventory"
+    },
+    "insurance": {
+      "schema": "Insurance",
+      "description": "Collection of active insurance policies"
+    }
+  }
+}

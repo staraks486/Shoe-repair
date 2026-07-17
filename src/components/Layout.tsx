@@ -13,7 +13,11 @@ import {
   RefreshCw,
   Shield,
   Menu,
-  X
+  X,
+  Tag,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
 import IntroBanner from './IntroBanner';
@@ -22,7 +26,27 @@ import FloatingActionMenu from './FloatingActionMenu';
 export default function Layout({ children }: { children: ReactNode }) {
   const { settings, updateSettings, syncAllPending, repairs } = useAppStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
+
   const pendingSyncCount = repairs.filter(r => !r.isSynced).length;
+
+  const handleSync = async () => {
+    if (settings.isOfflineMode) return;
+    setIsSyncing(true);
+    setSyncFeedback({ status: 'syncing', message: 'Syncing pending repairs to Google Sheets...' });
+    try {
+      await syncAllPending();
+      setSyncFeedback({ status: 'success', message: 'Successfully synchronized repairs to Google Sheets!' });
+      setTimeout(() => setSyncFeedback(null), 3000);
+    } catch (err: any) {
+      console.error('Manual sync failed:', err);
+      setSyncFeedback({ status: 'error', message: err?.message || 'Sync failed. Check your Web App URL in settings.' });
+      setTimeout(() => setSyncFeedback(null), 5000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -82,16 +106,21 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="mt-3 flex gap-2">
               <button 
                 onClick={() => updateSettings({ isOfflineMode: !settings.isOfflineMode })}
-                className="flex-1 py-1.5 bg-brand-dark text-xs border border-brand-bg/20 rounded hover:bg-brand-bg/10 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 bg-brand-dark text-xs border border-brand-bg/20 rounded hover:bg-brand-bg/10 transition-colors flex items-center justify-center gap-1 text-white"
               >
                 {settings.isOfflineMode ? <><Wifi className="w-3 h-3"/> Go Online</> : <><WifiOff className="w-3 h-3"/> Go Offline</>}
               </button>
               <button
-                onClick={() => syncAllPending()}
-                disabled={settings.isOfflineMode || pendingSyncCount === 0}
-                className="flex-1 py-1.5 bg-brand-accent text-brand-dark font-medium text-xs rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                onClick={handleSync}
+                disabled={settings.isOfflineMode || pendingSyncCount === 0 || isSyncing}
+                className="flex-1 py-1.5 bg-brand-accent text-brand-dark font-bold text-xs rounded hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
               >
-                <RefreshCw className="w-3 h-3" /> Sync {pendingSyncCount > 0 && `(${pendingSyncCount})`}
+                {isSyncing ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                {isSyncing ? 'Syncing...' : `Sync ${pendingSyncCount > 0 ? `(${pendingSyncCount})` : ''}`}
               </button>
             </div>
           </div>
@@ -136,6 +165,23 @@ export default function Layout({ children }: { children: ReactNode }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Dynamic Sync Toast Notification */}
+      {syncFeedback && (
+        <div className={clsx(
+          "fixed bottom-20 md:bottom-6 right-6 z-50 p-4 rounded-xl shadow-2xl border flex items-center gap-3 max-w-sm animate-in slide-in-from-bottom-5 fade-in duration-300",
+          syncFeedback.status === 'success' && "bg-green-50 border-green-200 text-green-800",
+          syncFeedback.status === 'error' && "bg-red-50 border-red-200 text-red-800",
+          syncFeedback.status === 'syncing' && "bg-white border-brand-border text-brand-dark"
+        )}>
+          {syncFeedback.status === 'success' && <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />}
+          {syncFeedback.status === 'error' && <XCircle className="w-5 h-5 text-red-600 shrink-0" />}
+          {syncFeedback.status === 'syncing' && <Loader2 className="w-5 h-5 text-brand-olive animate-spin shrink-0" />}
+          <div className="text-xs font-semibold leading-relaxed">
+            {syncFeedback.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

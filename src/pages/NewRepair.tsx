@@ -1,8 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store';
-import { RepairStatus, ShoeRepairRequest } from '../types';
-import { Trash2, Mic, MicOff, CheckCircle2, ChevronRight, ChevronLeft, Upload, FileText, Search } from 'lucide-react';
+import { ShoeRepairRequest } from '../types';
+import { 
+  User, 
+  Phone, 
+  Mail, 
+  Sparkles, 
+  Layers, 
+  Barcode, 
+  X, 
+  Copy, 
+  Check, 
+  Info, 
+  Trash2, 
+  Upload, 
+  Printer, 
+  Share2, 
+  ChevronRight, 
+  ChevronLeft, 
+  Search, 
+  Plus, 
+  Minus, 
+  ShieldCheck, 
+  Percent, 
+  FileCheck, 
+  AlertTriangle,
+  Camera,
+  Download
+} from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -24,255 +50,432 @@ const PACKAGES = [
   }
 ];
 
+const INSURANCE_PLANS = [
+  { id: 'none', name: 'No Insurance Protection', price: 0, description: 'Standard service warranty only (30 days)' },
+  { id: 'basic', name: 'Basic Care Cover', price: 499, description: '1 Year accidental scuff cover & minor stitching repairs' },
+  { id: 'premium', name: 'Premium Lifetime Shield', price: 1499, description: 'Lifetime wear warranty & comprehensive material replacement discount' }
+];
+
+const OFFER_CODES = [
+  { code: 'NONE', label: 'No Offer Applied', percentage: 0 },
+  { code: 'WELCOME10', label: 'Welcome Intake Discount (10%)', percentage: 10 },
+  { code: 'FESTIVE15', label: 'Festive Season Offer (15%)', percentage: 15 },
+  { code: 'ARTISAN20', label: 'Exclusive Artisan Circle (20%)', percentage: 20 }
+];
+
+const SALESPERSONS = [
+  {
+    id: 'SP-001',
+    name: 'Arvind Kumar Shukla',
+    role: 'Store Lead & Chief Inspector'
+  },
+  {
+    id: 'SP-002',
+    name: 'Pooja Sharma',
+    role: 'Boutique Specialist'
+  },
+  {
+    id: 'SP-003',
+    name: 'Rahul Deshmukh',
+    role: 'Senior Artisan & Cordwainer'
+  },
+  {
+    id: 'SP-004',
+    name: 'Amit Patel',
+    role: 'Associate Intake Specialist'
+  }
+];
+
+// Helper to render high-fidelity print-safe barcode SVG
+function BarcodeSVG({ value }: { value: string }) {
+  const bars: number[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    bars.push((code % 3) + 1, ((code >> 1) % 3) + 1, ((code >> 2) % 3) + 1, 1);
+  }
+  let currentX = 10;
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="180" height="40" className="text-black overflow-visible">
+        <g fill="currentColor">
+          <rect x={2} y={0} width={2} height={40} />
+          <rect x={5} y={0} width={1} height={40} />
+          {bars.map((w, idx) => {
+            const x = currentX;
+            currentX += w * 1.5;
+            if (idx % 2 === 0) {
+              return <rect key={idx} x={x} y={0} width={w * 1.5} height={40} />;
+            }
+            return null;
+          })}
+          <rect x={currentX + 2} y={0} width={1} height={40} />
+          <rect x={currentX + 4} y={0} width={2} height={40} />
+        </g>
+      </svg>
+      <span className="font-mono text-[9px] tracking-[0.25em] mt-1 text-gray-500 font-bold">{value}</span>
+    </div>
+  );
+}
+
 export default function NewRepair() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addRepair, settings, repairs, deleteRepair } = useAppStore();
-  
+  const { repairs, addRepair, deleteRepair, inventory } = useAppStore();
+
   const queryParams = new URLSearchParams(location.search);
-  
   const [activeTab, setActiveTab] = useState<'history' | 'new-repair'>(() => {
-    const mode = queryParams.get('mode');
     const tab = queryParams.get('tab');
-    if (mode === 'step' || tab === 'new-repair') {
+    if (tab === 'new-repair' || queryParams.get('mode') === 'step') {
       return 'new-repair';
     }
     return 'history';
   });
-  
-  const [generatedInvoice, setGeneratedInvoice] = useState<ShoeRepairRequest | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-  
-  const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
 
+  // State wizard
+  const [currentStep, setCurrentStep] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedInvoice, setCopiedInvoice] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [submittedInvoice, setSubmittedInvoice] = useState<any>(null);
+
+  // Form Fields State
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  
+  const [salesperson, setSalesperson] = useState(SALESPERSONS[0]);
+  const [customSalespersonName, setCustomSalespersonName] = useState('');
+
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const [shoeModel, setShoeModel] = useState('');
+  const [shoeSize, setShoeSize] = useState('');
+  const [leatherType, setLeatherType] = useState('Full-Grain');
+  const [shoeImage, setShoeImage] = useState('');
+  const [basePrice, setBasePrice] = useState(1500); // Base value/diagnostics fee of the footwear
+
+  const [selectedPackage, setSelectedPackage] = useState(PACKAGES[0]);
+  const [customPackageName, setCustomPackageName] = useState('');
+  const [customPackagePrice, setCustomPackagePrice] = useState(2500);
+  const [isBespoke, setIsBespoke] = useState(false);
+
+  // Shoe plus items (supplies added to care ticket)
+  const [plusItems, setPlusItems] = useState<{ id: string; name: string; price: number; quantity: number }[]>([]);
+  const [plusSearch, setPlusSearch] = useState('');
+
+  // Insurance Plan
+  const [insurancePlan, setInsurancePlan] = useState(INSURANCE_PLANS[0]);
+
+  // Offers and Custom discounts
+  const [selectedOffer, setSelectedOffer] = useState(OFFER_CODES[0]);
+  const [customDiscountType, setCustomDiscountType] = useState<'percent' | 'absolute'>('percent');
+  const [customDiscountValue, setCustomDiscountValue] = useState(0);
+
+  // Terms and notes
+  const [notes, setNotes] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(true);
+
+  // Live Calculations
+  const getPackageCost = () => {
+    return isBespoke ? customPackagePrice : selectedPackage.price;
+  };
+
+  const getPackageName = () => {
+    return isBespoke ? (customPackageName || 'Bespoke Custom Restoration') : selectedPackage.name;
+  };
+
+  const getPlusItemsTotal = () => {
+    return plusItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const getInsuranceCost = () => {
+    return insurancePlan.price;
+  };
+
+  const getSubtotal = () => {
+    return basePrice + getPackageCost() + getPlusItemsTotal() + getInsuranceCost();
+  };
+
+  const getDiscountAmount = () => {
+    const sub = getSubtotal();
+    let discount = 0;
+    if (selectedOffer.percentage > 0) {
+      discount += sub * (selectedOffer.percentage / 100);
+    }
+    if (customDiscountValue > 0) {
+      if (customDiscountType === 'percent') {
+        discount += sub * (customDiscountValue / 100);
+      } else {
+        discount += customDiscountValue;
+      }
+    }
+    return Math.min(discount, sub);
+  };
+
+  const getGrandTotal = () => {
+    const total = getSubtotal() - getDiscountAmount();
+    return Math.max(0, Math.round(total));
+  };
+
+  // Keep location tab query in sync
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const mode = params.get('mode');
-    const tab = params.get('tab');
-    
-    if (mode === 'step' || tab === 'new-repair') {
+    const tab = queryParams.get('tab');
+    if (tab === 'new-repair') {
       setActiveTab('new-repair');
     } else if (tab === 'history') {
       setActiveTab('history');
     }
   }, [location.search]);
 
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredRepairs = repairs.filter(r => {
-    const term = searchQuery.toLowerCase();
-    const repairTypeStr = Array.isArray(r.repairType) ? r.repairType.join(', ') : r.repairType;
-    return (
-      r.customerName.toLowerCase().includes(term) ||
-      (r.shoeModel && r.shoeModel.toLowerCase().includes(term)) ||
-      (r.invoiceNumber && r.invoiceNumber.toLowerCase().includes(term)) ||
-      (repairTypeStr && repairTypeStr.toLowerCase().includes(term))
-    );
-  });
-
-  const [formData, setFormData] = useState({
-    customerName: '',
-    phoneNumber: '',
-    email: '',
-    shoeModel: '',
-    size: '',
-    leatherType: 'Full-Grain',
-    purchaseDate: '',
-    conditions: [] as string[],
-    description: '', // This will act as the Customer Notes
-    package: '',
-    packagePrice: 0,
-    shoeImage: '',
-    signature: '',
-    agreementAccepted: false,
-    receiveSmsUpdates: true,
-  });
-
-  const conditionOptions = [
-    'Minor Upper Scuffs',
-    'Worn-down Outsoles',
-    'Heel Block Wear',
-    'Lining Tears',
-    'Thread Fraying'
-  ];
-
-  const toggleRecording = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser. Please use Chrome or Safari.");
-      return;
-    }
-    
-    if (isRecording) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsRecording(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    
-    recognition.onstart = () => setIsRecording(true);
-    
-    recognition.onresult = (event: any) => {
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        }
-      }
-      if (finalTranscript) {
-        setFormData(prev => ({
-          ...prev,
-          description: prev.description ? `${prev.description} ${finalTranscript.trim()}` : finalTranscript.trim()
-        }));
-      }
-    };
-    
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      if (event.error === 'not-allowed') {
-        alert("Microphone access was denied. Please allow microphone access in your browser settings to use voice notes.");
-      }
-      setIsRecording(false);
-    };
-    recognition.onend = () => setIsRecording(false);
-    
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const toggleCondition = (condition: string) => {
-    setFormData(prev => {
-      const exists = prev.conditions.includes(condition);
-      return {
-        ...prev,
-        conditions: exists ? prev.conditions.filter(c => c !== condition) : [...prev.conditions, condition]
-      };
-    });
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle footwear image upload
+  const handleShoeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, shoeImage: reader.result as string }));
+        setShoeImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const nextStep = () => {
-    if (currentStep === 0 && (!formData.customerName || !formData.phoneNumber || !formData.shoeModel)) {
-      return alert("Please fill in the required client and footwear details.");
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = mediaStream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      setIsCameraActive(true);
+    } catch (err) {
+      console.error("Camera access failed:", err);
+      alert("Could not access camera. Please check your browser's camera permissions.");
     }
-    if (currentStep === 1 && !formData.package) {
-      return alert("Please select a restoration package.");
-    }
-    setCurrentStep(s => s + 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setShoeImage(dataUrl);
+        stopCamera();
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [currentStep]);
+
+  // Add Item from Inventory to Shoe Plus list
+  const addPlusItem = (inv: any) => {
+    const existing = plusItems.find(item => item.id === inv.id);
+    if (existing) {
+      setPlusItems(plusItems.map(item => 
+        item.id === inv.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setPlusItems([...plusItems, {
+        id: inv.id,
+        name: inv.name,
+        price: inv.price || 350, // Fallback price
+        quantity: 1
+      }]);
+    }
+  };
+
+  // Decrease/Remove Shoe Plus item
+  const updatePlusQuantity = (id: string, delta: number) => {
+    setPlusItems(plusItems.map(item => {
+      if (item.id === id) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : null;
+      }
+      return item;
+    }).filter(Boolean) as any);
+  };
+
+  // Submit Ticket creation to store
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.agreementAccepted) {
-      return alert("Please authorize the diagnostic assessment to proceed.");
+
+    if (!clientName || !clientPhone || !shoeModel) {
+      alert('Please fill out the required Client Name, Phone, and Shoe Model fields.');
+      return;
     }
 
-    const createdRepair = addRepair({
-      customerName: formData.customerName,
-      phoneNumber: formData.phoneNumber,
-      email: formData.email,
-      shoeModel: `${formData.shoeModel} (Size: ${formData.size}, ${formData.leatherType})`,
-      repairType: [formData.package],
-      description: `Conditions: ${formData.conditions.join(', ')}\nNotes: ${formData.description}`,
-      price: formData.packagePrice,
-      photoUrl: formData.shoeImage,
-      shoeIcon: 'default',
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      appliedOfferCode: '',
-      discountAmount: 0,
-      receivedBy: 'Intake Staff',
-      addonType: '',
-      addonPrice: 0,
-      addons: [],
-      hasInsurance: false,
-      insuranceType: '',
-      insurancePrice: 0,
-      insurancePolicyNumber: '',
-      insuranceStartDate: '',
-      insuranceEndDate: '',
-      insuranceProvider: '',
-      servicesIncluded: [],
-      salespersonId: 'SYSTEM',
-      statusHistory: [],
-      advance: 0,
-      balance: formData.packagePrice,
-      receiveSmsUpdates: formData.receiveSmsUpdates,
-      status: 'Received'
-    } as any);
+    if (!termsAccepted) {
+      alert('You must accept the handcrafted care terms & conditions to proceed.');
+      return;
+    }
 
-    setGeneratedInvoice(createdRepair);
+    const salespersonNameVal = customSalespersonName || salesperson.name;
+
+    const requestPayload = {
+      customerName: clientName,
+      phoneNumber: clientPhone,
+      email: clientEmail || 'no-email@cordwainers.com',
+      shoeModel: `${shoeModel} ${shoeSize ? `(Size: ${shoeSize})` : ''} - Material: ${leatherType}`,
+      repairType: [getPackageName()],
+      description: `Footwear Base Price: ₹${basePrice}\nSupplies: ${plusItems.map(i => `${i.name} x${i.quantity}`).join(', ') || 'None'}\nDiagnostics notes: ${notes}`,
+      photoUrl: shoeImage || 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=300',
+      status: 'Received' as const,
+      shoeIcon: 'default',
+      price: getGrandTotal(),
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      receivedBy: salespersonNameVal,
+      addonType: plusItems.length > 0 ? 'Shoe Plus Bundle' : '',
+      addonPrice: getPlusItemsTotal(),
+      addons: plusItems,
+      hasInsurance: insurancePlan.id !== 'none',
+      insuranceType: insurancePlan.name,
+      insurancePrice: insurancePlan.price,
+      insurancePolicyNumber: insurancePlan.id !== 'none' ? `POL-${Math.floor(100000 + Math.random() * 900000)}` : '',
+      insuranceStartDate: insurancePlan.id !== 'none' ? new Date().toISOString() : '',
+      insuranceEndDate: insurancePlan.id !== 'none' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : '',
+      insuranceProvider: insurancePlan.id !== 'none' ? 'CW Protection Group' : '',
+      servicesIncluded: [getPackageName()],
+      appliedOfferCode: selectedOffer.code !== 'NONE' ? selectedOffer.code : '',
+      discountAmount: getDiscountAmount(),
+      salespersonId: salesperson.id,
+      salespersonName: salespersonNameVal,
+      basePrice: basePrice,
+      discountPercentage: selectedOffer.percentage || (customDiscountType === 'percent' ? customDiscountValue : 0),
+      advance: 0,
+      balance: getGrandTotal(),
+      receiveSmsUpdates: true,
+      statusHistory: [],
+    };
+
+    const newTicket = addRepair(requestPayload);
+    setSubmittedInvoice(newTicket);
   };
 
-  if (generatedInvoice) {
+  const getWhatsAppURL = (ticket: any) => {
+    if (!ticket) return '#';
+    const text = `*CORDWAINERS CARE - OFFICIAL INTAKE CONFIRMATION*%0A%0AHello *${ticket.customerName}*, your footwear has been registered successfully for luxury restoration!%0A%0A*Ticket ID:* ${ticket.invoiceNumber}%0A*Footwear:* ${ticket.shoeModel}%0A*Salesperson:* ${ticket.receivedBy}%0A%0A*SERVICE SUMMARY:*%0A- Base Assessment Value: ₹${ticket.basePrice || 1500}%0A- Package: ${ticket.repairType?.join(', ')}%0A- Shoe Plus Add-ons: ₹${ticket.addonPrice || 0}%0A- Insurance Cover: ${ticket.insuranceType} (₹${ticket.insurancePrice || 0})%0A- Discount: -₹${ticket.discountAmount || 0}%0A%0A*TOTAL RESTORATION COST:* ₹${ticket.price}%0A%0AView Terms & Conditions: https://cordwainers.com/care-terms%0AThank you for trusting Cordwainers Studio!`;
+    return `https://api.whatsapp.com/send?phone=${ticket.phoneNumber.replace(/[^0-9]/g, '')}&text=${text}`;
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const downloadReceipt = (ticket: any) => {
+    if (!ticket) return;
+    const content = `========================================
+CORDWAINERS STUDIO CARE INTAKE RECEIPT
+========================================
+Invoice: ${ticket.invoiceNumber}
+Date: ${format(new Date(), 'yyyy-MM-dd HH:mm')}
+Client Name: ${ticket.customerName}
+Phone Number: ${ticket.phoneNumber}
+Email: ${ticket.email || 'None'}
+
+FOOTWEAR DETAILS:
+-----------------
+Model/Style: ${ticket.shoeModel}
+Size: ${ticket.shoeSize || 'N/A'}
+Leather Type: ${ticket.leatherType || 'N/A'}
+Diagnostic Base Price: ₹${ticket.basePrice || 1500}
+
+RESTORATION ITEMS:
+------------------
+Services: ${ticket.repairType?.join(', ') || 'None'}
+Add-on Price: ₹${ticket.addonPrice || 0}
+Insurance: ${ticket.insuranceType || 'No Insurance Protection'} (₹${ticket.insurancePrice || 0})
+
+TOTAL:
+------
+Discount Applied: -₹${ticket.discountAmount || 0}
+GRAND TOTAL COST: ₹${ticket.price}
+
+Staff Inspector: ${ticket.receivedBy}
+----------------------------------------
+Thank you for trusting Cordwainers Studio!
+========================================`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Receipt-${ticket.invoiceNumber}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const resetForm = () => {
+    setClientName('');
+    setClientPhone('');
+    setClientEmail('');
+    setShoeModel('');
+    setShoeSize('');
+    setLeatherType('Full-Grain');
+    setShoeImage('');
+    setBasePrice(1500);
+    setPlusItems([]);
+    setSelectedPackage(PACKAGES[0]);
+    setIsBespoke(false);
+    setInsurancePlan(INSURANCE_PLANS[0]);
+    setSelectedOffer(OFFER_CODES[0]);
+    setCustomDiscountValue(0);
+    setNotes('');
+    setSubmittedInvoice(null);
+    setCurrentStep(0);
+  };
+
+  const filteredRepairs = repairs.filter(r => {
+    const term = searchQuery.toLowerCase();
     return (
-      <div className="fixed inset-0 bg-brand-dark/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95">
-          <div className="p-12 text-center border-b border-brand-border">
-            <CheckCircle2 className="w-16 h-16 text-brand-olive mx-auto mb-4" />
-            <h2 className="font-serif text-3xl font-bold text-brand-dark mb-2">Diagnostic Intake Confirmed</h2>
-            <p className="text-brand-muted font-serif italic">Ticket: {generatedInvoice.invoiceNumber}</p>
-          </div>
-          <div className="p-12 space-y-6 text-brand-dark">
-            <p>Thank you for entrusting your footwear to our artisans. We will conduct a thorough physical inspection and issue a final, itemized quotation shortly.</p>
-            <div className="bg-brand-bg p-6 rounded-lg text-sm space-y-2 font-mono">
-              <p><span className="font-bold">Client:</span> {generatedInvoice.customerName}</p>
-              <p><span className="font-bold">Model:</span> {generatedInvoice.shoeModel}</p>
-              <p><span className="font-bold">Selected Tier:</span> {formData.package}</p>
-              <p><span className="font-bold">Est. Total:</span> ₹{generatedInvoice.price.toFixed(2)}</p>
-            </div>
-            <button onClick={() => navigate('/')} className="w-full py-4 bg-brand-dark text-white rounded font-bold uppercase tracking-widest hover:bg-opacity-90 transition-colors">
-              Return to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
+      r.customerName.toLowerCase().includes(term) ||
+      (r.shoeModel && r.shoeModel.toLowerCase().includes(term)) ||
+      (r.invoiceNumber && r.invoiceNumber.toLowerCase().includes(term))
     );
-  }  return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-6 pb-12 animate-in fade-in duration-300">
+  });
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0">
       
-      {/* Toggle View Segmented Control */}
-      <div className="flex justify-start">
+      {/* HEADER CONTROLS - Hidden when printing */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">CW Care Professional</h1>
+          <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Official internal intake form & invoice generator</p>
+        </div>
+        
         <div className="flex bg-brand-bg p-1 rounded-lg border border-brand-border shadow-sm">
           <button
             type="button"
             onClick={() => {
               setActiveTab('history');
-              navigate('/new-repair', { replace: true });
+              resetForm();
             }}
             className={clsx(
-              "px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5",
+              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
               activeTab === 'history'
                 ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
                 : "text-brand-muted hover:text-brand-dark"
             )}
           >
-            <span>📜 Care History ({repairs.length})</span>
+            📜 Care History ({repairs.length})
           </button>
           <button
             type="button"
@@ -281,543 +484,880 @@ export default function NewRepair() {
               setCurrentStep(0);
             }}
             className={clsx(
-              "px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5",
+              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
               activeTab === 'new-repair'
                 ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
                 : "text-brand-muted hover:text-brand-dark"
             )}
           >
-            <span>⚡ New Repair Ticket</span>
+            ⚡ New Intake Ticket
           </button>
         </div>
       </div>
 
-      {activeTab === 'new-repair' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          
-          {/* Step Progress Bar */}
-          <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm max-w-2xl mx-auto">
-            <div className="flex justify-between mb-4">
-              {['Diagnostics', 'Restoration Tier', 'Disclaimers', 'Sign-Off'].map((step, idx) => (
-                <span key={step} className={clsx(
-                  "text-[10px] font-bold uppercase tracking-widest transition-colors duration-500",
-                  idx <= currentStep ? "text-brand-dark" : "text-brand-muted opacity-40",
-                  "hidden md:block"
-                )}>
-                  {step}
-                </span>
-              ))}
-              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-dark md:hidden block">
-                Step {currentStep + 1} of 4: {['Diagnostics', 'Restoration Tier', 'Disclaimers', 'Sign-Off'][currentStep]}
-              </span>
+      {/* SUCCESS SCREEN */}
+      {submittedInvoice && (
+        <div className="bg-white border border-brand-border rounded-2xl shadow-xl p-6 md:p-12 max-w-2xl mx-auto space-y-8 animate-in fade-in duration-300 print:hidden">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto border border-green-100 shadow-sm">
+              <FileCheck className="w-8 h-8" />
             </div>
-            <div className="h-1 bg-brand-border rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-brand-dark transition-all duration-700 ease-out"
-                style={{ width: `${((currentStep + 1) / 4) * 100}%` }}
-              />
-            </div>
+            <h2 className="font-serif text-3xl font-bold text-brand-dark">Invoice Generated Successfully</h2>
+            <p className="text-sm text-brand-muted font-mono bg-brand-bg py-1.5 px-4 rounded-full inline-block">
+              Intake Ticket: {submittedInvoice.invoiceNumber}
+            </p>
+            <p className="text-sm text-brand-muted max-w-md mx-auto">
+              The intake ticket has been registered in the database. Choose from the professional actions below to communicate, save, or print the invoice.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white border border-brand-border rounded-xl shadow-xl overflow-hidden max-w-4xl mx-auto">
+          <div className="border-t border-brand-border pt-8 space-y-4 max-w-md mx-auto">
+            <h3 className="font-serif text-base font-bold text-brand-dark text-center mb-4">Professional Intake Actions</h3>
             
-            {/* Guided multi-step diagnostic wizard */}
-            {currentStep === 0 && (
-              <div className="p-5 sm:p-8 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                
-                {/* Client Details Section */}
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-serif text-xl font-bold text-brand-dark mb-4 border-b border-brand-border pb-2 flex items-center gap-2">
-                      <span className="text-brand-olive text-sm font-mono bg-brand-bg px-2 py-0.5 rounded border">1</span>
-                      Client Profile
+            <a
+              href={getWhatsAppURL(submittedInvoice)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+            >
+              <Share2 className="w-4 h-4" />
+              Send via WhatsApp
+            </a>
+
+            <button
+              type="button"
+              onClick={() => downloadReceipt(submittedInvoice)}
+              className="flex items-center justify-center gap-3 w-full bg-brand-olive hover:bg-brand-olive/90 text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+            >
+              <Download className="w-4 h-4" />
+              Save & Download Invoice (.txt)
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-3 w-full bg-brand-dark hover:bg-brand-muted text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+            >
+              <Printer className="w-4 h-4" />
+              Print / Save PDF
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="flex items-center justify-center gap-3 w-full bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all"
+            >
+              Create Another Ticket
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* INTAKE FORM LAYOUT */}
+      {activeTab === 'new-repair' && !submittedInvoice && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT SIDE: STEPPED FORMS (8 Columns) */}
+          <div className="lg:col-span-7 bg-white border border-brand-border rounded-2xl shadow-lg overflow-hidden animate-in fade-in duration-300 print:hidden">
+            
+            {/* Form Headers */}
+            <div className="bg-brand-bg/50 border-b border-brand-border p-6 flex justify-between items-center">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-brand-dark">Care Intake Wizard</h2>
+                <p className="text-xs text-brand-muted mt-0.5">Step {currentStep + 1} of 4: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Summary & Discount'][currentStep]}</p>
+              </div>
+              
+              {/* Stepper Dots */}
+              <div className="flex gap-1.5">
+                {[0, 1, 2, 3].map(step => (
+                  <button
+                    key={step}
+                    onClick={() => {
+                      // Client side basic validation
+                      if (step > currentStep) {
+                        if (currentStep === 0 && (!clientName || !clientPhone)) return;
+                        if (currentStep === 1 && !shoeModel) return;
+                      }
+                      setCurrentStep(step);
+                    }}
+                    className={clsx(
+                      "w-7 h-2 rounded-full transition-all duration-300",
+                      step === currentStep ? "bg-brand-dark" : "bg-brand-border hover:bg-brand-muted"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Form Container */}
+            <form onSubmit={handleFormSubmit} className="p-6 md:p-8 space-y-8">
+              
+              {/* STEP 1: CLIENT & SALESPERSON */}
+              {currentStep === 0 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  
+                  {/* Client Details */}
+                  <div className="space-y-4">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                      Client Contact Profile
                     </h3>
+                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Full Name *</label>
-                        <input 
-                          required 
-                          type="text" 
-                          name="customerName" 
-                          value={formData.customerName} 
-                          onChange={handleChange}
-                          placeholder="e.g. Arvind Kumar Shukla"
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder-brand-muted/40 transition-all" 
-                        />
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Client Full Name *</label>
+                        <div className="relative">
+                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><User className="w-4 h-4" /></span>
+                          <input
+                            required
+                            type="text"
+                            placeholder="e.g. Arvind Kumar Shukla"
+                            value={clientName}
+                            onChange={e => setClientName(e.target.value)}
+                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                          />
+                        </div>
                       </div>
+
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Mobile Number *</label>
-                        <input 
-                          required 
-                          type="tel" 
-                          name="phoneNumber" 
-                          value={formData.phoneNumber} 
-                          onChange={handleChange}
-                          placeholder="e.g. +91 98765 43210"
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder-brand-muted/40 transition-all" 
-                        />
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Mobile Number *</label>
+                        <div className="relative">
+                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><Phone className="w-4 h-4" /></span>
+                          <input
+                            required
+                            type="tel"
+                            placeholder="e.g. +91 99000 88776"
+                            value={clientPhone}
+                            onChange={e => setClientPhone(e.target.value)}
+                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                          />
+                        </div>
                       </div>
+
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Email Address (Optional)</label>
-                        <input 
-                          type="email" 
-                          name="email" 
-                          value={formData.email} 
-                          onChange={handleChange}
-                          placeholder="e.g. arvind@example.com"
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder-brand-muted/40 transition-all" 
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Email Address</label>
+                        <div className="relative">
+                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><Mail className="w-4 h-4" /></span>
+                          <input
+                            type="email"
+                            placeholder="e.g. customer@luxury.com"
+                            value={clientEmail}
+                            onChange={e => setClientEmail(e.target.value)}
+                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Salesperson Identity Section */}
+                  <div className="space-y-4 pt-4 border-t border-brand-border/60">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                      Store Representative (Salesperson)
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {SALESPERSONS.map(sp => {
+                        const isSelected = salesperson.id === sp.id && !customSalespersonName;
+                        return (
+                          <button
+                            key={sp.id}
+                            type="button"
+                            onClick={() => {
+                              setSalesperson(sp);
+                              setCustomSalespersonName('');
+                            }}
+                            className={clsx(
+                              "flex flex-col items-center p-3.5 rounded-xl border transition-all text-center space-y-2",
+                              isSelected 
+                                ? "border-brand-olive bg-brand-olive/5 text-brand-dark ring-1 ring-brand-olive font-bold"
+                                : "border-brand-border bg-white hover:bg-brand-bg/30 text-brand-muted"
+                            )}
+                          >
+                            <div className="w-12 h-12 rounded-full bg-brand-bg/50 border border-brand-border/40 flex items-center justify-center text-brand-muted">
+                              <User className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] leading-tight font-semibold text-brand-dark">{sp.name.split(' ')[0]}</p>
+                              <p className="text-[9px] text-brand-muted tracking-tight mt-0.5">{sp.role.split(' ')[0]}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Representative option */}
+                    <div className="bg-brand-bg/20 p-4 border border-brand-border rounded-xl space-y-3">
+                      <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Or Register Custom Salesperson</label>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                          type="text"
+                          placeholder="Representative Name"
+                          value={customSalespersonName}
+                          onChange={e => setCustomSalespersonName(e.target.value)}
+                          className="flex-1 border border-brand-border rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand-dark focus:outline-none bg-white"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Footwear Diagnostics Section */}
-                  <div className="pt-4 border-t border-brand-border/40">
-                    <h3 className="font-serif text-xl font-bold text-brand-dark mb-4 border-b border-brand-border pb-2 flex items-center gap-2">
-                      <span className="text-brand-olive text-sm font-mono bg-brand-bg px-2 py-0.5 rounded border">2</span>
-                      Footwear Diagnostics
+                </div>
+              )}
+
+              {/* STEP 2: FOOTWEAR DETAILS */}
+              {currentStep === 1 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  <div className="space-y-4">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                      Footwear Information
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Model / Style Name *</label>
-                        <input 
-                          required 
-                          type="text" 
-                          name="shoeModel" 
-                          value={formData.shoeModel} 
-                          onChange={handleChange}
-                          placeholder="e.g. Allen Edmonds Park Avenue Oxfords"
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder-brand-muted/40 transition-all" 
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Shoe Model / Style *</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. Park Avenue Oxford Black"
+                          value={shoeModel}
+                          onChange={e => setShoeModel(e.target.value)}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
                         />
                       </div>
+
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Size (Optional)</label>
-                        <input 
-                          type="text" 
-                          name="size" 
-                          value={formData.size} 
-                          onChange={handleChange}
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Size</label>
+                        <input
+                          type="text"
                           placeholder="e.g. UK 9 / EU 43"
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder-brand-muted/40 transition-all" 
+                          value={shoeSize}
+                          onChange={e => setShoeSize(e.target.value)}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
                         />
                       </div>
+
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Leather / Upper Material</label>
-                        <select 
-                          name="leatherType" 
-                          value={formData.leatherType} 
-                          onChange={handleChange}
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark cursor-pointer transition-all"
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Leather / Upper Material</label>
+                        <select
+                          value={leatherType}
+                          onChange={e => setLeatherType(e.target.value)}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer"
                         >
                           <option value="Full-Grain">Full-Grain Leather</option>
                           <option value="Calfskin">Premium Calfskin</option>
                           <option value="Suede">Luxury Suede</option>
                           <option value="Cordovan">Shell Cordovan</option>
-                          <option value="Exotic">Exotic Hide</option>
+                          <option value="Exotic Suede">Exotic Hide</option>
                         </select>
                       </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Original Purchase Date (Optional)</label>
-                        <input 
-                          type="date" 
-                          name="purchaseDate" 
-                          value={formData.purchaseDate} 
-                          onChange={handleChange}
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark transition-all" 
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Footwear Base Price / Value (₹)</label>
+                        <input
+                          type="number"
+                          value={basePrice}
+                          onChange={e => setBasePrice(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 font-mono"
                         />
                       </div>
                     </div>
-
-                    {/* Current Condition Checklist */}
-                    <div className="mb-6 pt-4 border-t border-brand-border/40">
-                      <label className="block text-[10px] font-bold text-brand-dark mb-3 uppercase tracking-widest">Current Condition Checklist</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {conditionOptions.map(condition => {
-                          const isSelected = formData.conditions.includes(condition);
-                          return (
-                            <button
-                              key={condition}
-                              type="button"
-                              onClick={() => toggleCondition(condition)}
-                              className={clsx(
-                                "flex items-center gap-3 p-3.5 rounded-xl border text-left text-xs transition-all",
-                                isSelected 
-                                  ? "border-brand-olive bg-brand-olive/5 text-brand-olive font-bold shadow-sm" 
-                                  : "border-brand-border hover:bg-brand-bg/30 text-brand-dark bg-white"
-                              )}
-                            >
-                              <div className={clsx(
-                                "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                                isSelected ? "bg-brand-olive border-brand-olive text-white" : "border-brand-muted"
-                              )}>
-                                {isSelected && (
-                                  <svg className="w-3.5 h-3.5 stroke-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                              <span className="select-none font-medium">{condition}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Voice & Notes Area */}
-                    <div className="pt-4 border-t border-brand-border/40">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest">Customer Notes / Specific Requests</label>
-                        <button
-                          type="button"
-                          onClick={toggleRecording}
-                          className={`p-1 px-2.5 rounded-full transition-all flex items-center space-x-1 border ${isRecording ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-brand-bg text-brand-muted hover:text-brand-dark border-brand-border'}`}
-                        >
-                          {isRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                          <span className="text-[9px] font-bold uppercase tracking-wider">{isRecording ? 'Recording...' : 'Voice Note'}</span>
-                        </button>
-                      </div>
-                      <textarea 
-                        name="description" 
-                        rows={3} 
-                        value={formData.description} 
-                        onChange={handleChange}
-                        placeholder="Record or type any specific issues..."
-                        className="w-full border border-brand-border bg-brand-bg/10 p-3 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark resize-none transition-all" 
-                      />
-                    </div>
                   </div>
+
+                  {/* Photo Upload & Camera Container */}
+                  <div className="space-y-3 pt-4 border-t border-brand-border/60">
+                    <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Photo *</label>
+                    
+                    {isCameraActive ? (
+                      <div className="border border-brand-border rounded-2xl p-4 bg-black text-center space-y-4">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          className="w-full max-h-60 rounded-xl object-cover bg-black mx-auto"
+                        />
+                        <div className="flex gap-3 justify-center">
+                          <button
+                            type="button"
+                            onClick={capturePhoto}
+                            className="bg-brand-olive text-white font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg hover:bg-brand-olive/90 transition-all flex items-center gap-1.5"
+                          >
+                            <Camera className="w-4 h-4" />
+                            Capture Photo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="bg-brand-bg text-brand-dark font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg border border-brand-border hover:bg-white transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="border-2 border-dashed border-brand-border hover:border-brand-dark rounded-2xl p-6 text-center cursor-pointer transition-all bg-brand-bg/10 relative overflow-hidden group">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleShoeImageChange}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          {shoeImage ? (
+                            <div className="space-y-2">
+                              <img src={shoeImage} alt="Uploaded Shoe" className="mx-auto max-h-40 rounded-xl object-cover shadow-md" referrerPolicy="no-referrer" />
+                              <p className="text-[10px] text-red-500 font-semibold group-hover:underline">Click or drag to replace image</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="w-10 h-10 bg-white border border-brand-border rounded-full flex items-center justify-center mx-auto shadow-sm">
+                                <Upload className="w-4 h-4 text-brand-muted" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-brand-dark">Upload High-Res Footwear Diagnostics Photo</p>
+                                <p className="text-[9px] text-brand-muted mt-1">Accepts PNG, JPG (Max 10MB)</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {!shoeImage && (
+                          <button
+                            type="button"
+                            onClick={startCamera}
+                            className="w-full flex items-center justify-center gap-2 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-xl transition-all shadow-sm"
+                          >
+                            <Camera className="w-4 h-4" />
+                            Use Device Camera
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-              </div>
-            )}
-            
-            {currentStep === 1 && (
-              <div className="p-5 sm:p-8 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="text-center mb-8">
-                  <h3 className="font-serif text-2xl font-bold text-brand-dark mb-2">Restoration Packages</h3>
-                  <p className="text-sm text-brand-muted">Select the level of artisanship required for your footwear.</p>
-                </div>
-                <div className="space-y-4">
-                  {PACKAGES.map((pkg) => {
-                    const isSelected = formData.package === pkg.name;
-                    return (
-                      <div 
-                        key={pkg.name}
-                        onClick={() => setFormData(prev => ({ ...prev, package: pkg.name, packagePrice: pkg.price }))}
+              )}
+
+              {/* STEP 3: SERVICES, ACCESSORIES & INSURANCE */}
+              {currentStep === 2 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  
+                  {/* Package tier picker */}
+                  <div className="space-y-4">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                      Select Restoration Package
+                    </h3>
+
+                    <div className="space-y-3">
+                      {PACKAGES.map(pkg => {
+                        const isSelected = selectedPackage.name === pkg.name && !isBespoke;
+                        return (
+                          <div
+                            key={pkg.name}
+                            onClick={() => {
+                              setSelectedPackage(pkg);
+                              setIsBespoke(false);
+                            }}
+                            className={clsx(
+                              "border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-start",
+                              isSelected 
+                                ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.01]"
+                                : "border-brand-border bg-white text-brand-dark hover:border-brand-muted"
+                            )}
+                          >
+                            <div className="space-y-1">
+                              <h4 className="font-serif text-sm font-bold">{pkg.name}</h4>
+                              <p className={clsx("text-xs leading-relaxed", isSelected ? "text-gray-200" : "text-brand-muted")}>
+                                {pkg.description}
+                              </p>
+                            </div>
+                            <span className="font-mono text-sm font-bold pl-4">₹{pkg.price.toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+
+                      {/* Custom Bespoke Restoration selection */}
+                      <div
+                        onClick={() => setIsBespoke(true)}
                         className={clsx(
-                          "border-2 rounded-xl p-5 cursor-pointer transition-all duration-300",
-                          isSelected 
-                            ? "border-brand-dark bg-brand-dark text-white shadow-xl scale-[1.01]" 
-                            : "border-brand-border hover:border-brand-muted bg-white text-brand-dark"
+                          "border rounded-xl p-4 cursor-pointer transition-all space-y-3",
+                          isBespoke 
+                            ? "border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark"
+                            : "border-brand-border bg-white text-brand-dark hover:border-brand-muted"
                         )}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-serif text-lg font-bold">{pkg.name}</h4>
-                          <span className="font-mono text-base font-bold">₹{pkg.price.toLocaleString()}</span>
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-serif text-sm font-bold text-brand-dark">Bespoke Custom Restoration</h4>
+                          <span className="text-[9px] font-bold text-brand-olive uppercase tracking-wider bg-brand-bg border border-brand-border/60 px-2 py-0.5 rounded">Custom Rate</span>
                         </div>
-                        <p className={clsx(
-                          "text-xs leading-relaxed",
-                          isSelected ? "text-white/80" : "text-brand-muted"
-                        )}>
-                          {pkg.description}
+                        <p className="text-xs text-brand-muted">
+                          Establish a custom-built artisanal care program and price rate.
                         </p>
+                        
+                        {isBespoke && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-brand-border/40 animate-in slide-in-from-top-2 duration-150" onClick={e => e.stopPropagation()}>
+                            <div>
+                              <label className="block text-[9px] font-bold text-brand-dark uppercase tracking-wider mb-1">Custom Service Name</label>
+                              <input
+                                type="text"
+                                placeholder="Bespoke Sole & upper patina dye"
+                                value={customPackageName}
+                                onChange={e => setCustomPackageName(e.target.value)}
+                                className="w-full border border-brand-border rounded-lg p-2 text-xs focus:ring-1 focus:ring-brand-dark bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-brand-dark uppercase tracking-wider mb-1">Custom Price Rate (₹)</label>
+                              <input
+                                type="number"
+                                value={customPackagePrice}
+                                onChange={e => setCustomPackagePrice(Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-full border border-brand-border rounded-lg p-2 text-xs focus:ring-1 focus:ring-brand-dark bg-white font-mono"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    );
-                  })}
-
-                  {/* Bespoke Custom Option */}
-                  <div 
-                    onClick={() => {
-                      if (formData.package && PACKAGES.some(p => p.name === formData.package)) {
-                        setFormData(prev => ({ ...prev, package: 'Bespoke Custom Restoration', packagePrice: 1500 }));
-                      } else if (!formData.package) {
-                        setFormData(prev => ({ ...prev, package: 'Bespoke Custom Restoration', packagePrice: 1500 }));
-                      }
-                    }}
-                    className={clsx(
-                      "border-2 rounded-xl p-5 cursor-pointer transition-all duration-300 space-y-4",
-                      formData.package && !PACKAGES.some(p => p.name === formData.package)
-                        ? "border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark"
-                        : "border-brand-border hover:border-brand-muted bg-white text-brand-dark"
-                    )}
-                  >
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-serif text-lg font-bold text-brand-dark">Bespoke Custom Restoration</h4>
-                      <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-brand-olive bg-brand-bg px-2 py-0.5 rounded border border-brand-border">Bespoke</span>
                     </div>
-                    <p className="text-xs text-brand-muted leading-relaxed">
-                      Need a personalized quote or special premium treatments? Set a custom repair item and custom rate.
-                    </p>
+                  </div>
+
+                  {/* Shoe Plus items (supplies search and append) */}
+                  <div className="space-y-4 pt-4 border-t border-brand-border/60">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                      Shoe Plus Accessories & Supplies
+                    </h3>
                     
-                    {(formData.package && !PACKAGES.some(p => p.name === formData.package)) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-brand-border/40 animate-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div>
-                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Custom Service Name</label>
-                          <input 
-                            type="text"
-                            value={formData.package}
-                            onChange={(e) => setFormData(prev => ({ ...prev, package: e.target.value }))}
-                            className="w-full bg-white border border-brand-border rounded-xl p-2.5 text-xs text-brand-dark focus:outline-none focus:border-brand-accent transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest mb-1.5">Service Rate (₹)</label>
-                          <input 
-                            type="number"
-                            value={formData.packagePrice || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, packagePrice: Math.max(0, parseFloat(e.target.value) || 0) }))}
-                            className="w-full bg-white border border-brand-border rounded-xl p-2.5 text-xs font-mono text-brand-dark focus:outline-none focus:border-brand-accent transition-colors"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 2 && (
-              <div className="p-5 sm:p-8 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="text-center mb-8">
-                  <h3 className="font-serif text-2xl font-bold text-brand-dark mb-2">Artisanal Disclaimers & Limitations</h3>
-                  <p className="text-sm text-brand-muted">Preservation Notes.</p>
-                </div>
-                
-                <div className="prose prose-sm max-w-none text-brand-dark space-y-6 bg-brand-bg p-5 sm:p-8 rounded-xl">
-                  <p className="font-serif italic text-base sm:text-lg text-center mb-6">"Every effort is made to restore your footwear to its original glory, honoring the craft."</p>
-                  
-                  <ul className="space-y-4 list-none pl-0">
-                    <li className="flex items-start">
-                      <span className="w-5 h-5 flex items-center justify-center mr-3 font-bold text-brand-olive">•</span> 
-                      <span className="text-xs sm:text-sm"><strong className="uppercase text-[10px] tracking-widest block mb-1">Natural Characteristics:</strong> High-quality full-grain leather possesses natural characteristics. Variations in tone and texture are expected during recrafting.</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="w-5 h-5 flex items-center justify-center mr-3 font-bold text-brand-olive">•</span> 
-                      <span className="text-xs sm:text-sm"><strong className="uppercase text-[10px] tracking-widest block mb-1">Inherent Limitations:</strong> Existing deep scars, severe water rot, or heavily cracked uppers may set physical limitations on the final outcome of the restoration.</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="w-5 h-5 flex items-center justify-center mr-3 font-bold text-brand-olive">•</span> 
-                      <span className="text-xs sm:text-sm"><strong className="uppercase text-[10px] tracking-widest block mb-1">Third-Party Modifications:</strong> Cordwainers care is not responsible for structural failures caused by previous unauthorized modifications or repairs by third-party cobblers.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div className="p-5 sm:p-8 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="text-center mb-8">
-                  <h3 className="font-serif text-2xl font-bold text-brand-dark mb-2">Submission & Sign-Off</h3>
-                  <p className="text-sm text-brand-muted">Finalizing your service request.</p>
-                </div>
-
-                {/* Pricing Summary Review */}
-                <div className="bg-brand-bg/50 border border-brand-border rounded-xl p-5 space-y-2.5 text-xs">
-                  <h4 className="font-bold uppercase tracking-widest text-[10px] text-brand-dark border-b border-brand-border/40 pb-2 mb-2">Summary of Service</h4>
-                  <div className="flex justify-between text-brand-muted">
-                    <span>Service Level:</span>
-                    <span className="font-serif text-brand-dark font-semibold truncate max-w-[200px]">{formData.package || 'None selected'}</span>
-                  </div>
-                  <div className="flex justify-between text-brand-muted">
-                    <span>Base Service Cost:</span>
-                    <span className="font-mono text-brand-dark font-medium">₹{(formData.packagePrice || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-brand-muted">
-                    <span>GST (18% inclusive estimate):</span>
-                    <span className="font-mono text-brand-dark">₹{Math.round((formData.packagePrice || 0) * 0.18).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-brand-dark font-serif font-bold pt-2.5 border-t border-brand-border/50">
-                    <span className="uppercase text-[9px] tracking-wider font-sans font-bold">Estimated Total</span>
-                    <span className="text-sm sm:text-base text-brand-dark">₹{Math.round((formData.packagePrice || 0) * 1.18).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="bg-brand-bg p-5 rounded-xl">
-                  <h4 className="font-bold uppercase tracking-widest text-[10px] mb-3">Packing & Shipping Instructions</h4>
-                  <p className="text-xs text-brand-muted mb-4">
-                    Please safely pack your footwear in a rigid box, utilizing shoe trees if possible. We recommend wrapping each shoe in a dust bag to prevent transit scuffs.
-                  </p>
-                  <h4 className="font-bold uppercase tracking-widest text-[10px] mb-3 mt-6">Diagnostic Imagery</h4>
-                  <div className="border border-dashed border-brand-border bg-white rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors relative overflow-hidden">
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    {formData.shoeImage ? (
-                      <img src={formData.shoeImage} alt="Uploaded" className="mx-auto max-h-32 rounded object-cover" />
-                    ) : (
-                      <>
-                        <Upload className="w-6 h-6 text-brand-muted mx-auto mb-2" />
-                        <p className="text-xs font-bold text-brand-dark mb-0.5">Upload High-Res Photo</p>
-                        <p className="text-[10px] text-brand-muted">Profile, Sole, and Inner Lining (Max 10MB)</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t border-brand-border pt-6">
-                  <h4 className="font-bold uppercase tracking-widest text-[10px] mb-4">Authorization & Contact Options</h4>
-                  
-                  <div className="space-y-4">
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <div className="pt-0.5">
-                        <input 
-                          type="checkbox" 
-                          name="agreementAccepted"
-                          checked={formData.agreementAccepted}
-                          onChange={handleChange}
-                          className="w-4.5 h-4.5 rounded border-brand-border text-brand-dark focus:ring-0" 
-                        />
-                      </div>
-                      <span className="text-xs text-brand-dark leading-normal group-hover:text-black transition-colors">
-                        I approve this diagnostic assessment and understand that a final, itemized quotation will be issued upon physical inspection.
-                      </span>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <div className="pt-0.5">
-                        <input 
-                          type="checkbox" 
-                          name="receiveSmsUpdates"
-                          checked={formData.receiveSmsUpdates}
-                          onChange={handleChange}
-                          className="w-4.5 h-4.5 rounded border-brand-border text-brand-dark focus:ring-0" 
-                        />
-                      </div>
-                      <span className="text-xs text-brand-dark leading-normal group-hover:text-black transition-colors">
-                        Send automated real-time status updates via SMS / WhatsApp.
-                      </span>
-                    </label>
-
-                    <div className="pt-2">
-                      <label className="block text-[10px] font-bold text-brand-dark mb-1.5 uppercase tracking-widest">Digital Signature *</label>
-                      <input 
-                        required 
-                        type="text" 
-                        name="signature" 
-                        value={formData.signature} 
-                        onChange={handleChange}
-                        className="w-full border border-brand-border rounded-xl p-3 text-sm font-serif italic bg-brand-bg/10 focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark text-brand-dark placeholder:font-sans placeholder:not-italic" 
-                        placeholder="Type customer's name to sign" 
+                    {/* Add-on selector from real inventory */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-brand-muted" />
+                      <input
+                        type="text"
+                        placeholder="Search premium soles, laces, wood trees..."
+                        value={plusSearch}
+                        onChange={e => setPlusSearch(e.target.value)}
+                        className="w-full border border-brand-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/20"
                       />
                     </div>
+
+                    {/* Stock listing filtered */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto border border-brand-border rounded-xl p-3 bg-brand-bg/10">
+                      {inventory.filter(i => i.name.toLowerCase().includes(plusSearch.toLowerCase())).map(item => (
+                        <div key={item.id} className="bg-white border border-brand-border/60 p-2.5 rounded-lg flex justify-between items-center text-xs">
+                          <div>
+                            <p className="font-semibold text-brand-dark">{item.name}</p>
+                            <p className="text-[10px] text-brand-muted mt-0.5">₹{item.price || 350} • In Stock: {item.quantity}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addPlusItem(item)}
+                            className="bg-brand-dark hover:bg-brand-muted text-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all"
+                          >
+                            <Plus className="w-3 h-3" /> Add
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Current chosen shoe plus bundle */}
+                    {plusItems.length > 0 && (
+                      <div className="bg-white border border-brand-border rounded-xl p-4 space-y-2.5">
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-widest border-b border-brand-border/40 pb-1">Chosen Shoe Plus Items</label>
+                        {plusItems.map(item => (
+                          <div key={item.id} className="flex justify-between items-center text-xs text-brand-dark">
+                            <span className="font-medium">{item.name} (₹{item.price})</span>
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => updatePlusQuantity(item.id, -1)} className="p-1 border border-brand-border rounded hover:bg-brand-bg"><Minus className="w-3 h-3" /></button>
+                              <span className="font-mono font-bold w-4 text-center">{item.quantity}</span>
+                              <button type="button" onClick={() => updatePlusQuantity(item.id, 1)} className="p-1 border border-brand-border rounded hover:bg-brand-bg"><Plus className="w-3 h-3" /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Insurance cover protection */}
+                  <div className="space-y-4 pt-4 border-t border-brand-border/60">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                      Shoe Insurance Cover Plan
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {INSURANCE_PLANS.map(plan => {
+                        const isSelected = insurancePlan.id === plan.id;
+                        return (
+                          <button
+                            key={plan.id}
+                            type="button"
+                            onClick={() => setInsurancePlan(plan)}
+                            className={clsx(
+                              "p-4 rounded-xl border text-left flex flex-col justify-between transition-all space-y-2",
+                              isSelected 
+                                ? "border-brand-olive bg-brand-olive/5 text-brand-dark ring-1 ring-brand-olive font-bold"
+                                : "border-brand-border bg-white hover:bg-brand-bg/30 text-brand-muted"
+                            )}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center w-full">
+                                <span className="font-serif text-xs font-extrabold text-brand-dark">{plan.name}</span>
+                                {plan.price > 0 && <span className="font-mono text-[10px] font-bold text-brand-olive bg-brand-bg px-1.5 py-0.5 rounded border border-brand-border">Cover</span>}
+                              </div>
+                              <p className="text-[10px] leading-snug text-brand-muted">{plan.description}</p>
+                            </div>
+                            <span className="font-mono text-xs font-bold text-brand-dark block pt-2">₹{plan.price.toLocaleString()}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* STEP 4: DISCOUNT & CONFIRMATION */}
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  
+                  {/* Offers Dropdown */}
+                  <div className="space-y-4">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                      Coupon Offers & Custom Discounts
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Apply Standard Offer Promo</label>
+                        <select
+                          value={selectedOffer.code}
+                          onChange={e => {
+                            const chosen = OFFER_CODES.find(o => o.code === e.target.value);
+                            if (chosen) setSelectedOffer(chosen);
+                          }}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer font-sans"
+                        >
+                          {OFFER_CODES.map(o => (
+                            <option key={o.code} value={o.code}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Custom Discount Field */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Or Manual Discount</label>
+                        <div className="flex gap-2">
+                          <select
+                            value={customDiscountType}
+                            onChange={e => setCustomDiscountType(e.target.value as any)}
+                            className="border border-brand-border rounded-xl p-3 text-xs bg-brand-bg/10 focus:outline-none"
+                          >
+                            <option value="percent">% Off</option>
+                            <option value="absolute">₹ Off</option>
+                          </select>
+                          <input
+                            type="number"
+                            placeholder="Value"
+                            value={customDiscountValue || ''}
+                            onChange={e => setCustomDiscountValue(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="flex-1 border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes input */}
+                  <div className="space-y-4 pt-4 border-t border-brand-border/60">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                      Studio Inspector Notes / Instructions
+                    </h3>
+                    <textarea
+                      rows={3}
+                      placeholder="e.g. Inspect heel counter stitching meticulously. Avoid excess cream on burnished toe caps."
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                      className="w-full border border-brand-border bg-brand-bg/10 p-3.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-dark text-brand-dark resize-none transition-all placeholder-brand-muted/45"
+                    />
+                  </div>
+
+                  {/* Authorization Disclaimers */}
+                  <div className="bg-brand-bg/40 border border-brand-border rounded-xl p-5 space-y-4">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-brand-dark border-b border-brand-border pb-1">Diagnostic Legal Terms & Limited Warranty</h4>
+                    <p className="text-[10.5px] leading-relaxed text-brand-muted">
+                      Every handcrafted care program involves unique material characteristics. Minor tonal variation is expected. The client understands that pre-existing structural damage or severe leather rot poses physical limitations. Cordwainers holds a standard liability limit.
+                    </p>
+                    
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={e => setTermsAccepted(e.target.checked)}
+                        className="w-4.5 h-4.5 border-brand-border rounded focus:ring-0 text-brand-dark"
+                      />
+                      <span className="text-[11px] font-semibold text-brand-dark">The client authorizes these diagnostic assessment terms.</span>
+                    </label>
+                  </div>
+
+                </div>
+              )}
+
+              {/* NAVIGATION BUTTONS */}
+              <div className="flex justify-between items-center pt-6 border-t border-brand-border mt-6">
+                {currentStep > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(currentStep - 1)}
+                    className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-brand-muted hover:text-brand-dark px-2 py-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Return
+                  </button>
+                ) : <div />}
+
+                {currentStep < 3 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentStep === 0 && (!clientName || !clientPhone)) {
+                        alert('Required: Name and Mobile Number.');
+                        return;
+                      }
+                      if (currentStep === 1 && !shoeModel) {
+                        alert('Required: Shoe model name.');
+                        return;
+                      }
+                      setCurrentStep(currentStep + 1);
+                    }}
+                    className="flex items-center gap-1 bg-brand-dark text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand-muted transition-all"
+                  >
+                    Continue <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 bg-brand-olive text-white px-7 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-opacity-90 transition-all shadow-md"
+                  >
+                    <FileCheck className="w-4 h-4" /> Generate Invoice & Save
+                  </button>
+                )}
+              </div>
+
+            </form>
+
+          </div>
+
+          {/* RIGHT SIDE: LIVE RECALCULATING INVOICE PREVIEW (5 Columns) */}
+          <div className="lg:col-span-5 bg-white border border-brand-border rounded-2xl shadow-xl p-6 space-y-6 print:block print:border-none print:shadow-none print:p-0">
+            <h3 className="font-serif text-lg font-bold text-gray-900 border-b border-brand-border/60 pb-2 flex items-center justify-between print:hidden">
+              <span>Live Receipt Invoice</span>
+              <span className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-olive bg-brand-bg border border-brand-border/60 px-2 py-0.5 rounded animate-pulse">Live</span>
+            </h3>
+
+            {/* Skeuomorphic Printed-Paper Container */}
+            <div className="bg-white border border-gray-200 p-6 rounded-xl space-y-5 font-mono text-xs text-gray-800 shadow-sm relative overflow-hidden">
+              
+              {/* Receipt Header */}
+              <div className="text-center space-y-1">
+                <h4 className="font-serif text-sm font-extrabold uppercase tracking-wider text-black">Cordwainers Studio</h4>
+                <p className="text-[10px] text-gray-500">Luxury Shoe Restoration & Cobblers</p>
+                <p className="text-[9px] text-gray-500">Phone: +91 99000 88776 • Bangalore</p>
+              </div>
+
+              <hr className="border-dashed border-gray-300" />
+
+              {/* Invoice Meta */}
+              <div className="grid grid-cols-2 gap-y-1 text-[11px]">
+                <span className="text-gray-500">Client Profile:</span>
+                <span className="text-black font-semibold font-sans text-right">{clientName || 'Arvind K. Shukla'}</span>
+                
+                <span className="text-gray-500">Mobile No:</span>
+                <span className="text-black text-right">{clientPhone || '+91 99000 88776'}</span>
+
+                <span className="text-gray-500">Email ID:</span>
+                <span className="text-black text-right truncate pl-2">{clientEmail || 'no-email@cordwainers.com'}</span>
+              </div>
+
+              <hr className="border-dashed border-gray-300" />
+
+              {/* Assigned Representative Profile */}
+              <div className="flex items-center gap-3 bg-brand-bg/25 border border-brand-border/40 p-2.5 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border/30 flex items-center justify-center text-brand-muted">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-400 font-bold font-sans">Assigned Specialist</p>
+                  <p className="text-[11px] font-bold text-gray-900 font-sans">{customSalespersonName || salesperson.name}</p>
+                </div>
+              </div>
+
+              <hr className="border-dashed border-gray-300" />
+
+              {/* Footwear Diagnostics */}
+              <div className="space-y-2">
+                <p className="font-bold text-black font-sans text-[11px] tracking-wide">DIAGNOSED FOOTWEAR:</p>
+                <div className="flex items-start gap-3">
+                  {shoeImage ? (
+                    <img
+                      src={shoeImage}
+                      alt="Diagnosed shoe"
+                      className="w-14 h-14 rounded object-cover border border-brand-border/30"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-gray-400">
+                      No Photo
+                    </div>
+                  )}
+                  <div className="space-y-0.5">
+                    <p className="font-sans font-bold text-[11px] text-gray-900 line-clamp-2">{shoeModel || 'Bespoke Allen Edmonds'}</p>
+                    <p className="text-[10px] text-gray-500">Size: {shoeSize || 'UK 9'} • {leatherType}</p>
                   </div>
                 </div>
               </div>
-            )}
 
-            <div className="bg-gray-50 p-4 sm:p-6 md:p-8 flex items-center justify-between border-t border-brand-border">
-              {currentStep > 0 ? (
-                <button 
-                  type="button" 
-                  onClick={() => setCurrentStep(s => s - 1)} 
-                  className="flex items-center space-x-1.5 text-brand-muted hover:text-brand-dark transition-colors font-bold uppercase tracking-widest text-[10px] sm:text-xs px-3 py-2"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Return</span>
-                </button>
-              ) : <div />}
-              
-              {currentStep < 3 ? (
-                <button 
-                  type="button" 
-                  onClick={nextStep} 
-                  className="flex items-center space-x-1.5 bg-brand-dark text-white px-5 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-brand-muted transition-all"
-                >
-                  <span>Continue</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <button 
-                  type="submit" 
-                  className="flex items-center space-x-1.5 bg-brand-olive text-white px-5 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-opacity-90 transition-all shadow-md"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Submit for Assessment</span>
-                </button>
-              )}
-            </div>
+              <hr className="border-dashed border-gray-300" />
 
-          </form>
-        </div>
-      )}
-
-      {/* Care History Section */}
-      {activeTab === 'history' && (
-        <div className="bg-white border border-brand-border rounded-xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-brand-dark">Care History</h3>
-              <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">View and search all footwear care records</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <div className="relative w-full md:w-72">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-brand-muted" />
+              {/* Detailed itemized breakdown of repair cost */}
+              <div className="space-y-1.5 text-[11px]">
+                <p className="font-bold text-black font-sans text-[11px] tracking-wide mb-1">TOTAL RESTORATION DETAIL COST:</p>
+                
+                {/* Base Value */}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">- Initial Diagnostics/Base Fee:</span>
+                  <span className="text-black font-semibold">₹{basePrice}</span>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search history..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-brand-border rounded-md text-sm placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark bg-brand-bg transition-colors"
-                />
+
+                {/* Restoration package */}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">- Program: {getPackageName()}</span>
+                  <span className="text-black font-semibold">₹{getPackageCost()}</span>
+                </div>
+
+                {/* Shoe plus items */}
+                {plusItems.map(item => (
+                  <div key={item.id} className="flex justify-between pl-3 text-gray-600">
+                    <span>* Plus Add-on: {item.name} (x{item.quantity})</span>
+                    <span>₹{item.price * item.quantity}</span>
+                  </div>
+                ))}
+
+                {/* Insurance plan */}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">- protection: {insurancePlan.name}</span>
+                  <span className="text-black font-semibold">₹{getInsuranceCost()}</span>
+                </div>
               </div>
+
+              <hr className="border-dashed border-gray-300" />
+
+              {/* Total Calculation Area */}
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex justify-between">
+                  <span>Subtotal Cost:</span>
+                  <span>₹{getSubtotal()}</span>
+                </div>
+
+                {getDiscountAmount() > 0 && (
+                  <div className="flex justify-between text-red-600 font-semibold">
+                    <span>Coupon/Offer Discount:</span>
+                    <span>-₹{getDiscountAmount()}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between font-sans font-bold text-black text-xs pt-1.5 border-t border-gray-200">
+                  <span className="uppercase tracking-wider">Estimated Grand Total</span>
+                  <span className="text-sm">₹{getGrandTotal()}</span>
+                </div>
+                <p className="text-[8px] text-gray-400 font-sans italic text-right mt-1">Inclusive of estimated standard GST charges (18%)</p>
+              </div>
+
+              <hr className="border-dashed border-gray-300" />
+
+              {/* Print Footer / Terms Clickable Link */}
+              <div className="text-center pt-2 space-y-3">
+                <BarcodeSVG value="INV-CARE-PENDING" />
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-dark hover:underline border-b border-brand-dark mt-2.5 print:hidden"
+                >
+                  Intake Terms & Conditions Link
+                </button>
+                <p className="hidden print:block text-[8px] text-gray-400 text-center font-sans">
+                  Official Terms Link: https://cordwainers.com/care-terms
+                </p>
+              </div>
+
             </div>
           </div>
 
-        {filteredRepairs.length > 0 ? (
-          <>
-            {/* Desktop View */}
-            <div className="hidden md:block overflow-x-auto">
+        </div>
+      )}
+
+      {/* CARE RECORDS HISTORY TABLE */}
+      {activeTab === 'history' && (
+        <div className="bg-white border border-brand-border rounded-2xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
+            <div>
+              <h3 className="font-serif text-2xl font-bold text-brand-dark">CW Care Intake Logs</h3>
+              <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Search or delete customer care records & premium diagnostic assessments</p>
+            </div>
+            
+            <div className="relative w-full md:w-80">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-brand-muted" />
+              </span>
+              <input
+                type="text"
+                placeholder="Search Client, Model or Ticket ID..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 border border-brand-border rounded-xl text-xs placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg transition-colors"
+              />
+            </div>
+          </div>
+
+          {filteredRepairs.length > 0 ? (
+            <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-brand-border">
                 <thead>
                   <tr className="bg-brand-bg">
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Ticket</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Customer / Shoe</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Restoration Tier</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Date</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Est. Cost</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Status</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-bold text-brand-olive tracking-widest uppercase">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Ticket ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Client Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Diagnosed Footwear</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Care Specialist</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Intake Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Amount</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-brand-olive uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-brand-border bg-white">
-                  {filteredRepairs.map((repair) => (
-                    <tr key={repair.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-mono font-medium text-brand-dark">
-                        {repair.invoiceNumber}
+                <tbody className="bg-white divide-y divide-brand-border">
+                  {filteredRepairs.map(item => (
+                    <tr key={item.id} className="hover:bg-brand-bg/25 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono font-bold text-brand-dark">
+                        {item.invoiceNumber}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-brand-dark">{repair.customerName}</div>
-                        <div className="text-xs text-brand-muted mt-0.5">{repair.shoeModel}</div>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-brand-dark">
+                        {item.customerName}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-brand-dark">
-                        {Array.isArray(repair.repairType) ? repair.repairType.join(', ') : repair.repairType}
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-muted">
+                        {item.shoeModel}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-xs text-brand-muted">
-                        {format(new Date(repair.createdAt), 'MMM d, yyyy')}
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-dark">
+                        {item.receivedBy}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-serif font-bold text-brand-dark">
-                        ₹{(repair.price || 0).toLocaleString()}
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-muted">
+                        {format(new Date(item.createdAt), 'MMM dd, yyyy')}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={clsx(
-                          "inline-flex items-center px-2 py-1 rounded text-xs font-bold border",
-                          repair.status === 'Received' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          repair.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          repair.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                          'bg-slate-50 text-slate-700 border-slate-200'
-                        )}>
-                          {repair.status}
-                        </span>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-serif font-bold text-brand-dark">
+                        ₹{(item.price || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                         <button
                           type="button"
                           onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this repair record?')) {
-                              deleteRepair(repair.id);
+                            if (window.confirm(`Are you sure you want to permanently delete intake record for ${item.customerName}?`)) {
+                              deleteRepair(item.id);
                             }
                           }}
                           className="text-brand-muted hover:text-red-500 transition-colors p-1"
-                          title="Delete Record"
+                          title="Delete Intake Log"
                         >
                           <Trash2 className="w-4 h-4 inline" />
                         </button>
@@ -827,65 +1367,60 @@ export default function NewRepair() {
                 </tbody>
               </table>
             </div>
-
-            {/* Mobile View */}
-            <div className="md:hidden space-y-4">
-              {filteredRepairs.map((repair) => (
-                <div key={repair.id} className="border border-brand-border rounded-lg p-4 space-y-3 bg-brand-bg/20 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-xs font-mono font-bold text-brand-dark">{repair.invoiceNumber}</span>
-                      <h4 className="font-semibold text-sm text-brand-dark mt-1">{repair.customerName}</h4>
-                      <p className="text-xs text-brand-muted">{repair.shoeModel}</p>
-                    </div>
-                    <span className={clsx(
-                      "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border",
-                      repair.status === 'Received' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      repair.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      repair.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                      'bg-slate-50 text-slate-700 border-slate-200'
-                    )}>
-                      {repair.status}
-                    </span>
-                  </div>
-
-                  <div className="text-xs text-brand-dark flex flex-wrap justify-between pt-2 border-t border-brand-border/60">
-                    <div>
-                      <span className="text-brand-muted">Tier: </span>
-                      <span className="font-medium">{Array.isArray(repair.repairType) ? repair.repairType.join(', ') : repair.repairType}</span>
-                    </div>
-                    <div className="font-serif font-bold text-brand-dark">
-                      ₹{(repair.price || 0).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2 text-[10px] text-brand-muted border-t border-brand-border/60">
-                    <span>{format(new Date(repair.createdAt), 'MMMM d, yyyy')}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this repair record?')) {
-                          deleteRepair(repair.id);
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-700 font-bold uppercase tracking-widest text-[10px] flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+          ) : (
+            <div className="text-center py-16 border-2 border-dashed border-brand-border rounded-2xl bg-brand-bg/10">
+              <p className="text-xs text-brand-muted italic">
+                {searchQuery ? 'No intake logs matched your search filters.' : 'No customer intake records registered in CW Care yet.'}
+              </p>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-12 border border-dashed border-brand-border rounded-xl bg-brand-bg/10">
-            <p className="text-sm text-brand-muted italic">
-              {searchQuery ? 'No care history records found matching your query.' : 'No care records logged in CW Care yet.'}
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
+
+      {/* TERMS AND CONDITIONS MODAL LINK */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white border border-brand-border rounded-2xl p-6 md:p-8 max-w-lg w-full relative space-y-5 animate-in zoom-in-95">
+            <button
+              type="button"
+              onClick={() => setShowTermsModal(false)}
+              className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark p-1.5 rounded-full hover:bg-brand-bg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-2 text-center border-b border-brand-border pb-4">
+              <ShieldCheck className="w-10 h-10 text-brand-olive mx-auto" />
+              <h3 className="font-serif text-xl font-bold text-brand-dark">CW Care Handcrafted Terms</h3>
+              <p className="text-[10px] text-brand-muted uppercase tracking-widest font-semibold">Official Code of Handcrafted Restoration Service</p>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto text-xs text-brand-muted space-y-4 pr-1 leading-relaxed">
+              <p>
+                <strong>1. Diagnostics Inspection:</strong> Every incoming shoe undergoes manual inspection by our chief inspection team before being allocated to specialized cordwainers.
+              </p>
+              <p>
+                <strong>2. Material Character & Aging:</strong> Cordwainers utilizes high-grade, vegetable-tanned full grain leathers and premium stack blocks. Slight variations in density, patina, or dye absorption are a natural feature of fine-grade skins.
+              </p>
+              <p>
+                <strong>3. Pre-existing Failures:</strong> Inherent structural failures (severe leather rot, dry-rot, and previous sub-standard cobbler modifications) place objective physical boundaries on recovery results. We communicate these limits prior to repair.
+              </p>
+              <p>
+                <strong>4. Guarantee & Limit of Liability:</strong> Completed works hold a 30-day standard satisfaction guarantee. Claims are subject to assessment. Cordwainers’ liability is capped at twice the total cost of service.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowTermsModal(false)}
+              className="w-full py-3 bg-brand-dark text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand-muted transition-colors text-center"
+            >
+              Understand & Close
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

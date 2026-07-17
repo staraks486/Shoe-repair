@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -7,8 +8,15 @@ import Customers from './pages/Customers';
 import Insurance from './pages/Insurance';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
+import { useAppStore } from './store';
 
 export default function App() {
+  const fetchFromFirestore = useAppStore((state) => state.fetchFromFirestore);
+
+  useEffect(() => {
+    fetchFromFirestore();
+  }, [fetchFromFirestore]);
+
   return (
     <BrowserRouter>
       <Layout>

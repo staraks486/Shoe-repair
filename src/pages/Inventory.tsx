@@ -12,9 +12,11 @@ import {
   Check, 
   Info,
   Layers,
-  CircleDollarSign
+  CircleDollarSign,
+  Camera
 } from 'lucide-react';
 import clsx from 'clsx';
+import BarcodeScannerModal from '../components/BarcodeScannerModal';
 
 // Dynamic, visual barcode rendering component using SVGs and geometric rects
 function VisualBarcode({ value }: { value: string }) {
@@ -75,6 +77,7 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -137,8 +140,8 @@ export default function Inventory() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-6 pb-12 animate-in fade-in duration-300">
       
-      {/* Toggle View Segmented Control */}
-      <div className="flex justify-start">
+      {/* Toggle View Segmented Control and Scanner Trigger */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex bg-brand-bg p-1 rounded-lg border border-brand-border shadow-sm">
           <button
             type="button"
@@ -169,6 +172,15 @@ export default function Inventory() {
             <span>✨ Add Item</span>
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsScannerOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-dark hover:bg-brand-muted text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm text-white transition-colors cursor-pointer border border-brand-border/20"
+        >
+          <Camera className="w-4 h-4 text-emerald-400" />
+          <span>Scan Barcode Supplies</span>
+        </button>
       </div>
 
       {/* Care History (Stock List) Tab */}
@@ -521,6 +533,17 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        inventory={inventory}
+        onUpdateStock={(id, quantity) => updateInventoryItem(id, { quantity })}
+        onAddNewSupply={(barcode) => {
+          setActiveTab('add-item');
+          setFormData(prev => ({ ...prev, barcode }));
+        }}
+      />
     </div>
   );
 }

@@ -39,6 +39,10 @@ export interface ShoeRepairRequest {
   appliedOfferCode: string;
   discountAmount: number;
   salespersonId: string;
+  salespersonName?: string;
+  salespersonPhoto?: string;
+  basePrice?: number;
+  discountPercentage?: number;
   statusHistory: StatusHistory[];
   advance: number;
   balance: number;
@@ -99,6 +103,13 @@ export interface Offer {
   discountPercentage: number;
 }
 
+export interface ShoeCarePackage {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
+
 export interface Settings {
   storeName: string;
   address: string;
@@ -115,6 +126,7 @@ export interface Settings {
   whatsappTemplate: string;
   insurancePlans: InsurancePlan[];
   offers: Offer[];
+  shoeCarePackages?: ShoeCarePackage[];
   employees: Employee[];
   cobblers: Cobbler[];
   repairCharges: RepairCharge[];

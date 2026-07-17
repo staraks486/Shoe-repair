@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, PlusCircle, Shield } from 'lucide-react';
+import { Plus, PlusCircle, Shield, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 
@@ -11,6 +11,13 @@ export default function FloatingActionMenu() {
     <div className="fixed bottom-24 md:bottom-8 right-6 md:right-8 z-50 flex flex-col items-end">
       {isOpen && (
         <div className="flex flex-col items-end space-y-3 mb-4 animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <button 
+            onClick={() => { setIsOpen(false); navigate('/offers'); }}
+            className="flex items-center space-x-3 bg-white text-brand-dark px-5 py-3 rounded-full shadow-xl border border-brand-border hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-widest">Offers & Packages</span>
+            <Tag className="w-5 h-5 text-brand-olive" />
+          </button>
           <button 
             onClick={() => { setIsOpen(false); navigate('/new-repair?mode=step'); }}
             className="flex items-center space-x-3 bg-white text-brand-dark px-5 py-3 rounded-full shadow-xl border border-brand-border hover:bg-gray-50 transition-colors"

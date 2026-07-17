@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings, ChatMessage } from './types';
 import { NotificationService } from './services/NotificationService';
+import { db } from './services/firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDocs, 
+  deleteDoc, 
+  getDocFromServer 
+} from 'firebase/firestore';
 
 interface AppState {
   repairs: ShoeRepairRequest[];
@@ -10,12 +19,17 @@ interface AppState {
   insurance: ShoeInsurance[];
   settings: Settings;
   chatHistory: ChatMessage[];
+  syncErrorLogs: Array<{ id: string; timestamp: string; message: string; payloadCount: number }>;
+  lastSyncStatus: 'idle' | 'success' | 'error' | 'syncing';
+  lastSyncTime: string | null;
   
+  fetchFromFirestore: () => Promise<void>;
   addRepair: (repair: Omit<ShoeRepairRequest, 'id' | 'isSynced' | 'createdAt' | 'invoiceNumber'>) => ShoeRepairRequest;
   updateRepairStatus: (id: string, status: ShoeRepairRequest['status']) => void;
   updateRepair: (id: string, data: Partial<ShoeRepairRequest>) => void;
   deleteRepair: (id: string) => void;
   syncAllPending: () => Promise<void>;
+  clearSyncErrorLogs: () => void;
   
   addCustomer: (customer: Customer) => void;
   updateCustomer: (phoneNumber: string, data: Partial<Customer>) => void;
@@ -69,6 +83,11 @@ export const useAppStore = create<AppState>()(
         offers: [
           { id: '1', name: 'Welcome 10%', code: 'WELCOME10', discountPercentage: 10 }
         ],
+        shoeCarePackages: [
+          { id: '1', name: 'Standard Cleaning', description: 'Deep wash, internal deodorization & polish', price: 299 },
+          { id: '2', name: 'Premium Restoration', description: 'Complete leather conditioning, edge dressing & waterproofing', price: 599 },
+          { id: '3', name: 'Suede Deluxe Care', description: 'Stain extraction, pile revival & stain repellent guard', price: 449 }
+        ],
         employees: [],
         cobblers: [],
         repairCharges: [
@@ -78,9 +97,61 @@ export const useAppStore = create<AppState>()(
         theme: 'olive'
       },
       chatHistory: [],
+      syncErrorLogs: [],
+      lastSyncStatus: 'idle',
+      lastSyncTime: null,
+
+      fetchFromFirestore: async () => {
+        try {
+          const repairsSnapshot = await getDocs(collection(db, 'repairs'));
+          const repairsList: ShoeRepairRequest[] = [];
+          repairsSnapshot.forEach((doc) => {
+            repairsList.push(doc.data() as ShoeRepairRequest);
+          });
+
+          const customersSnapshot = await getDocs(collection(db, 'customers'));
+          const customersList: Customer[] = [];
+          customersSnapshot.forEach((doc) => {
+            customersList.push(doc.data() as Customer);
+          });
+
+          const inventorySnapshot = await getDocs(collection(db, 'inventory'));
+          const inventoryList: InventoryItem[] = [];
+          inventorySnapshot.forEach((doc) => {
+            inventoryList.push(doc.data() as InventoryItem);
+          });
+
+          const insuranceSnapshot = await getDocs(collection(db, 'insurance'));
+          const insuranceList: ShoeInsurance[] = [];
+          insuranceSnapshot.forEach((doc) => {
+            insuranceList.push(doc.data() as ShoeInsurance);
+          });
+
+          const settingsSnapshot = await getDocs(collection(db, 'settings'));
+          let settingsObj: Settings | null = null;
+          settingsSnapshot.forEach((doc) => {
+            if (doc.id === 'global_settings') {
+              settingsObj = doc.data() as Settings;
+            }
+          });
+
+          if (repairsList.length > 0 || customersList.length > 0 || inventoryList.length > 0 || insuranceList.length > 0 || settingsObj) {
+            set((state) => ({
+              repairs: repairsList.length > 0 ? repairsList : state.repairs,
+              customers: customersList.length > 0 ? customersList : state.customers,
+              inventory: inventoryList.length > 0 ? inventoryList : state.inventory,
+              insurance: insuranceList.length > 0 ? insuranceList : state.insurance,
+              settings: settingsObj ? { ...state.settings, ...settingsObj } : state.settings
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to fetch initial data from Firestore:", error);
+        }
+      },
 
       addRepair: (repairData) => {
         let createdRepair: ShoeRepairRequest | null = null;
+        let newCustomers: Customer[] = [];
         set((state) => {
           createdRepair = {
             ...repairData,
@@ -96,7 +167,7 @@ export const useAppStore = create<AppState>()(
           };
           
           const existingCustomerIndex = state.customers.findIndex(c => c.phoneNumber === repairData.phoneNumber);
-          const newCustomers = [...state.customers];
+          newCustomers = [...state.customers];
           
           if (existingCustomerIndex >= 0) {
             newCustomers[existingCustomerIndex] = {
@@ -119,6 +190,23 @@ export const useAppStore = create<AppState>()(
             customers: newCustomers
           };
         });
+        
+        // Write to Firestore asynchronously
+        if (createdRepair) {
+          const rep = createdRepair as ShoeRepairRequest;
+          setDoc(doc(db, 'repairs', rep.id), rep).catch(e => console.error("Firestore repairs set failed", e));
+          
+          const cust = newCustomers.find(c => c.phoneNumber === rep.phoneNumber);
+          if (cust) {
+            setDoc(doc(db, 'customers', cust.phoneNumber), cust).catch(e => console.error("Firestore customers set failed", e));
+          }
+        }
+        
+        // Trigger background sync to Google Sheets
+        setTimeout(() => {
+          get().syncAllPending().catch(err => console.error("Auto sync failed:", err));
+        }, 100);
+
         return createdRepair!;
       },
       
@@ -145,75 +233,225 @@ export const useAppStore = create<AppState>()(
           return { repairs: newRepairs };
         });
 
+        if (updatedRepair) {
+          const rep = updatedRepair as ShoeRepairRequest;
+          setDoc(doc(db, 'repairs', id), rep).catch(e => console.error("Firestore repairs update status failed", e));
+        }
+
         if (status === 'Completed' && updatedRepair) {
           NotificationService.sendStatusUpdateEmail(updatedRepair, settings);
           NotificationService.sendStatusUpdateSms(updatedRepair, settings);
         }
+
+        // Trigger background sync to Google Sheets
+        setTimeout(() => {
+          get().syncAllPending().catch(err => console.error("Auto sync failed:", err));
+        }, 100);
       },
 
-      updateRepair: (id, data) => set((state) => ({
-        repairs: state.repairs.map(r => r.id === id ? { ...r, ...data, isSynced: false } : r)
-      })),
+      updateRepair: (id, data) => {
+        let updatedRepair: ShoeRepairRequest | undefined;
+        set((state) => {
+          const newRepairs = state.repairs.map(r => {
+            if (r.id === id) {
+              updatedRepair = { ...r, ...data, isSynced: false };
+              return updatedRepair;
+            }
+            return r;
+          });
+          return { repairs: newRepairs };
+        });
 
-      deleteRepair: (id) => set((state) => ({
-        repairs: state.repairs.filter(r => r.id !== id)
-      })),
+        if (updatedRepair) {
+          setDoc(doc(db, 'repairs', id), updatedRepair).catch(e => console.error("Firestore repairs update failed", e));
+        }
+
+        // Trigger background sync to Google Sheets
+        setTimeout(() => {
+          get().syncAllPending().catch(err => console.error("Auto sync failed:", err));
+        }, 100);
+      },
+
+      deleteRepair: (id) => {
+        set((state) => ({
+          repairs: state.repairs.filter(r => r.id !== id)
+        }));
+        deleteDoc(doc(db, 'repairs', id)).catch(e => console.error("Firestore repairs delete failed", e));
+      },
       
       syncAllPending: async () => {
         const { settings, repairs } = get();
         if (settings.isOfflineMode) return;
         
         const pending = repairs.filter(r => !r.isSynced);
-        if (pending.length === 0) return;
+        if (pending.length === 0) {
+          set({ lastSyncStatus: 'success', lastSyncTime: new Date().toISOString() });
+          return;
+        }
+        
+        set({ lastSyncStatus: 'syncing' });
         
         try {
           if (settings.googleSheetsWebAppUrl) {
-             console.log('Syncing to Google Sheets', pending);
+            console.log('Syncing to Google Sheets', pending);
+            await fetch(settings.googleSheetsWebAppUrl, {
+              method: 'POST',
+              mode: 'no-cors', // Opaque request is extremely reliable for Google Sheets Web Apps to avoid CORS blocks
+              headers: {
+                'Content-Type': 'text/plain',
+              },
+              body: JSON.stringify({
+                action: 'syncRepairs',
+                repairs: pending.map(r => ({
+                  invoiceNumber: r.invoiceNumber,
+                  date: r.createdAt,
+                  customerName: r.customerName,
+                  phoneNumber: r.phoneNumber,
+                  email: r.email,
+                  shoeModel: r.shoeModel,
+                  price: r.price,
+                  status: r.status,
+                  repairType: r.repairType,
+                  advance: r.advance,
+                  receivedBy: r.receivedBy
+                }))
+              })
+            });
+          } else {
+            throw new Error("Google Sheets Web App URL is not configured in settings.");
           }
           
           set((state) => ({
-            repairs: state.repairs.map(r => ({ ...r, isSynced: true }))
+            lastSyncStatus: 'success',
+            lastSyncTime: new Date().toISOString(),
+            repairs: state.repairs.map(r => {
+              if (pending.some(p => p.id === r.id)) {
+                return { ...r, isSynced: true };
+              }
+              return r;
+            })
           }));
-        } catch (error) {
-          console.error("Failed to sync", error);
+        } catch (error: any) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("Failed to sync to Google Sheets:", errorMessage);
+          
+          set((state) => ({
+            lastSyncStatus: 'error',
+            syncErrorLogs: [
+              {
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                message: errorMessage,
+                payloadCount: pending.length
+              },
+              ...state.syncErrorLogs
+            ].slice(0, 50) // Keep last 50 logs max
+          }));
+          
+          throw error;
+        }
+      },
+
+      clearSyncErrorLogs: () => set({ syncErrorLogs: [] }),
+      
+      addCustomer: (customer) => {
+        set((state) => ({
+          customers: [...state.customers, customer]
+        }));
+        setDoc(doc(db, 'customers', customer.phoneNumber), customer).catch(e => console.error("Firestore customer add failed", e));
+      },
+      
+      updateCustomer: (phone, data) => {
+        let updatedCustomer: Customer | undefined;
+        set((state) => {
+          const newCustomers = state.customers.map(c => {
+            if (c.phoneNumber === phone) {
+              updatedCustomer = { ...c, ...data };
+              return updatedCustomer;
+            }
+            return c;
+          });
+          return { customers: newCustomers };
+        });
+        if (updatedCustomer) {
+          setDoc(doc(db, 'customers', phone), updatedCustomer).catch(e => console.error("Firestore customer update failed", e));
         }
       },
       
-      addCustomer: (customer) => set((state) => ({
-        customers: [...state.customers, customer]
-      })),
+      addInventoryItem: (item) => {
+        const id = generateId();
+        const newItem = { ...item, id };
+        set((state) => ({
+          inventory: [...state.inventory, newItem]
+        }));
+        setDoc(doc(db, 'inventory', id), newItem).catch(e => console.error("Firestore inventory add failed", e));
+      },
       
-      updateCustomer: (phone, data) => set((state) => ({
-        customers: state.customers.map(c => c.phoneNumber === phone ? { ...c, ...data } : c)
-      })),
+      updateInventoryItem: (id, data) => {
+        let updatedItem: InventoryItem | undefined;
+        set((state) => {
+          const newInventory = state.inventory.map(i => {
+            if (i.id === id) {
+              updatedItem = { ...i, ...data };
+              return updatedItem;
+            }
+            return i;
+          });
+          return { inventory: newInventory };
+        });
+        if (updatedItem) {
+          setDoc(doc(db, 'inventory', id), updatedItem).catch(e => console.error("Firestore inventory update failed", e));
+        }
+      },
       
-      addInventoryItem: (item) => set((state) => ({
-        inventory: [...state.inventory, { ...item, id: generateId() }]
-      })),
+      deleteInventoryItem: (id) => {
+        set((state) => ({
+          inventory: state.inventory.filter(i => i.id !== id)
+        }));
+        deleteDoc(doc(db, 'inventory', id)).catch(e => console.error("Firestore inventory delete failed", e));
+      },
       
-      updateInventoryItem: (id, data) => set((state) => ({
-        inventory: state.inventory.map(i => i.id === id ? { ...i, ...data } : i)
-      })),
-      
-      deleteInventoryItem: (id) => set((state) => ({
-        inventory: state.inventory.filter(i => i.id !== id)
-      })),
-      
-      addInsurance: (policy) => set((state) => ({
-        insurance: [...state.insurance, { ...policy, id: generateId(), createdAt: new Date().toISOString() }]
-      })),
+      addInsurance: (policy) => {
+        const id = generateId();
+        const createdAt = new Date().toISOString();
+        const newPolicy = { ...policy, id, createdAt };
+        set((state) => ({
+          insurance: [...state.insurance, newPolicy]
+        }));
+        setDoc(doc(db, 'insurance', id), newPolicy).catch(e => console.error("Firestore insurance add failed", e));
+      },
 
-      updateInsurance: (id, data) => set((state) => ({
-        insurance: state.insurance.map(i => i.id === id ? { ...i, ...data } : i)
-      })),
+      updateInsurance: (id, data) => {
+        let updatedInsurance: ShoeInsurance | undefined;
+        set((state) => {
+          const newInsurance = state.insurance.map(i => {
+            if (i.id === id) {
+              updatedInsurance = { ...i, ...data };
+              return updatedInsurance;
+            }
+            return i;
+          });
+          return { insurance: newInsurance };
+        });
+        if (updatedInsurance) {
+          setDoc(doc(db, 'insurance', id), updatedInsurance).catch(e => console.error("Firestore insurance update failed", e));
+        }
+      },
 
-      deleteInsurance: (id) => set((state) => ({
-        insurance: state.insurance.filter(i => i.id !== id)
-      })),
+      deleteInsurance: (id) => {
+        set((state) => ({
+          insurance: state.insurance.filter(i => i.id !== id)
+        }));
+        deleteDoc(doc(db, 'insurance', id)).catch(e => console.error("Firestore insurance delete failed", e));
+      },
       
-      updateSettings: (newSettings) => set((state) => ({
-        settings: { ...state.settings, ...newSettings }
-      })),
+      updateSettings: (newSettings) => {
+        set((state) => {
+          const updatedSettings = { ...state.settings, ...newSettings };
+          setDoc(doc(db, 'settings', 'global_settings'), updatedSettings).catch(e => console.error("Firestore settings update failed", e));
+          return { settings: updatedSettings };
+        });
+      },
       
       addChatMessage: (msg) => set((state) => ({
         chatHistory: [...state.chatHistory, { ...msg, id: generateId(), timestamp: new Date().toISOString() }]
