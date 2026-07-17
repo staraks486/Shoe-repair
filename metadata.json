@@ -1,0 +1,6 @@
+{
+  "name": "Shoe Repair & Cobbler Management System",
+  "description": "A comprehensive web application for managing shoe repairs, inventory, customers, and shop settings with offline capability and AI chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
