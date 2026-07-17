@@ -1,4 +1,5 @@
 export type RepairStatus = 'Received' | 'In Progress' | 'Completed' | 'Delivered';
+export type PriorityLevel = 'Low' | 'Medium' | 'High';
 
 export interface StatusHistory {
   timestamp: string;
@@ -16,6 +17,7 @@ export interface ShoeRepairRequest {
   description: string;
   photoUrl: string;
   status: RepairStatus;
+  priority?: PriorityLevel;
   shoeIcon: string;
   price: number;
   dueDate: string; // ISO date string
@@ -40,6 +42,7 @@ export interface ShoeRepairRequest {
   statusHistory: StatusHistory[];
   advance: number;
   balance: number;
+  receiveSmsUpdates?: boolean;
 }
 
 export interface Customer {
@@ -55,9 +58,10 @@ export interface InventoryItem {
   name: string;
   category: string; // 'Soles' | 'Heels' | 'Polish' | 'Laces' | 'Other'
   quantity: number;
-  price: number;
+  price?: number;
   unit: string;
   minThreshold: number;
+  barcode?: string;
 }
 
 export interface ShoeInsurance {
@@ -68,6 +72,12 @@ export interface ShoeInsurance {
   usageCount: number;
   maxUsage: number;
   status: 'Active' | 'Expired';
+  customerName?: string;
+  shoeModel?: string;
+  insurancePolicyNumber?: string;
+  insuranceType?: string;
+  createdAt?: string;
+  insurancePrice?: number;
 }
 
 export interface InsurancePlan {
@@ -75,7 +85,7 @@ export interface InsurancePlan {
   name: string;
   description: string;
   price: number;
-  servicesIncluded: string[];
+  servicesIncluded?: string[];
 }
 
 export interface Employee { id: string; name: string; role: string; mobile: string; email: string; }
@@ -109,7 +119,7 @@ export interface Settings {
   cobblers: Cobbler[];
   repairCharges: RepairCharge[];
   theme: 'light' | 'dark' | 'olive';
-  termsAndConditions: string;
+  termsAndConditions?: string;
 }
 
 export interface ChatMessage {

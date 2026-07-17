@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import IntroBanner from './IntroBanner';
+import FloatingActionMenu from './FloatingActionMenu';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { settings, updateSettings, syncAllPending, repairs } = useAppStore();
@@ -25,10 +26,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/new-repair', icon: PlusCircle, label: 'New Repair' },
-    { to: '/inventory', icon: Package, label: 'Add-ons' },
+    { to: '/new-repair', icon: PlusCircle, label: 'CW Care' },
+    { to: '/inventory', icon: Package, label: 'CW Plus' },
     { to: '/customers', icon: Users, label: 'Customers' },
-    { to: '/insurance', icon: Shield, label: 'Insurance' },
+    { to: '/insurance', icon: Shield, label: 'CW Cover' },
     { to: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
@@ -112,6 +113,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             {children}
           </div>
         </div>
+        <FloatingActionMenu />
       </main>
 
       {/* Mobile Footer Navigation */}

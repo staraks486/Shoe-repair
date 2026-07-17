@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings, ChatMessage } from './types';
+import { NotificationService } from './services/NotificationService';
 
 interface AppState {
   repairs: ShoeRepairRequest[];
@@ -12,6 +13,8 @@ interface AppState {
   
   addRepair: (repair: Omit<ShoeRepairRequest, 'id' | 'isSynced' | 'createdAt' | 'invoiceNumber'>) => ShoeRepairRequest;
   updateRepairStatus: (id: string, status: ShoeRepairRequest['status']) => void;
+  updateRepair: (id: string, data: Partial<ShoeRepairRequest>) => void;
+  deleteRepair: (id: string) => void;
   syncAllPending: () => Promise<void>;
   
   addCustomer: (customer: Customer) => void;
@@ -22,6 +25,8 @@ interface AppState {
   deleteInventoryItem: (id: string) => void;
   
   addInsurance: (policy: Omit<ShoeInsurance, 'id' | 'createdAt'>) => void;
+  updateInsurance: (id: string, data: Partial<ShoeInsurance>) => void;
+  deleteInsurance: (id: string) => void;
   
   updateSettings: (settings: Partial<Settings>) => void;
   
@@ -117,17 +122,41 @@ export const useAppStore = create<AppState>()(
         return createdRepair!;
       },
       
-      updateRepairStatus: (id, status) => set((state) => ({
-        repairs: state.repairs.map(r => r.id === id ? { 
-          ...r, 
-          status, 
-          isSynced: false,
-          statusHistory: [...r.statusHistory, {
-            timestamp: new Date().toISOString(),
-            user: 'Staff',
-            status
-          }]
-        } : r)
+      updateRepairStatus: (id, status) => {
+        let updatedRepair: ShoeRepairRequest | undefined;
+        const settings = get().settings;
+        set((state) => {
+          const newRepairs = state.repairs.map(r => {
+            if (r.id === id) {
+              updatedRepair = { 
+                ...r, 
+                status, 
+                isSynced: false,
+                statusHistory: [...r.statusHistory, {
+                  timestamp: new Date().toISOString(),
+                  user: 'Staff',
+                  status
+                }]
+              };
+              return updatedRepair;
+            }
+            return r;
+          });
+          return { repairs: newRepairs };
+        });
+
+        if (status === 'Completed' && updatedRepair) {
+          NotificationService.sendStatusUpdateEmail(updatedRepair, settings);
+          NotificationService.sendStatusUpdateSms(updatedRepair, settings);
+        }
+      },
+
+      updateRepair: (id, data) => set((state) => ({
+        repairs: state.repairs.map(r => r.id === id ? { ...r, ...data, isSynced: false } : r)
+      })),
+
+      deleteRepair: (id) => set((state) => ({
+        repairs: state.repairs.filter(r => r.id !== id)
       })),
       
       syncAllPending: async () => {
@@ -172,6 +201,14 @@ export const useAppStore = create<AppState>()(
       
       addInsurance: (policy) => set((state) => ({
         insurance: [...state.insurance, { ...policy, id: generateId(), createdAt: new Date().toISOString() }]
+      })),
+
+      updateInsurance: (id, data) => set((state) => ({
+        insurance: state.insurance.map(i => i.id === id ? { ...i, ...data } : i)
+      })),
+
+      deleteInsurance: (id) => set((state) => ({
+        insurance: state.insurance.filter(i => i.id !== id)
       })),
       
       updateSettings: (newSettings) => set((state) => ({

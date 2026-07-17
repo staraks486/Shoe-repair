@@ -51,6 +51,45 @@ async function startServer() {
     }
   });
 
+  app.post("/api/notify/email", async (req, res) => {
+    try {
+      const { to, subject, body } = req.body;
+      // In a real application, you would integrate SendGrid, Postmark, AWS SES, etc. here.
+      // For now, we simulate the email sending with a delay and a console log.
+      console.log(`\n[EMAIL SERVICE] Sending email...`);
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Body: ${body}\n`);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      res.json({ success: true, message: `Email sent successfully to ${to}` });
+    } catch (error: any) {
+      console.error("Email Notification Error:", error);
+      res.status(500).json({ error: "Failed to send email notification" });
+    }
+  });
+
+  app.post("/api/notify/sms", async (req, res) => {
+    try {
+      const { to, message } = req.body;
+      // In a real application, you would integrate Twilio, SNS, MessageBird, etc. here.
+      // For now, we simulate the SMS sending with a delay and a console log.
+      console.log(`\n[SMS SERVICE] Sending SMS...`);
+      console.log(`To: ${to}`);
+      console.log(`Message: ${message}\n`);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      res.json({ success: true, message: `SMS sent successfully to ${to}` });
+    } catch (error: any) {
+      console.error("SMS Notification Error:", error);
+      res.status(500).json({ error: "Failed to send SMS notification" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
