@@ -6,8 +6,10 @@ import NewRepair from './pages/NewRepair';
 import Inventory from './pages/Inventory';
 import Customers from './pages/Customers';
 import Insurance from './pages/Insurance';
-import Chat from './pages/Chat';
 import Settings from './pages/Settings';
+import CobblerDesk from './pages/CobblerDesk';
+import Offers from './pages/Offers';
+import SocialsPayments from './pages/SocialsPayments';
 import { useAppStore } from './store';
 
 export default function App() {
@@ -26,8 +28,10 @@ export default function App() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/insurance" element={<Insurance />} />
+          <Route path="/cobbler-desk" element={<CobblerDesk />} />
           <Route path="/add-insurance" element={<Navigate to="/insurance?tab=add-cover" replace />} />
-          <Route path="/chat" element={<Chat />} />
+          <Route path="/offers" element={<Offers />} />
+          <Route path="/socials-payments" element={<SocialsPayments />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>

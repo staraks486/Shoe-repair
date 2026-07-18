@@ -122,16 +122,29 @@ export default function Settings() {
     setTestMessage('');
 
     try {
-      await fetch(settings.googleSheetsWebAppUrl, {
+      const response = await fetch('/api/sync/google-sheets', {
         method: 'POST',
-        mode: 'no-cors', // Opaque request ensures we dispatch the connection successfully without CORS blocker
         headers: {
-          'Content-Type': 'text/plain',
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'test' })
+        body: JSON.stringify({ 
+          url: settings.googleSheetsWebAppUrl,
+          payload: { action: 'test' } 
+        })
       });
-      setTestStatus('success');
-      setTestMessage('Connected successfully! Dispatched a test ping. (Google Web App URL reached)');
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setTestStatus('success');
+        setTestMessage('Connected successfully! Dispatched a test ping. (Google Web App URL reached)');
+      } else {
+        throw new Error(result.data?.message || result.error || 'Failed to connect to Google Sheets');
+      }
     } catch (error: any) {
       console.error('Test connection error:', error);
       setTestStatus('error');
@@ -151,7 +164,7 @@ export default function Settings() {
       </header>
 
       <div className="flex space-x-2 border-b border-brand-border">
-        {['Store', 'Staff', 'Services', 'Offers & Packages', 'Integrations'].map(tab => (
+        {['Store', 'Staff', 'Integrations'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -324,237 +337,9 @@ export default function Settings() {
           </>
         )}
 
-        {activeTab === 'Services' && (
-          <>
-            {/* Repair Charges */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Repair Charges</h3>
-              <div className="space-y-4">
-                {settings.repairCharges?.map((charge, index) => (
-                  <div key={charge.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50">
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Service</label>
-                      <input type="text" value={charge.service} onChange={(e) => {
-                        const newItems = [...settings.repairCharges];
-                        newItems[index].service = e.target.value;
-                        updateSettings({ repairCharges: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Price (₹)</label>
-                      <input type="number" min="0" value={charge.price} onChange={(e) => {
-                        const newItems = [...settings.repairCharges];
-                        newItems[index].price = Number(e.target.value);
-                        updateSettings({ repairCharges: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => {
-                  updateSettings({
-                    repairCharges: [...(settings.repairCharges || []), { id: Math.random().toString(), service: 'New Service', price: 0 }]
-                  });
-                }} className="text-xs font-bold text-brand-accent uppercase hover:underline">
-                  + Add Service
-                </button>
-              </div>
-            </div>
 
-            {/* Insurance Plans */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Insurance Plans</h3>
-              <p className="text-xs text-brand-muted">
-                Configure the insurance plans offered to customers.
-              </p>
-              <div className="space-y-4">
-                {settings.insurancePlans?.map((plan, index) => (
-                  <div key={plan.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50">
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Plan Name</label>
-                      <input type="text" value={plan.name} onChange={(e) => {
-                        const newPlans = [...settings.insurancePlans];
-                        newPlans[index].name = e.target.value;
-                        updateSettings({ insurancePlans: newPlans });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Description</label>
-                      <input type="text" value={plan.description} onChange={(e) => {
-                        const newPlans = [...settings.insurancePlans];
-                        newPlans[index].description = e.target.value;
-                        updateSettings({ insurancePlans: newPlans });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Price (₹)</label>
-                      <input type="number" min="0" value={plan.price} onChange={(e) => {
-                        const newPlans = [...settings.insurancePlans];
-                        newPlans[index].price = Number(e.target.value);
-                        updateSettings({ insurancePlans: newPlans });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => {
-                  updateSettings({
-                    insurancePlans: [...(settings.insurancePlans || []), { id: Math.random().toString(), name: 'New Plan', description: '', price: 0 }]
-                  });
-                }} className="text-xs font-bold text-brand-accent uppercase hover:underline">
-                  + Add Insurance Plan
-                </button>
-              </div>
-            </div>
-          </>
-        )}
 
-        {activeTab === 'Offers & Packages' && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Offers & Discounts</h3>
-            <p className="text-xs text-brand-muted">
-              Configure coupons and discount offers.
-            </p>
-            <div className="space-y-4">
-              {settings.offers?.map((offer, index) => (
-                <div key={offer.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50">
-                  <div>
-                    <label className="block text-xs font-medium text-brand-dark mb-1">Offer Name</label>
-                    <input type="text" value={offer.name} onChange={(e) => {
-                      const newOffers = [...settings.offers];
-                      newOffers[index].name = e.target.value;
-                      updateSettings({ offers: newOffers });
-                    }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-brand-dark mb-1">Code</label>
-                    <input type="text" value={offer.code} onChange={(e) => {
-                      const newOffers = [...settings.offers];
-                      newOffers[index].code = e.target.value;
-                      updateSettings({ offers: newOffers });
-                    }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                  </div>
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Discount %</label>
-                      <input type="number" min="0" max="100" value={offer.discountPercentage} onChange={(e) => {
-                        const newOffers = [...settings.offers];
-                        newOffers[index].discountPercentage = Number(e.target.value);
-                        updateSettings({ offers: newOffers });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newOffers = settings.offers.filter(o => o.id !== offer.id);
-                        updateSettings({ offers: newOffers });
-                      }}
-                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors self-end mb-1"
-                      title="Delete Offer"
-                    >
-                      <XCircle className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button onClick={() => {
-                updateSettings({
-                  offers: [...(settings.offers || []), { id: Math.random().toString(), name: 'New Offer', code: 'NEWCODE', discountPercentage: 0 }]
-                });
-              }} className="text-xs font-bold text-brand-accent uppercase hover:underline">
-                + Add Offer
-              </button>
-            </div>
 
-            {/* Shoe Care Packages Section */}
-            <div className="pt-8 border-t border-brand-border mt-8 space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Shoe Care Packages</h3>
-              <p className="text-xs text-brand-muted">
-                Configure care and maintenance packages that can be selected for shoe restoration.
-              </p>
-              <div className="space-y-4">
-                {(settings.shoeCarePackages || []).map((pkg, index) => (
-                  <div key={pkg.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50 relative group">
-                    <div className="md:col-span-1">
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Package Name</label>
-                      <input 
-                        type="text" 
-                        value={pkg.name} 
-                        onChange={(e) => {
-                          const newPkgs = [...(settings.shoeCarePackages || [])];
-                          newPkgs[index].name = e.target.value;
-                          updateSettings({ shoeCarePackages: newPkgs });
-                        }} 
-                        className="w-full border border-brand-border rounded-md sm:text-sm bg-white p-2" 
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Description / Services</label>
-                      <input 
-                        type="text" 
-                        value={pkg.description} 
-                        onChange={(e) => {
-                          const newPkgs = [...(settings.shoeCarePackages || [])];
-                          newPkgs[index].description = e.target.value;
-                          updateSettings({ shoeCarePackages: newPkgs });
-                        }} 
-                        className="w-full border border-brand-border rounded-md sm:text-sm bg-white p-2" 
-                      />
-                    </div>
-                    <div className="md:col-span-1 flex gap-2 items-end">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-brand-dark mb-1">Price (₹)</label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          value={pkg.price} 
-                          onChange={(e) => {
-                            const newPkgs = [...(settings.shoeCarePackages || [])];
-                            newPkgs[index].price = Number(e.target.value);
-                            updateSettings({ shoeCarePackages: newPkgs });
-                          }} 
-                          className="w-full border border-brand-border rounded-md sm:text-sm bg-white p-2" 
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newPkgs = (settings.shoeCarePackages || []).filter(p => p.id !== pkg.id);
-                          updateSettings({ shoeCarePackages: newPkgs });
-                        }}
-                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors self-end mb-1"
-                        title="Delete Package"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                
-                <button 
-                  type="button"
-                  onClick={() => {
-                    updateSettings({
-                      shoeCarePackages: [...(settings.shoeCarePackages || []), { id: Math.random().toString(), name: 'New Care Package', description: 'Description of services included', price: 0 }]
-                    });
-                  }} 
-                  className="text-xs font-bold text-brand-accent uppercase hover:underline flex items-center gap-1"
-                >
-                  + Add Shoe Care Package
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Theme */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">App Theme</h3>
-          <select name="theme" value={settings.theme || 'olive'} onChange={handleChange}
-            className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="olive">Olive</option>
-          </select>
-        </div>
 
         {activeTab === 'Integrations' && (
           <div className="space-y-4">

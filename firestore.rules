@@ -13,5 +13,8 @@ service cloud.firestore {
     match /insurance/{insuranceId} {
       allow read, write: if true;
     }
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
   }
 }

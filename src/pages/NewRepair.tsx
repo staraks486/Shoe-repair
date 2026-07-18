@@ -34,16 +34,19 @@ import { format } from 'date-fns';
 
 const PACKAGES = [
   {
+    id: 'pkg-1',
     name: 'The Refresh & Polish',
     price: 2499,
     description: 'Deep leather cleansing, conditioning, minor scuff removal, edge dressing, and a hand-burnished cream polish finish.'
   },
   {
+    id: 'pkg-2',
     name: 'The Signature Recrafting',
     price: 8999,
     description: 'Includes everything in the Refresh package, plus a full out-sole replacement (Goodyear welted or Blake stitched reconstruction) and new premium stacked leather heel blocks.'
   },
   {
+    id: 'pkg-3',
     name: 'The Master Restoration',
     price: 14999,
     description: 'A complete strip-down and rebuilding of the shoe, replacing the cork filling, welting (if damaged), full re-sole, interior lining repair, and a complete hand-dyed patina restoration.'
@@ -117,16 +120,38 @@ function BarcodeSVG({ value }: { value: string }) {
   );
 }
 
+const FALLBACK_COBBLERS = [
+  { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt Recrafting' },
+  { id: 'C-002', name: 'Baldev Prasad', specialty: 'Exotic Patina & Dyeing' },
+  { id: 'C-003', name: 'Rajesh Solanki', specialty: 'Stitch Reconstruction' }
+];
+
 export default function NewRepair() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { repairs, addRepair, deleteRepair, inventory } = useAppStore();
+  const { repairs, addRepair, deleteRepair, inventory, settings, updateSettings } = useAppStore();
+
+  const carePackages = settings?.shoeCarePackages && settings.shoeCarePackages.length > 0
+    ? settings.shoeCarePackages
+    : PACKAGES;
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<{ id: string; name: string; price: number; description: string } | null>(null);
+
+  const activeCobblers = settings?.cobblers?.length > 0 ? settings.cobblers : FALLBACK_COBBLERS;
+  const [assignedCobblerId, setAssignedCobblerId] = useState<string>(activeCobblers[0].id);
+  const [advanceAmount, setAdvanceAmount] = useState<number>(0);
+  const [advancePaymentMethod, setAdvancePaymentMethod] = useState<'Cash' | 'Card' | 'UPI' | 'Bank Transfer'>('Cash');
+  const [transactionId, setTransactionId] = useState<string>('');
 
   const queryParams = new URLSearchParams(location.search);
-  const [activeTab, setActiveTab] = useState<'history' | 'new-repair'>(() => {
+  const [activeTab, setActiveTab] = useState<'history' | 'new-repair' | 'manage-services'>(() => {
     const tab = queryParams.get('tab');
     if (tab === 'new-repair' || queryParams.get('mode') === 'step') {
       return 'new-repair';
+    }
+    if (tab === 'manage-services') {
+      return 'manage-services';
     }
     return 'history';
   });
@@ -156,7 +181,7 @@ export default function NewRepair() {
   const [shoeImage, setShoeImage] = useState('');
   const [basePrice, setBasePrice] = useState(1500); // Base value/diagnostics fee of the footwear
 
-  const [selectedPackage, setSelectedPackage] = useState(PACKAGES[0]);
+  const [selectedPackage, setSelectedPackage] = useState(() => carePackages[0] || PACKAGES[0]);
   const [customPackageName, setCustomPackageName] = useState('');
   const [customPackagePrice, setCustomPackagePrice] = useState(2500);
   const [isBespoke, setIsBespoke] = useState(false);
@@ -226,8 +251,17 @@ export default function NewRepair() {
       setActiveTab('new-repair');
     } else if (tab === 'history') {
       setActiveTab('history');
+    } else if (tab === 'manage-services') {
+      setActiveTab('manage-services');
     }
   }, [location.search]);
+
+  // Ensure selectedPackage stays valid if packages list is edited
+  useEffect(() => {
+    if (carePackages.length > 0 && !carePackages.some(p => p.id === selectedPackage.id || p.name === selectedPackage.name)) {
+      setSelectedPackage(carePackages[0]);
+    }
+  }, [carePackages, selectedPackage]);
 
   // Handle footwear image upload
   const handleShoeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,8 +394,13 @@ export default function NewRepair() {
       salespersonName: salespersonNameVal,
       basePrice: basePrice,
       discountPercentage: selectedOffer.percentage || (customDiscountType === 'percent' ? customDiscountValue : 0),
-      advance: 0,
-      balance: getGrandTotal(),
+      advance: advanceAmount,
+      balance: Math.max(0, getGrandTotal() - advanceAmount),
+      paymentMethod: (advanceAmount > 0 ? advancePaymentMethod : 'None') as 'Cash' | 'Card' | 'UPI' | 'Bank Transfer' | 'Net Banking' | 'None',
+      paymentStatus: (advanceAmount === 0 ? 'Unpaid' : (advanceAmount >= getGrandTotal() ? 'Fully Paid' : 'Partially Paid')) as 'Unpaid' | 'Partially Paid' | 'Fully Paid',
+      transactionId: transactionId || '',
+      assignedCobblerId: assignedCobblerId,
+      assignedCobblerName: activeCobblers.find(c => c.id === assignedCobblerId)?.name || 'Unassigned',
       receiveSmsUpdates: true,
       statusHistory: [],
     };
@@ -408,7 +447,12 @@ TOTAL:
 ------
 Discount Applied: -₹${ticket.discountAmount || 0}
 GRAND TOTAL COST: ₹${ticket.price}
+Advance Paid: ₹${ticket.advance || 0} (${ticket.paymentMethod || 'N/A'})
+Remaining Balance: ₹${ticket.balance || 0}
+Payment Status: ${ticket.paymentStatus || 'Unpaid'}
+${ticket.transactionId ? `Transaction Ref: ${ticket.transactionId}` : ''}
 
+Artisan Assigned: ${ticket.assignedCobblerName || 'Unassigned'}
 Staff Inspector: ${ticket.receivedBy}
 ----------------------------------------
 Thank you for trusting Cordwainers Studio!
@@ -422,6 +466,49 @@ Thank you for trusting Cordwainers Studio!
     URL.revokeObjectURL(url);
   };
 
+  const handleSavePackage = () => {
+    if (!editingPackage || !editingPackage.name) {
+      alert('Please fill out the Care Name.');
+      return;
+    }
+
+    const currentPackages = settings?.shoeCarePackages && settings.shoeCarePackages.length > 0
+      ? settings.shoeCarePackages
+      : PACKAGES;
+
+    let updatedPackages;
+    if (editingPackage.id) {
+      // Edit existing
+      updatedPackages = currentPackages.map(p => 
+        (p.id === editingPackage.id || p.name === editingPackage.id)
+          ? { id: p.id || editingPackage.id, name: editingPackage.name, price: editingPackage.price, description: editingPackage.description }
+          : p
+      );
+    } else {
+      // Create new
+      const newPkg = {
+        id: `pkg-${Date.now()}`,
+        name: editingPackage.name,
+        price: editingPackage.price,
+        description: editingPackage.description
+      };
+      updatedPackages = [...currentPackages, newPkg];
+    }
+
+    updateSettings({ shoeCarePackages: updatedPackages });
+    setIsFormOpen(false);
+    setEditingPackage(null);
+  };
+
+  const handleDeletePackage = (id: string) => {
+    const currentPackages = settings?.shoeCarePackages && settings.shoeCarePackages.length > 0
+      ? settings.shoeCarePackages
+      : PACKAGES;
+
+    const updatedPackages = currentPackages.filter(p => p.id !== id && p.name !== id);
+    updateSettings({ shoeCarePackages: updatedPackages });
+  };
+
   const resetForm = () => {
     setClientName('');
     setClientPhone('');
@@ -432,12 +519,17 @@ Thank you for trusting Cordwainers Studio!
     setShoeImage('');
     setBasePrice(1500);
     setPlusItems([]);
-    setSelectedPackage(PACKAGES[0]);
+    setSelectedPackage(carePackages[0] || PACKAGES[0]);
     setIsBespoke(false);
     setInsurancePlan(INSURANCE_PLANS[0]);
     setSelectedOffer(OFFER_CODES[0]);
     setCustomDiscountValue(0);
     setNotes('');
+    setAdvanceAmount(0);
+    setTransactionId('');
+    if (activeCobblers.length > 0) {
+      setAssignedCobblerId(activeCobblers[0].id);
+    }
     setSubmittedInvoice(null);
     setCurrentStep(0);
   };
@@ -491,6 +583,21 @@ Thank you for trusting Cordwainers Studio!
             )}
           >
             ⚡ New Intake Ticket
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('manage-services');
+              resetForm();
+            }}
+            className={clsx(
+              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
+              activeTab === 'manage-services'
+                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
+                : "text-brand-muted hover:text-brand-dark"
+            )}
+          >
+            ✨ Care Catalog ({carePackages.length})
           </button>
         </div>
       </div>
@@ -751,13 +858,26 @@ Thank you for trusting Cordwainers Studio!
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Footwear Base Price / Value (₹)</label>
-                        <input
-                          type="number"
-                          value={basePrice}
-                          onChange={e => setBasePrice(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 font-mono"
-                        />
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Value Assessment (₹)</label>
+                          <span className="text-[10.5px] font-mono text-brand-olive font-black bg-brand-olive/10 px-2.5 py-0.5 rounded border border-brand-olive/20">₹{basePrice.toLocaleString()}</span>
+                        </div>
+                        <div className="space-y-2.5 bg-brand-bg/15 p-3 rounded-xl border border-brand-border/40">
+                          <input
+                            type="range"
+                            min="500"
+                            max="30000"
+                            step="500"
+                            value={basePrice}
+                            onChange={e => setBasePrice(parseInt(e.target.value) || 500)}
+                            className="w-full accent-brand-olive h-1.5 bg-brand-border rounded-lg cursor-pointer transition-all"
+                          />
+                          <div className="flex justify-between text-[7.5px] text-brand-muted font-bold uppercase tracking-wider">
+                            <span>Standard</span>
+                            <span>Premium Leather</span>
+                            <span>Cordovan Masterpiece</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -847,11 +967,11 @@ Thank you for trusting Cordwainers Studio!
                     </h3>
 
                     <div className="space-y-3">
-                      {PACKAGES.map(pkg => {
+                      {carePackages.map(pkg => {
                         const isSelected = selectedPackage.name === pkg.name && !isBespoke;
                         return (
                           <div
-                            key={pkg.name}
+                            key={pkg.id || pkg.name}
                             onClick={() => {
                               setSelectedPackage(pkg);
                               setIsBespoke(false);
@@ -1060,6 +1180,86 @@ Thank you for trusting Cordwainers Studio!
                           />
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Cobbler & Payment Details Section */}
+                  <div className="space-y-4 pt-4 border-t border-brand-border/60">
+                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                      Artisan & Payment Allocation
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Cobbler Assignment */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Assign Master Cobbler</label>
+                        <select
+                          value={assignedCobblerId}
+                          onChange={e => setAssignedCobblerId(e.target.value)}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer font-sans"
+                        >
+                          {activeCobblers.map((c: any) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} {c.specialty ? `— (${c.specialty})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Advance Paid */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Advance Deposit (₹)</label>
+                          <span className="text-[10.5px] font-mono text-brand-olive font-black bg-brand-olive/10 px-2.5 py-0.5 rounded border border-brand-olive/20">₹{advanceAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="space-y-2.5 bg-brand-bg/15 p-3 rounded-xl border border-brand-border/40">
+                          <input
+                            type="range"
+                            min="0"
+                            max={getGrandTotal() || 5000}
+                            step="50"
+                            value={advanceAmount}
+                            onChange={e => setAdvanceAmount(parseInt(e.target.value) || 0)}
+                            className="w-full accent-brand-olive h-1.5 bg-brand-border rounded-lg cursor-pointer transition-all"
+                          />
+                          <div className="flex justify-between text-[7.5px] text-brand-muted font-bold uppercase tracking-wider">
+                            <span>0% (Pay Later)</span>
+                            <span>Partial Deposit</span>
+                            <span>100% Fully Paid</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {advanceAmount > 0 && (
+                        <>
+                          {/* Payment Method */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Payment Method</label>
+                            <select
+                              value={advancePaymentMethod}
+                              onChange={e => setAdvancePaymentMethod(e.target.value as any)}
+                              className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer font-sans"
+                            >
+                              <option value="Cash">Cash</option>
+                              <option value="Card">Card</option>
+                              <option value="UPI">UPI</option>
+                              <option value="Bank Transfer">Bank Transfer</option>
+                            </select>
+                          </div>
+
+                          {/* Transaction ID */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Transaction ID / Reference</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. TXN987654321"
+                              value={transactionId}
+                              onChange={e => setTransactionId(e.target.value)}
+                              className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 font-mono"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1287,6 +1487,151 @@ Thank you for trusting Cordwainers Studio!
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* MANAGE SERVICES TIER CATALOG */}
+      {activeTab === 'manage-services' && (
+        <div className="bg-white border border-brand-border rounded-2xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
+            <div>
+              <h3 className="font-serif text-2xl font-bold text-brand-dark">CW Care Services</h3>
+              <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Configure luxury shoe restoration services, diagnostic options, and custom charges</p>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setEditingPackage({ id: '', name: '', price: 1000, description: '' });
+                setIsFormOpen(true);
+              }}
+              className="px-4 py-2.5 bg-brand-dark hover:bg-brand-muted text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> Add New Care Service
+            </button>
+          </div>
+
+          {/* Form Modal / Inline editor for adding/editing */}
+          {isFormOpen && editingPackage && (
+            <div className="mb-8 p-6 bg-brand-bg/30 border border-brand-border rounded-xl space-y-4 animate-in slide-in-from-top-4 duration-200">
+              <h4 className="font-serif text-sm font-bold text-brand-dark uppercase tracking-wide">
+                {editingPackage.id ? 'Edit Care Service' : 'Create Custom Care Service'}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="block text-[9px] font-bold text-brand-dark uppercase tracking-wider mb-1">Care Service Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Exotic Polish & Conditioning"
+                    value={editingPackage.name}
+                    onChange={e => setEditingPackage({ ...editingPackage, name: e.target.value })}
+                    className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-[9px] font-bold text-brand-dark uppercase tracking-wider mb-1">Charges / Amount (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 1500"
+                    value={editingPackage.price}
+                    onChange={e => setEditingPackage({ ...editingPackage, price: Math.max(0, parseInt(e.target.value) || 0) })}
+                    className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-[9px] font-bold text-brand-dark uppercase tracking-wider mb-1">Description / Services Included</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Saphir cream finish, minor scuff removal..."
+                    value={editingPackage.description}
+                    onChange={e => setEditingPackage({ ...editingPackage, description: e.target.value })}
+                    className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-brand-border/40">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setEditingPackage(null);
+                  }}
+                  className="px-4 py-2 border border-brand-border rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-white transition-all text-brand-dark"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePackage}
+                  className="px-4 py-2 bg-brand-olive text-white rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-brand-olive/95 transition-all"
+                >
+                  {editingPackage.id ? 'Save Changes' : 'Add Care Service'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* List of active Care Services */}
+          {carePackages.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {carePackages.map(pkg => (
+                <div 
+                  key={pkg.id || pkg.name}
+                  className="border border-brand-border rounded-xl p-5 bg-white flex flex-col justify-between hover:border-brand-dark hover:shadow-md transition-all group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-serif text-sm font-bold text-brand-dark leading-tight">{pkg.name}</h4>
+                      <span className="font-mono text-xs font-bold text-brand-olive bg-brand-olive/10 px-2 py-0.5 rounded border border-brand-olive/20 shrink-0">
+                        ₹{pkg.price.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-brand-muted leading-relaxed">
+                      {pkg.description || 'No description provided.'}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 justify-end mt-5 pt-3 border-t border-brand-bg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingPackage({
+                          id: pkg.id || pkg.name,
+                          name: pkg.name,
+                          price: pkg.price,
+                          description: pkg.description || ''
+                        });
+                        setIsFormOpen(true);
+                      }}
+                      className="p-1.5 hover:bg-brand-bg rounded-lg text-brand-accent hover:text-brand-dark transition-all text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete the care service "${pkg.name}"?`)) {
+                          handleDeletePackage(pkg.id || pkg.name);
+                        }
+                      }}
+                      className="p-1.5 hover:bg-red-50 rounded-lg text-brand-muted hover:text-red-600 transition-all text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 border-2 border-dashed border-brand-border rounded-2xl bg-brand-bg/10">
+              <p className="text-xs text-brand-muted italic">
+                No care services or restoration packages configured yet. Click above to add a new service!
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,19 +1,9 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-}) : null;
 
 async function startServer() {
   const app = express();
@@ -22,35 +12,6 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
-  app.post("/api/chat", async (req, res) => {
-    if (!ai) {
-      return res.status(500).json({ error: "Gemini API Key is missing. Please configure it in Settings > Secrets." });
-    }
-    
-    try {
-      const { message, history } = req.body;
-      
-      const chat = ai.chats.create({
-        model: "gemini-3.5-flash",
-        config: {
-          systemInstruction: "You are a helpful assistant for a Shoe Repair and Cobbler Management System. Provide tips on cobbler techniques, material suggestions, customer service drafts, or general management advice. Be concise and professional.",
-        },
-      });
-      
-      // If we wanted to pass history we could, but for simplicity we'll just send the current message 
-      // or we can pass a formatted history string.
-      const fullMessage = history && history.length > 0 
-        ? `Previous Context:\n${history.map((m: any) => `${m.role}: ${m.content}`).join('\n')}\n\nCurrent Question: ${message}`
-        : message;
-
-      const response = await chat.sendMessage({ message: fullMessage });
-      res.json({ reply: response.text });
-    } catch (error: any) {
-      console.error("Chat Error:", error);
-      res.status(500).json({ error: error.message || "Failed to get AI response" });
-    }
-  });
-
   app.post("/api/notify/email", async (req, res) => {
     try {
       const { to, subject, body } = req.body;
@@ -90,6 +51,46 @@ async function startServer() {
     }
   });
 
+  app.post("/api/sync/google-sheets", async (req, res) => {
+    try {
+      const { url, payload } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "Google Sheets Web App URL is required" });
+      }
+
+      console.log(`[SYNC SERVICE] Syncing to Google Sheets: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // Google Apps Script redirects (302) are handled by node-fetch/native fetch usually,
+      // but sometimes we need to be careful. Native fetch in Node 18+ handles redirects.
+      
+      const data = await response.text();
+      let jsonData;
+      try {
+        jsonData = JSON.parse(data);
+      } catch (e) {
+        jsonData = { raw: data };
+      }
+
+      res.json({ 
+        success: response.ok, 
+        status: response.status,
+        data: jsonData 
+      });
+    } catch (error: any) {
+      console.error("Google Sheets Sync Error:", error);
+      res.status(500).json({ error: error.message || "Failed to sync to Google Sheets" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -100,7 +101,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

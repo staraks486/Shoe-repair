@@ -12,7 +12,10 @@ import {
   CheckCircle2, 
   ChevronRight, 
   ChevronLeft, 
-  Search 
+  Search,
+  Plus,
+  X,
+  Clock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -20,20 +23,23 @@ import { format } from 'date-fns';
 export default function Insurance() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { repairs, insurance, addInsurance, updateRepair, deleteInsurance, updateInsurance } = useAppStore();
+  const { repairs, insurance, addInsurance, updateRepair, deleteInsurance, updateInsurance, settings, updateSettings } = useAppStore();
   
   const queryParams = new URLSearchParams(location.search);
-  const [activeTab, setActiveTab] = useState<'history' | 'add-cover'>(() => {
+  const [activeTab, setActiveTab] = useState<'history' | 'add-cover' | 'manage-plans'>(() => {
     const tab = queryParams.get('tab');
-    if (tab === 'add-cover') {
-      return 'add-cover';
-    }
+    if (tab === 'add-cover') return 'add-cover';
+    if (tab === 'manage-plans') return 'manage-plans';
     return 'history';
   });
 
   const [currentStep, setCurrentStep] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
+  
+  // Custom Plan Management State
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [newService, setNewService] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -42,8 +48,51 @@ export default function Insurance() {
       setActiveTab('add-cover');
     } else if (tab === 'history') {
       setActiveTab('history');
+    } else if (tab === 'manage-plans') {
+      setActiveTab('manage-plans');
     }
   }, [location.search]);
+
+  const isExistingPlan = (planId: string) => {
+    return (settings.insurancePlans || []).some(p => p.id === planId);
+  };
+
+  const handleAddService = () => {
+    if (!newService.trim() || !editingPlan) return;
+    const services = editingPlan.servicesIncluded || [];
+    if (!services.includes(newService.trim())) {
+      setEditingPlan({
+        ...editingPlan,
+        servicesIncluded: [...services, newService.trim()]
+      });
+    }
+    setNewService('');
+  };
+
+  const handleRemoveService = (serviceName: string) => {
+    if (!editingPlan) return;
+    setEditingPlan({
+      ...editingPlan,
+      servicesIncluded: (editingPlan.servicesIncluded || []).filter((s: string) => s !== serviceName)
+    });
+  };
+
+  const handleSavePlan = (plan: any) => {
+    const currentPlans = settings.insurancePlans || [];
+    let updatedPlans;
+    if (currentPlans.some(p => p.id === plan.id)) {
+      updatedPlans = currentPlans.map(p => p.id === plan.id ? plan : p);
+    } else {
+      updatedPlans = [...currentPlans, plan];
+    }
+    updateSettings({ insurancePlans: updatedPlans });
+  };
+
+  const handleDeletePlan = (id: string) => {
+    const currentPlans = settings.insurancePlans || [];
+    const updatedPlans = currentPlans.filter(p => p.id !== id);
+    updateSettings({ insurancePlans: updatedPlans });
+  };
 
   // Combine repairs that have insurance, and standalone insurance policies
   const insuredRepairs = [
@@ -97,27 +146,6 @@ export default function Insurance() {
     signature: ''
   });
 
-  const tiers = [
-    {
-      name: 'The Artisan Care Tier',
-      price: '₹2,499',
-      description: 'Covers accidental scuffs, deep leather staining, and premature sole or welt separation. Includes complimentary annual conditioning.',
-      copay: '₹499'
-    },
-    {
-      name: 'The Executive Travel Tier',
-      price: '₹4,999',
-      description: 'Adds coverage for transit damage, airline loss, and accidental liquid/chemical spills.',
-      copay: '₹999'
-    },
-    {
-      name: 'The Heritage Vault Tier',
-      price: '₹9,999',
-      description: 'Full replacement or expert restoration coverage against fire, theft, water damage, or catastrophic leather degradation.',
-      copay: '₹1,999'
-    }
-  ];
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
@@ -134,13 +162,18 @@ export default function Insurance() {
       alert("Please accept the terms to proceed.");
       return;
     }
+    const chosenPlan = (settings.insurancePlans || []).find(p => p.name === formData.planName);
+    const maxUsage = chosenPlan ? (chosenPlan.name.includes('Heritage') || chosenPlan.price > 5000 ? 5 : 3) : 3;
+    const insurancePrice = chosenPlan ? chosenPlan.price : 0;
+    
     addInsurance({
       customerPhone: formData.customerPhone,
       shoeId: formData.serialNumber,
       planName: formData.planName,
       usageCount: 0,
-      maxUsage: formData.planName === 'The Heritage Vault Tier' ? 5 : 3,
+      maxUsage,
       status: 'Active',
+      insurancePrice,
       ...formData
     } as any);
 
@@ -206,6 +239,21 @@ export default function Insurance() {
             )}
           >
             <span>✨ Add Cover</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('manage-plans');
+              navigate('/insurance?tab=manage-plans', { replace: true });
+            }}
+            className={clsx(
+              "px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5",
+              activeTab === 'manage-plans'
+                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
+                : "text-brand-muted hover:text-brand-dark"
+            )}
+          >
+            <span>🛡️ Cover Plans ({(settings.insurancePlans || []).length})</span>
           </button>
         </div>
       </div>
@@ -479,20 +527,32 @@ export default function Insurance() {
                   <p className="text-sm text-brand-muted">Select the level of assurance appropriate for your investment.</p>
                 </div>
                 <div className="space-y-4">
-                  {tiers.map((tier) => (
+                  {(settings.insurancePlans || []).map((tier) => (
                     <div 
-                      key={tier.name}
+                      key={tier.id}
                       onClick={() => setFormData(prev => ({ ...prev, planName: tier.name }))}
                       className={clsx(
-                        "border-2 rounded-xl p-6 cursor-pointer transition-all duration-300",
+                        "border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 relative overflow-hidden",
                         formData.planName === tier.name 
                           ? "border-brand-dark bg-brand-dark text-white shadow-xl scale-[1.02]" 
                           : "border-brand-border hover:border-brand-muted bg-white text-brand-dark"
                       )}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-serif text-xl font-bold">{tier.name}</h4>
-                        <span className="font-mono text-lg">{tier.price}</span>
+                      <div className="flex justify-between items-start mb-2 gap-4">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h4 className="font-serif text-xl font-bold">{tier.name}</h4>
+                          <span className={clsx(
+                            "text-[9px] font-mono font-black uppercase tracking-widest px-2 py-0.5 rounded border",
+                            formData.planName === tier.name 
+                              ? "bg-white/15 text-white border-white/20" 
+                              : "bg-brand-bg text-brand-dark border-brand-border/40"
+                          )}>
+                            {tier.timePeriod || '12 Months'}
+                          </span>
+                        </div>
+                        <span className="font-mono text-lg font-bold shrink-0">
+                          {typeof tier.price === 'number' ? `₹${tier.price.toLocaleString()}` : tier.price}
+                        </span>
                       </div>
                       <p className={clsx(
                         "text-sm mb-4 leading-relaxed",
@@ -500,14 +560,36 @@ export default function Insurance() {
                       )}>
                         {tier.description}
                       </p>
-                      <div className={clsx(
-                        "inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-widest",
-                        formData.planName === tier.name ? "bg-white/10" : "bg-brand-bg"
-                      )}>
-                        Restoration Co-pay: {tier.copay}
-                      </div>
+
+                      {tier.servicesIncluded && tier.servicesIncluded.length > 0 && (
+                        <div className="mb-4">
+                          <span className={clsx("text-[9px] font-bold uppercase tracking-wider block mb-1.5", formData.planName === tier.name ? "text-white/80" : "text-brand-muted")}>Included Services:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {tier.servicesIncluded.map((svc, idx) => (
+                              <span key={idx} className={clsx("text-[9.5px] font-semibold px-2 py-0.5 rounded-sm border", formData.planName === tier.name ? "bg-white/10 text-white border-white/10" : "bg-brand-bg text-brand-dark border-brand-border/30")}>
+                                {svc}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {tier.copay && (
+                        <div className={clsx(
+                          "inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-widest",
+                          formData.planName === tier.name ? "bg-white/15" : "bg-brand-bg"
+                        )}>
+                          Restoration Co-pay: {tier.copay}
+                        </div>
+                      )}
                     </div>
                   ))}
+
+                  {(settings.insurancePlans || []).length === 0 && (
+                    <div className="text-center py-12 border border-dashed border-brand-border rounded-xl bg-brand-bg/10">
+                      <p className="text-sm text-brand-muted italic">No cover plans are available. Please create them in the 'Cover Plans' tab.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -614,6 +696,265 @@ export default function Insurance() {
               )}
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Cover Plans Management Tab */}
+      {activeTab === 'manage-plans' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300">
+          
+          {/* Left Column: Plan Catalog */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white border border-brand-border rounded-xl shadow-xl p-6 md:p-8 animate-in fade-in">
+              <div className="flex justify-between items-center border-b border-brand-border pb-4 mb-6">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-brand-dark">Cover Plans Catalog</h3>
+                  <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Manage active protection tiers and catalogs</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPlan({
+                      id: 'plan-' + Math.random().toString(36).substring(2, 9),
+                      name: '',
+                      description: '',
+                      price: 0,
+                      timePeriod: '12 Months',
+                      servicesIncluded: [],
+                      copay: ''
+                    });
+                    setNewService('');
+                  }}
+                  className="bg-brand-dark text-white hover:bg-brand-muted px-4 py-2 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Plan
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {(settings.insurancePlans || []).map((plan) => (
+                  <div 
+                    key={plan.id}
+                    className="border border-brand-border hover:border-brand-muted rounded-xl p-5 bg-white transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start gap-4 mb-2">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h4 className="font-serif text-lg font-bold text-brand-dark">{plan.name}</h4>
+                          <span className="text-[9px] font-mono font-black uppercase tracking-widest px-2 py-0.5 rounded bg-brand-bg text-brand-dark border border-brand-border/45">
+                            {plan.timePeriod || '12 Months'}
+                          </span>
+                        </div>
+                        <span className="font-mono text-base font-bold text-brand-dark shrink-0">
+                          {typeof plan.price === 'number' ? `₹${plan.price.toLocaleString()}` : plan.price}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-brand-muted mb-4 leading-relaxed">
+                        {plan.description}
+                      </p>
+
+                      {plan.servicesIncluded && plan.servicesIncluded.length > 0 && (
+                        <div className="mb-4">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-brand-dark block mb-1.5 font-sans">Included Services:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {plan.servicesIncluded.map((svc, i) => (
+                              <span key={i} className="text-[9.5px] font-semibold px-2 py-0.5 rounded-sm bg-brand-bg text-brand-dark border border-brand-border/30">
+                                {svc}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {plan.copay && (
+                        <div className="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-widest bg-brand-bg text-brand-muted text-[10px]">
+                          Restoration Co-pay: <span className="text-brand-dark font-mono font-bold">{plan.copay}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-brand-bg mt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPlan(plan);
+                          setNewService('');
+                        }}
+                        className="text-brand-muted hover:text-brand-dark font-bold uppercase tracking-widest text-[9px] flex items-center gap-1 p-1 transition-colors cursor-pointer"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Modify
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to delete the "${plan.name}" plan?`)) {
+                            handleDeletePlan(plan.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 font-bold uppercase tracking-widest text-[9px] flex items-center gap-1 p-1 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {(settings.insurancePlans || []).length === 0 && (
+                  <div className="text-center py-12 border border-dashed border-brand-border rounded-xl bg-brand-bg/10">
+                    <p className="text-sm text-brand-muted italic">No cover plans registered yet. Click 'Add Plan' to start designing.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Add/Edit Panel */}
+          <div className="lg:col-span-5">
+            <div className="bg-white border border-brand-border rounded-xl shadow-xl p-6 md:p-8 space-y-6 lg:sticky lg:top-6">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-brand-dark">
+                  {editingPlan ? (isExistingPlan(editingPlan.id) ? 'Modify Cover Plan' : 'Create Custom Plan') : 'Plan Designer'}
+                </h3>
+                <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">
+                  {editingPlan ? 'Refine pricing, coverage structure & services' : 'Select a plan to edit or create a brand new tier'}
+                </p>
+              </div>
+
+              {editingPlan ? (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <label className="block text-[10px] font-bold text-brand-dark mb-1 uppercase tracking-widest">Plan Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. The Sapphire Shield"
+                      value={editingPlan.name} 
+                      onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} 
+                      className="w-full border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-brand-dark mb-1 uppercase tracking-widest">Price (₹)</label>
+                      <input 
+                        type="number" 
+                        placeholder="e.g. 3500"
+                        value={editingPlan.price || ''} 
+                        onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value) || 0})} 
+                        className="w-full border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark font-mono" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-brand-dark mb-1 uppercase tracking-widest">Time Period</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. 12 Months, Lifetime"
+                        value={editingPlan.timePeriod} 
+                        onChange={e => setEditingPlan({...editingPlan, timePeriod: e.target.value})} 
+                        className="w-full border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark" 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-brand-dark mb-1 uppercase tracking-widest">Restoration Co-pay (Optional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. ₹499, Free"
+                      value={editingPlan.copay || ''} 
+                      onChange={e => setEditingPlan({...editingPlan, copay: e.target.value})} 
+                      className="w-full border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-brand-dark mb-1 uppercase tracking-widest">Description</label>
+                    <textarea 
+                      placeholder="Bespoke protection details..."
+                      rows={3}
+                      value={editingPlan.description} 
+                      onChange={e => setEditingPlan({...editingPlan, description: e.target.value})} 
+                      className="w-full border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark leading-relaxed" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-brand-dark mb-1.5 uppercase tracking-widest">Included Services List</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Annual Conditioning"
+                        value={newService} 
+                        onChange={e => setNewService(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddService();
+                          }
+                        }}
+                        className="flex-1 border border-brand-border rounded-md p-2.5 text-sm bg-brand-bg focus:outline-none focus:border-brand-dark" 
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddService}
+                        className="bg-brand-dark text-white px-4 rounded font-bold text-xs uppercase tracking-widest hover:bg-brand-muted transition-colors cursor-pointer"
+                      >
+                        Add
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {(editingPlan.servicesIncluded || []).map((svc: string, i: number) => (
+                        <span key={i} className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold px-2.5 py-1 rounded bg-brand-bg text-brand-dark border border-brand-border/40">
+                          <span>{svc}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveService(svc)}
+                            className="text-brand-muted hover:text-red-500 font-bold focus:outline-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {(editingPlan.servicesIncluded || []).length === 0 && (
+                        <span className="text-[10px] text-brand-muted italic">No specific services added yet</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-brand-border">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingPlan(null)} 
+                      className="flex-1 px-4 py-2.5 border border-brand-border rounded text-xs font-bold uppercase tracking-widest hover:bg-brand-bg text-center cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (!editingPlan.name.trim()) return alert('Plan Name is required');
+                        handleSavePlan(editingPlan);
+                        setEditingPlan(null);
+                      }} 
+                      className="flex-1 px-4 py-2.5 bg-brand-olive text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-opacity-95 text-center shadow-md border border-brand-olive/20 cursor-pointer"
+                    >
+                      Save Plan
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 border-2 border-dashed border-brand-border rounded-xl bg-brand-bg/5 space-y-2">
+                  <Shield className="w-8 h-8 text-brand-muted mx-auto opacity-40" />
+                  <p className="text-xs text-brand-muted font-medium max-w-[200px] mx-auto">
+                    Select a plan from the list to modify its details, or create a new custom tier catalog.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       )}
 

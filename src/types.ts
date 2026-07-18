@@ -1,4 +1,4 @@
-export type RepairStatus = 'Received' | 'In Progress' | 'Completed' | 'Delivered';
+export type RepairStatus = 'Received' | 'In Progress' | 'Polishing' | 'Completed' | 'Delivered';
 export type PriorityLevel = 'Low' | 'Medium' | 'High';
 
 export interface StatusHistory {
@@ -47,6 +47,21 @@ export interface ShoeRepairRequest {
   advance: number;
   balance: number;
   receiveSmsUpdates?: boolean;
+  paymentStatus?: 'Unpaid' | 'Partially Paid' | 'Fully Paid';
+  paymentMethod?: 'Cash' | 'Card' | 'UPI' | 'Bank Transfer' | 'Net Banking' | 'None';
+  transactionId?: string;
+  assignedCobblerId?: string;
+  assignedCobblerName?: string;
+  payments?: PaymentRecord[];
+}
+
+export interface PaymentRecord {
+  id: string;
+  amount: number;
+  method: 'Cash' | 'Card' | 'UPI' | 'Bank Transfer' | 'Net Banking' | 'None';
+  date: string; // ISO string
+  transactionId: string;
+  notes?: string;
 }
 
 export interface Customer {
@@ -89,7 +104,9 @@ export interface InsurancePlan {
   name: string;
   description: string;
   price: number;
+  timePeriod?: string;
   servicesIncluded?: string[];
+  copay?: string;
 }
 
 export interface Employee { id: string; name: string; role: string; mobile: string; email: string; }
@@ -122,6 +139,11 @@ export interface Settings {
   googleSheetsWebAppUrl: string;
   paymentLink: string;
   qrCode: string;
+  instagramLink?: string;
+  facebookLink?: string;
+  twitterLink?: string;
+  linkedinLink?: string;
+  websiteLink?: string;
   isOfflineMode: boolean;
   whatsappTemplate: string;
   insurancePlans: InsurancePlan[];
@@ -132,11 +154,4 @@ export interface Settings {
   repairCharges: RepairCharge[];
   theme: 'light' | 'dark' | 'olive';
   termsAndConditions?: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
 }

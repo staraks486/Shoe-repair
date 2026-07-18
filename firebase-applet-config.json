@@ -1,12 +1,10 @@
 {
-  "projectId": "farmer-s-gate-ddbbf",
-  "appId": "1:506460132530:web:d7c40c58444a12b50465ab",
-  "apiKey": "AIzaSyDrv5C8MUyxbAa0peLRWRxK-EDggN0QvmQ",
-  "authDomain": "farmer-s-gate-ddbbf.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-shoerepaircobble-4df45754-d7c2-4b18-965d-93834f094599",
-  "storageBucket": "farmer-s-gate-ddbbf.firebasestorage.app",
-  "messagingSenderId": "506460132530",
-  "measurementId": "",
-  "oAuthClientId": "506460132530-ehjo5509dmfoqnqes1p3kpofqn7p1rqk.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "shoe-repair-5b5aa",
+  "appId": "1:672291765113:web:e2ef156c7b688a68a38da8",
+  "apiKey": "AIzaSyDGFk5iUeW2LHLhcy0rfaS6WCzRzLmmai8",
+  "authDomain": "shoe-repair-5b5aa.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "shoe-repair-5b5aa.firebasestorage.app",
+  "messagingSenderId": "672291765113",
+  "measurementId": "G-31ZWQK6P5R"
 }

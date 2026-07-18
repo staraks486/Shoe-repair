@@ -33,7 +33,8 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
   const addonsCost = invoice.addons && invoice.addons.length > 0 
     ? invoice.addons.reduce((sum, a) => sum + a.price, 0) 
     : invoice.addonPrice || 0;
-  const total = invoice.price + addonsCost + (hasInsurance ? invoice.insurancePrice : 0) - (invoice.discountAmount || 0);
+  const total = invoice.price;
+  const baseServicePrice = invoice.basePrice || Math.max(0, invoice.price - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) + (invoice.discountAmount || 0));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -69,6 +70,24 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
                 <span>{invoice.receivedBy}</span>
               </div>
             )}
+            {invoice.assignedCobblerName && (
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Artisan:</span>
+                <span className="font-semibold text-brand-dark">{invoice.assignedCobblerName}</span>
+              </div>
+            )}
+            {invoice.paymentMethod && invoice.paymentMethod !== 'None' && (
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Paid Via:</span>
+                <span>{invoice.paymentMethod}</span>
+              </div>
+            )}
+            {invoice.transactionId && (
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Transaction ID:</span>
+                <span className="font-mono text-xs text-brand-muted">{invoice.transactionId}</span>
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
@@ -85,7 +104,7 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
                     {Array.isArray(invoice.repairType) ? invoice.repairType.join(', ') : invoice.repairType}
                     <div className="text-xs text-brand-muted">{invoice.shoeModel}</div>
                   </td>
-                  <td className="text-right py-2">₹{(invoice.price || 0).toFixed(2)}</td>
+                  <td className="text-right py-2">₹{(baseServicePrice || 0).toFixed(2)}</td>
                 </tr>
                 {invoice.addons && invoice.addons.map(a => (
                   <tr key={a.name}>

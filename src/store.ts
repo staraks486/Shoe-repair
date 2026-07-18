@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings, ChatMessage } from './types';
+import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings } from './types';
 import { NotificationService } from './services/NotificationService';
 import { db } from './services/firebase';
 import { 
@@ -18,7 +18,6 @@ interface AppState {
   inventory: InventoryItem[];
   insurance: ShoeInsurance[];
   settings: Settings;
-  chatHistory: ChatMessage[];
   syncErrorLogs: Array<{ id: string; timestamp: string; message: string; payloadCount: number }>;
   lastSyncStatus: 'idle' | 'success' | 'error' | 'syncing';
   lastSyncTime: string | null;
@@ -43,9 +42,6 @@ interface AppState {
   deleteInsurance: (id: string) => void;
   
   updateSettings: (settings: Partial<Settings>) => void;
-  
-  addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  clearChat: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -74,11 +70,41 @@ export const useAppStore = create<AppState>()(
         googleSheetsWebAppUrl: '',
         paymentLink: '',
         qrCode: '',
+        instagramLink: 'https://instagram.com/cordwainers_studio',
+        facebookLink: 'https://facebook.com/cordwainers',
+        twitterLink: '',
+        linkedinLink: 'https://linkedin.com/company/cordwainers',
+        websiteLink: 'https://cordwainers.com',
         isOfflineMode: false,
         whatsappTemplate: 'Hello {customerName}, your shoe repair ({repairType}) is now {status}. Invoice: {invoiceNumber}',
         insurancePlans: [
-          { id: '1', name: 'Basic', description: '1 Year, Minor Fixes', price: 499 },
-          { id: '2', name: 'Premium', description: 'Lifetime, All Fixes', price: 1499 }
+          {
+            id: 'plan-1',
+            name: 'The Artisan Care Tier',
+            description: 'Covers accidental scuffs, deep leather staining, and premature sole or welt separation. Includes complimentary annual conditioning.',
+            price: 2499,
+            timePeriod: '12 Months',
+            servicesIncluded: ['Accidental Scuffs', 'Deep Stain Extraction', 'Annual Conditioning', 'Sole & Welt Separation'],
+            copay: '₹499'
+          },
+          {
+            id: 'plan-2',
+            name: 'The Executive Travel Tier',
+            description: 'Adds coverage for transit damage, airline loss, and accidental liquid/chemical spills.',
+            price: 4999,
+            timePeriod: '24 Months',
+            servicesIncluded: ['Transit Damage', 'Airline Loss', 'Chemical Spill Protection', 'Bi-annual Deep Shine'],
+            copay: '₹999'
+          },
+          {
+            id: 'plan-3',
+            name: 'The Heritage Vault Tier',
+            description: 'Full replacement or expert restoration coverage against fire, theft, water damage, or catastrophic leather degradation.',
+            price: 9999,
+            timePeriod: 'Lifetime',
+            servicesIncluded: ['Fire & Water Damage', 'Catastrophic Degradation', 'Theft Protection', 'Unlimited Restorations'],
+            copay: '₹1,999'
+          }
         ],
         offers: [
           { id: '1', name: 'Welcome 10%', code: 'WELCOME10', discountPercentage: 10 }
@@ -96,7 +122,6 @@ export const useAppStore = create<AppState>()(
         ],
         theme: 'olive'
       },
-      chatHistory: [],
       syncErrorLogs: [],
       lastSyncStatus: 'idle',
       lastSyncTime: null,
@@ -293,30 +318,42 @@ export const useAppStore = create<AppState>()(
         
         try {
           if (settings.googleSheetsWebAppUrl) {
-            console.log('Syncing to Google Sheets', pending);
-            await fetch(settings.googleSheetsWebAppUrl, {
+            console.log('Syncing to Google Sheets via Proxy', pending);
+            const response = await fetch('/api/sync/google-sheets', {
               method: 'POST',
-              mode: 'no-cors', // Opaque request is extremely reliable for Google Sheets Web Apps to avoid CORS blocks
               headers: {
-                'Content-Type': 'text/plain',
+                'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                action: 'syncRepairs',
-                repairs: pending.map(r => ({
-                  invoiceNumber: r.invoiceNumber,
-                  date: r.createdAt,
-                  customerName: r.customerName,
-                  phoneNumber: r.phoneNumber,
-                  email: r.email,
-                  shoeModel: r.shoeModel,
-                  price: r.price,
-                  status: r.status,
-                  repairType: r.repairType,
-                  advance: r.advance,
-                  receivedBy: r.receivedBy
-                }))
+                url: settings.googleSheetsWebAppUrl,
+                payload: {
+                  action: 'syncRepairs',
+                  repairs: pending.map(r => ({
+                    invoiceNumber: r.invoiceNumber,
+                    date: r.createdAt,
+                    customerName: r.customerName,
+                    phoneNumber: r.phoneNumber,
+                    email: r.email,
+                    shoeModel: r.shoeModel,
+                    price: r.price,
+                    status: r.status,
+                    repairType: r.repairType,
+                    advance: r.advance,
+                    receivedBy: r.receivedBy
+                  }))
+                }
               })
             });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
+              throw new Error(errorData.error || `Server returned ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.data?.message || result.error || "Failed to sync to Google Sheets");
+            }
           } else {
             throw new Error("Google Sheets Web App URL is not configured in settings.");
           }
@@ -452,12 +489,6 @@ export const useAppStore = create<AppState>()(
           return { settings: updatedSettings };
         });
       },
-      
-      addChatMessage: (msg) => set((state) => ({
-        chatHistory: [...state.chatHistory, { ...msg, id: generateId(), timestamp: new Date().toISOString() }]
-      })),
-      
-      clearChat: () => set({ chatHistory: [] })
     }),
     {
       name: 'cobbler-storage',
