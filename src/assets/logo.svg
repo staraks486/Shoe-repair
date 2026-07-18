@@ -1,0 +1,36 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circular Wreath Pattern -->
+  <g id="wreath" opacity="0.8">
+    <path d="M60 140C45 125 40 100 40 80C40 60 45 35 60 20" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
+    <path d="M140 140C155 125 160 100 160 80C160 60 155 35 140 20" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
+    <!-- Wreath Leaves -->
+    <path d="M50 40L40 35M50 60L38 55M50 80L36 78M50 100L38 105M50 120L40 125" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round"/>
+    <path d="M150 40L160 35M150 60L162 55M150 80L164 78M150 100L162 105M150 120L160 125" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Winged Symbol at Top -->
+  <g id="wings" transform="translate(100, 30) scale(0.6)" fill="#2D2D2D">
+    <path d="M0 -20L-15 -5L-40 -15L-30 5L-45 10L-25 15L0 5L25 15L45 10L30 5L40 -15L15 -5L0 -20Z" />
+    <circle cx="0" cy="0" r="5" />
+  </g>
+
+  <!-- WC Monogram -->
+  <g id="monogram" transform="translate(100, 90)">
+    <!-- 'W' -->
+    <path d="M-30 -30L-15 30L0 -10L15 30L30 -30" stroke="#2D2D2D" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- 'C' -->
+    <path d="M15 -15C10 -25 -10 -25 -15 -15C-20 -5 -20 5 -15 15C-10 25 10 25 15 15" stroke="#2D2D2D" stroke-width="6" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- CORDWAINERS Text -->
+  <text x="100" y="175" text-anchor="middle" fill="#2D2D2D" font-family="serif" font-weight="900" font-size="20" letter-spacing="2">CORDWAINERS</text>
+  
+  <!-- Shadow/Glow effect placeholder -->
+  <circle cx="100" cy="185" r="40" fill="url(#grad1)" opacity="0.2"/>
+  <defs>
+    <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgb(0,0,0);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgb(255,255,255);stop-opacity:0" />
+    </radialGradient>
+  </defs>
+</svg>

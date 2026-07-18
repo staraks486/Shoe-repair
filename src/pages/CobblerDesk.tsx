@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Hammer, 
   Search, 
@@ -16,15 +16,21 @@ import {
   ArrowRight,
   MoreVertical,
   Download,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Volume2,
+  Trash2 as TrashIcon,
+  Play,
+  Pause
 } from 'lucide-react';
 import { useAppStore } from '../store';
-import { ShoeRepairRequest, RepairStatus } from '../types';
+import { ShoeRepairRequest, RepairStatus, VoiceNote } from '../types';
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import VoiceNoteRecorder from '../components/VoiceNoteRecorder';
+import { motion } from 'motion/react';
 
 export default function CobblerDesk() {
-  const { repairs, updateRepairStatus } = useAppStore();
+  const { repairs, updateRepairStatus, addVoiceNote, deleteVoiceNote } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<RepairStatus | 'All'>('All');
   const [selectedRepair, setSelectedRepair] = useState<ShoeRepairRequest | null>(null);
@@ -269,6 +275,36 @@ export default function CobblerDesk() {
                     {selectedRepair.repairType.join(', ')} - Deep cleaning and sole replacement requested. Focus on the stitching around the toe box.
                   </div>
                 </div>
+
+                {/* Voice Notes Section */}
+                <section className="space-y-4">
+                  <h3 className="text-xs font-black text-brand-muted uppercase tracking-widest">Voice Notes</h3>
+                  
+                  <VoiceNoteRecorder 
+                    onSave={(base64, duration) => {
+                      addVoiceNote(selectedRepair.id, {
+                        blobUrl: base64,
+                        duration,
+                        timestamp: new Date().toISOString()
+                      });
+                    }}
+                  />
+
+                  <div className="space-y-3">
+                    {selectedRepair.voiceNotes?.map((note) => (
+                      <VoiceNoteItem 
+                        key={note.id} 
+                        note={note} 
+                        onDelete={() => deleteVoiceNote(selectedRepair.id, note.id)} 
+                      />
+                    ))}
+                    {(!selectedRepair.voiceNotes || selectedRepair.voiceNotes.length === 0) && (
+                      <p className="text-[10px] text-center text-brand-muted uppercase font-bold tracking-widest py-4 border border-dashed border-brand-border rounded-2xl">
+                        No voice notes recorded
+                      </p>
+                    )}
+                  </div>
+                </section>
               </section>
             </div>
 
@@ -339,6 +375,11 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
                 <ImageIcon className="w-6 h-6 text-brand-muted opacity-30" />
               </div>
             )}
+            {repair.voiceNotes && repair.voiceNotes.length > 0 && (
+              <div className="absolute -top-1 -right-1 bg-brand-accent p-1 rounded-full border-2 border-white shadow-sm z-10">
+                <Volume2 className="w-2.5 h-2.5 text-white" />
+              </div>
+            )}
             <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-brand-olive rounded-full border border-white" />
           </div>
           
@@ -365,6 +406,72 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
           </div>
         </button>
       ))}
+    </div>
+  );
+}
+
+function VoiceNoteItem({ note, onDelete }: { note: VoiceNote, onDelete: () => void }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlayback = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-brand-light/30 p-3 rounded-xl border border-brand-border/40 group">
+      <button 
+        onClick={togglePlayback}
+        className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-brand-olive hover:scale-105 transition-transform"
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+      </button>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">
+            {format(new Date(note.timestamp), 'dd MMM, HH:mm')}
+          </p>
+          <span className="text-[10px] font-bold text-brand-olive font-mono">
+            {formatDuration(note.duration)}
+          </span>
+        </div>
+        <div className="h-1.5 bg-white rounded-full mt-2 overflow-hidden border border-brand-border/40">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: isPlaying ? '100%' : '0%' }}
+            transition={{ duration: note.duration || 0, ease: 'linear' }}
+            className="h-full bg-brand-accent"
+          />
+        </div>
+      </div>
+
+      <button 
+        onClick={onDelete}
+        className="p-2 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600"
+      >
+        <TrashIcon className="w-4 h-4" />
+      </button>
+
+      <audio 
+        ref={audioRef} 
+        src={note.blobUrl} 
+        onEnded={() => setIsPlaying(false)} 
+        className="hidden" 
+      />
     </div>
   );
 }

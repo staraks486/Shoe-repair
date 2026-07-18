@@ -183,7 +183,25 @@ export default function Settings() {
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Store Details</h3>
               <div className="space-y-4">
-                {/* Logo upload removed per user request */}
+                <div>
+                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Store Logo (URL)</label>
+                  <div className="flex gap-4 items-center">
+                    {settings.logoUrl && (
+                      <div className="w-16 h-16 rounded-xl bg-brand-bg border border-brand-border p-2 flex items-center justify-center shrink-0 overflow-hidden">
+                        <img src={settings.logoUrl} alt="Store Logo" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
+                      </div>
+                    )}
+                    <input 
+                      type="url" 
+                      name="logoUrl" 
+                      value={settings.logoUrl || ''} 
+                      onChange={handleChange}
+                      placeholder="https://example.com/logo.png"
+                      className="flex-1 border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" 
+                    />
+                  </div>
+                  <p className="text-[10px] text-brand-muted mt-1 italic">Provide a public URL for your artisan logo to display it in the intro banner.</p>
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Store Name</label>
                   <input type="text" name="storeName" value={settings.storeName} onChange={handleChange}

@@ -53,6 +53,14 @@ export interface ShoeRepairRequest {
   assignedCobblerId?: string;
   assignedCobblerName?: string;
   payments?: PaymentRecord[];
+  voiceNotes?: VoiceNote[];
+}
+
+export interface VoiceNote {
+  id: string;
+  blobUrl: string;
+  timestamp: string;
+  duration?: number;
 }
 
 export interface PaymentRecord {

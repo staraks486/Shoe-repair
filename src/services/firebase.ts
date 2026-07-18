@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth';
+
 // Support both JSON file (for AI Studio) and Environment Variables (for Render/GitHub)
 let aiStudioConfig: any = {};
 try {
@@ -31,9 +33,10 @@ const hasConfig = !!firebaseConfig.projectId;
 
 const app = hasConfig ? initializeApp(firebaseConfig) : null;
 const analytics = (hasConfig && typeof window !== 'undefined') ? getAnalytics(app!) : null;
+const auth = hasConfig ? getAuth(app!) : null as any;
 
 const db = hasConfig 
   ? initializeFirestore(app!, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId || '(default)')
   : null as any; // Cast as any to avoid breaking types if config is missing
 
-export { db, analytics };
+export { db, analytics, auth };

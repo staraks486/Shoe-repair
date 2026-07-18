@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings } from './types';
+import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings, VoiceNote } from './types';
 import { NotificationService } from './services/NotificationService';
-import { db } from './services/firebase';
+import { db, auth } from './services/firebase';
+import { User } from 'firebase/auth';
 import { 
   collection, 
   doc, 
@@ -13,6 +14,7 @@ import {
 } from 'firebase/firestore';
 
 interface AppState {
+  user: User | null;
   repairs: ShoeRepairRequest[];
   customers: Customer[];
   inventory: InventoryItem[];
@@ -22,6 +24,7 @@ interface AppState {
   lastSyncStatus: 'idle' | 'success' | 'error' | 'syncing';
   lastSyncTime: string | null;
   
+  setUser: (user: User | null) => void;
   fetchFromFirestore: () => Promise<void>;
   addRepair: (repair: Omit<ShoeRepairRequest, 'id' | 'isSynced' | 'createdAt' | 'invoiceNumber'>) => ShoeRepairRequest;
   updateRepairStatus: (id: string, status: ShoeRepairRequest['status']) => void;
@@ -42,6 +45,8 @@ interface AppState {
   deleteInsurance: (id: string) => void;
   
   updateSettings: (settings: Partial<Settings>) => void;
+  addVoiceNote: (repairId: string, voiceNote: Omit<VoiceNote, 'id'>) => void;
+  deleteVoiceNote: (repairId: string, noteId: string) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -50,6 +55,7 @@ const generateInvoice = () => 'INV-' + Math.floor(100000 + Math.random() * 90000
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      user: null,
       repairs: [],
       customers: [],
       inventory: [
@@ -131,6 +137,7 @@ export const useAppStore = create<AppState>()(
           console.warn("Firestore is not initialized. Skipping fetch.");
           return;
         }
+        set({ lastSyncStatus: 'syncing' });
         try {
           const repairsSnapshot = await getDocs(collection(db, 'repairs'));
           const repairsList: ShoeRepairRequest[] = [];
@@ -170,11 +177,16 @@ export const useAppStore = create<AppState>()(
               customers: customersList.length > 0 ? customersList : state.customers,
               inventory: inventoryList.length > 0 ? inventoryList : state.inventory,
               insurance: insuranceList.length > 0 ? insuranceList : state.insurance,
-              settings: settingsObj ? { ...state.settings, ...settingsObj } : state.settings
+              settings: settingsObj ? { ...state.settings, ...settingsObj } : state.settings,
+              lastSyncStatus: 'success',
+              lastSyncTime: new Date().toISOString()
             }));
+          } else {
+            set({ lastSyncStatus: 'success', lastSyncTime: new Date().toISOString() });
           }
         } catch (error) {
           console.error("Failed to fetch initial data from Firestore:", error);
+          set({ lastSyncStatus: 'error' });
         }
       },
 
@@ -506,6 +518,49 @@ export const useAppStore = create<AppState>()(
           }
           return { settings: updatedSettings };
         });
+      },
+
+      setUser: (user) => set({ user }),
+
+      addVoiceNote: (repairId, voiceNoteData) => {
+        const id = generateId();
+        const newVoiceNote = { ...voiceNoteData, id };
+        
+        let updatedRepair: ShoeRepairRequest | undefined;
+        set((state) => {
+          const newRepairs = state.repairs.map(r => {
+            if (r.id === repairId) {
+              const voiceNotes = r.voiceNotes ? [...r.voiceNotes, newVoiceNote] : [newVoiceNote];
+              updatedRepair = { ...r, voiceNotes, isSynced: false };
+              return updatedRepair;
+            }
+            return r;
+          });
+          return { repairs: newRepairs };
+        });
+
+        if (updatedRepair && db) {
+          setDoc(doc(db, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note add failed", e));
+        }
+      },
+
+      deleteVoiceNote: (repairId, noteId) => {
+        let updatedRepair: ShoeRepairRequest | undefined;
+        set((state) => {
+          const newRepairs = state.repairs.map(r => {
+            if (r.id === repairId) {
+              const voiceNotes = r.voiceNotes?.filter(n => n.id !== noteId) || [];
+              updatedRepair = { ...r, voiceNotes, isSynced: false };
+              return updatedRepair;
+            }
+            return r;
+          });
+          return { repairs: newRepairs };
+        });
+
+        if (updatedRepair && db) {
+          setDoc(doc(db, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
+        }
       },
     }),
     {

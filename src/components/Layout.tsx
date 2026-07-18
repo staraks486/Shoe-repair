@@ -26,12 +26,19 @@ import {
   Globe,
   Share2,
   Hammer,
-  Tag
+  Tag,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import clsx from 'clsx';
+import { auth } from '../services/firebase';
+import { signOut } from 'firebase/auth';
+import AuthObserver from './AuthObserver';
+import Login from '../pages/Login';
+import logo from '../assets/logo.svg';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { settings, updateSettings, syncAllPending, repairs } = useAppStore();
+  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user } = useAppStore();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
@@ -39,6 +46,24 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
+
+  if (!user) {
+    return (
+      <>
+        <AuthObserver />
+        <Login />
+      </>
+    );
+  }
   const pendingSyncCount = repairs.filter(r => !r.isSynced).length;
 
   // Simulate real-time clock in mock status bar
@@ -96,6 +121,30 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen w-full bg-[#EAE6DD] flex flex-col font-sans relative">
+      <AuthObserver />
+      {/* Global Sync Loading Spinner Overlay */}
+      <AnimatePresence>
+        {lastSyncStatus === 'syncing' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center"
+          >
+            <div className="bg-white p-8 rounded-3xl shadow-2xl border border-brand-border flex flex-col items-center space-y-4">
+              <div className="relative">
+                <Loader2 className="w-12 h-12 text-brand-olive animate-spin" />
+                <CloudLightning className="w-5 h-5 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight">Synchronizing</h3>
+                <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest mt-1">Cloud Database Update In Progress</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background Noise & Blurs */}
       <div className="fixed inset-0 bg-noise pointer-events-none opacity-5 z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent/10 blur-[150px] pointer-events-none" />
@@ -107,7 +156,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Professional Centered Header */}
         <header className="bg-white border-b border-brand-border/60 px-6 py-10 relative z-20 shadow-sm md:rounded-b-[40px]">
           <div className="flex flex-col items-center justify-center text-center">
-            {/* Logo removed per user request */}
+            <div className="w-16 h-16 rounded-2xl bg-brand-bg border border-brand-border p-2 flex items-center justify-center mb-4 shadow-sm group hover:scale-105 transition-transform">
+              <img src={logo} alt="Cordwainers Studio" className="max-w-full max-h-full object-contain" />
+            </div>
             
             <h1 className="font-serif text-2xl md:text-4xl font-black tracking-tight text-brand-dark uppercase">
               Cordwainers Studio
@@ -115,14 +166,40 @@ export default function Layout({ children }: { children: ReactNode }) {
             <p className="text-[10px] md:text-xs font-black text-brand-muted uppercase tracking-[0.4em] mt-2 opacity-60">
               Artisan Footwear Management
             </p>
+
+            <div className="flex items-center gap-4 mt-6">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-bg border border-brand-border">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">
+                  Logged in: {user.displayName || user.email?.split('@')[0]}
+                </span>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+              </button>
+            </div>
           </div>
         </header>
 
         {/* Scrollable Viewport Context */}
-        <div className="flex-1 relative bg-brand-bg pb-24">
+        <div className="flex-1 relative bg-brand-bg pb-32">
           <div className="p-4 md:p-10">
             {children}
           </div>
+
+          {/* Persistent Main Footer Designer Name */}
+          <footer className="mt-12 mb-20 px-6 py-8 border-t border-brand-border/40 text-center space-y-2 opacity-60">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-dark">
+              Designed by Arvind Kumar Shukla
+            </p>
+            <p className="text-[8px] font-bold uppercase tracking-widest text-brand-muted">
+              © 2026 Cordwainers Studio • Artisan Footwear Management
+            </p>
+          </footer>
         </div>
 
         {/* DYNAMIC BOTTOM SHEET DRAWER OVERLAY (SERVICE HUB) */}
