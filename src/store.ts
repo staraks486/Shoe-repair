@@ -168,37 +168,47 @@ export const useAppStore = create<AppState>()(
         }
         set({ lastSyncStatus: 'syncing' });
         try {
-          const repairsSnapshot = await getDocs(collection(db, 'repairs'));
+          const [
+            repairsSnapshot,
+            customersSnapshot,
+            inventorySnapshot,
+            insuranceSnapshot,
+            appointmentsSnapshot,
+            settingsSnapshot
+          ] = await Promise.all([
+            getDocs(collection(db, 'repairs')),
+            getDocs(collection(db, 'customers')),
+            getDocs(collection(db, 'inventory')),
+            getDocs(collection(db, 'insurance')),
+            getDocs(collection(db, 'appointments')),
+            getDocs(collection(db, 'settings'))
+          ]);
+
           const repairsList: ShoeRepairRequest[] = [];
           repairsSnapshot.forEach((doc) => {
             repairsList.push(doc.data() as ShoeRepairRequest);
           });
 
-          const customersSnapshot = await getDocs(collection(db, 'customers'));
           const customersList: Customer[] = [];
           customersSnapshot.forEach((doc) => {
             customersList.push(doc.data() as Customer);
           });
 
-          const inventorySnapshot = await getDocs(collection(db, 'inventory'));
           const inventoryList: InventoryItem[] = [];
           inventorySnapshot.forEach((doc) => {
             inventoryList.push(doc.data() as InventoryItem);
           });
 
-          const insuranceSnapshot = await getDocs(collection(db, 'insurance'));
           const insuranceList: ShoeInsurance[] = [];
           insuranceSnapshot.forEach((doc) => {
             insuranceList.push(doc.data() as ShoeInsurance);
           });
 
-          const appointmentsSnapshot = await getDocs(collection(db, 'appointments'));
           const appointmentsList: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => {
             appointmentsList.push(doc.data() as Appointment);
           });
 
-          const settingsSnapshot = await getDocs(collection(db, 'settings'));
           let settingsObj: Settings | null = null;
           settingsSnapshot.forEach((doc) => {
             if (doc.id === 'global_settings') {

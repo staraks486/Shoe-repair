@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, lazy, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { motion, AnimatePresence } from 'motion/react';
@@ -38,9 +38,9 @@ import { signOut } from 'firebase/auth';
 import AuthObserver from './AuthObserver';
 import Login from '../pages/Login';
 import logo from '../assets/logo.svg';
-import NotificationCenter from './NotificationCenter';
 import NotificationToastProvider from './NotificationToastProvider';
-import QRScanner from './QRScanner';
+const NotificationCenter = lazy(() => import('./NotificationCenter'));
+const QRScanner = lazy(() => import('./QRScanner'));
 import { SHOE_FACTS } from '../data/shoeFacts';
 import { ShoeRepairRequest } from '../types';
 import { format } from 'date-fns';
@@ -167,10 +167,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* QR Scanner Overlay */}
       <AnimatePresence>
         {showScanner && (
-          <QRScanner 
-            onScan={handleScanResult} 
-            onClose={() => setShowScanner(false)} 
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-brand-dark/90 backdrop-blur-md z-[200] flex items-center justify-center"><Loader2 className="w-10 h-10 text-white animate-spin" /></div>}>
+            <QRScanner 
+              onScan={handleScanResult} 
+              onClose={() => setShowScanner(false)} 
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -346,7 +348,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               </button>
-              <NotificationCenter />
+              <Suspense fallback={<div className="w-10 h-10 flex items-center justify-center"><Loader2 className="w-4 h-4 text-brand-muted animate-spin" /></div>}>
+                <NotificationCenter />
+              </Suspense>
               
               {user && (
                 <button 
