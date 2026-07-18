@@ -91,6 +91,24 @@
         "role": { "type": "string" },
         "createdAt": { "type": "string" }
       }
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Scheduled shoe drop-off or consultation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "serviceType": { "type": "string", "enum": ["Drop-off", "Consultation", "Home Pickup"] },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Confirmed", "Cancelled", "Completed"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["customerName", "email", "date", "time", "serviceType"]
     }
   },
   "firestore": {
@@ -117,6 +135,10 @@
     "profiles": {
       "schema": "UserProfile",
       "description": "Collection of user profiles"
+    },
+    "appointments": {
+      "schema": "Appointment",
+      "description": "Collection of scheduled appointments"
     }
   }
 }

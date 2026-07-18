@@ -18,6 +18,7 @@ import {
   Clock
 } from 'lucide-react';
 import clsx from 'clsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 
 export default function Insurance() {
@@ -28,9 +29,9 @@ export default function Insurance() {
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<'history' | 'add-cover' | 'manage-plans'>(() => {
     const tab = queryParams.get('tab');
-    if (tab === 'add-cover') return 'add-cover';
+    if (tab === 'history') return 'history';
     if (tab === 'manage-plans') return 'manage-plans';
-    return 'history';
+    return 'add-cover';
   });
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -209,8 +210,8 @@ export default function Insurance() {
       {/* HEADER: Matching Artisan style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
         <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Protection</h2>
-          <p className="label-xs">CW Cover & Guarantee Registry</p>
+          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">CW Cover</h2>
+          <p className="label-xs">Protection & Guarantee Registry</p>
         </div>
         
         <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium shrink-0">
@@ -340,6 +341,48 @@ export default function Insurance() {
       {activeTab === 'add-cover' && (
         <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-300">
           
+          {currentStep === 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-brand-dark text-white p-8 md:p-12 rounded-[2.5rem] shadow-xl relative overflow-hidden group mb-8"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/10 rounded-full blur-[80px] -mr-32 -mt-32 group-hover:bg-brand-accent/20 transition-all duration-700" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-olive/20 rounded-full blur-[60px] -ml-24 -mb-24 group-hover:bg-brand-olive/30 transition-all duration-700" />
+              
+              <div className="relative z-10 flex flex-col items-center md:items-start">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-6">
+                  <div className="px-3 py-1 rounded-full bg-brand-accent/20 border border-brand-accent/30">
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-accent">
+                      Asset Preservation
+                    </span>
+                  </div>
+                  <ShieldCheck className="w-5 h-5 text-brand-accent animate-pulse" />
+                </div>
+                
+                <h2 className="font-serif text-4xl md:text-5xl font-black mb-6 tracking-tight leading-none text-white text-center md:text-left">
+                  The <span className="text-brand-accent">Cordwainers</span> Guarantee
+                </h2>
+                
+                <p className="text-base text-brand-bg/80 max-w-xl leading-relaxed font-medium text-center md:text-left mb-8">
+                  Register your luxury footwear in our global vault. CW Cover provides comprehensive protection against the elements, ensuring your investment retains its character for generations.
+                </p>
+                
+                <div className="flex flex-wrap justify-center md:justify-start gap-8">
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className="text-2xl font-serif font-black text-white">Lifetime</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Restoration Support</span>
+                  </div>
+                  <div className="h-10 w-px bg-white/10 hidden md:block" />
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className="text-2xl font-serif font-black text-white">Global</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Registry Access</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Progress Indicator */}
           <div className="max-w-2xl mx-auto px-4 md:px-0">
             <div className="flex justify-between mb-4">

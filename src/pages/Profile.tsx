@@ -161,7 +161,7 @@ export default function Profile() {
                     type="text" 
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full bg-brand-bg border-none rounded-[16px] p-4 text-xs font-bold focus:ring-0"
+                    className="w-full bg-brand-bg border-none rounded-[20px] p-5 text-sm font-bold focus:ring-0 shadow-inner"
                   />
                 </div>
                 <div className="space-y-2">
@@ -170,20 +170,20 @@ export default function Profile() {
                     type="email" 
                     value={profile?.email}
                     disabled
-                    className="w-full bg-brand-bg/50 border-none rounded-[16px] p-4 text-xs font-bold opacity-60 cursor-not-allowed"
+                    className="w-full bg-brand-bg/50 border-none rounded-[20px] p-5 text-sm font-bold opacity-60 cursor-not-allowed shadow-inner"
                   />
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-4">
-                {message && <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">{message}</span>}
+                {message && <span className="text-[10px] font-black text-green-600 uppercase tracking-widest animate-pulse">{message}</span>}
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="bg-brand-dark text-white rounded-full px-10 py-3.5 font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:bg-brand-accent transition-all active:scale-[0.98] disabled:opacity-50 ml-auto"
+                  className="bg-brand-dark text-white rounded-full px-12 py-4 font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:bg-brand-accent transition-all active:scale-[0.95] disabled:opacity-50 ml-auto shadow-lg"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save Changes
+                  Confirm Updates
                 </button>
               </div>
             </form>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
+import { motion, AnimatePresence } from 'motion/react';
+import clsx from 'clsx';
 import { 
   CheckCircle, 
   XCircle, 
@@ -157,498 +159,373 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <header className="bg-white p-6 border-b border-brand-border rounded-xl shadow-sm">
-        <h2 className="font-serif text-2xl font-bold text-brand-dark mb-1">Settings</h2>
-        <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">Configure your shop details and integrations</p>
+    <div className="max-w-4xl mx-auto space-y-10 pb-20">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Settings</h2>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3">Configure artisan studio parameters</p>
+        </div>
+        <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm self-start">
+          {['Store', 'Staff', 'Integrations'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={clsx(
+                "px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                activeTab === tab 
+                  ? "bg-brand-dark text-white shadow-premium" 
+                  : "text-brand-muted hover:text-brand-dark"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="flex space-x-2 border-b border-brand-border">
-        {['Store', 'Staff', 'Integrations'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium ${activeTab === tab ? 'text-brand-accent border-b-2 border-brand-accent' : 'text-brand-muted hover:text-brand-dark'}`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white border border-brand-border rounded-xl p-8 shadow-sm space-y-8">
+      <div className="bg-white rounded-[40px] border border-brand-border p-8 md:p-12 shadow-premium relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-olive to-brand-accent opacity-20" />
         
         {activeTab === 'Store' && (
-          <>
+          <div className="space-y-12">
             {/* Store Details */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Store Details</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Store Logo (URL)</label>
-                  <div className="flex gap-4 items-center">
-                    {settings.logoUrl && (
-                      <div className="w-16 h-16 rounded-xl bg-brand-bg border border-brand-border p-2 flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 border-b border-brand-border pb-4">
+                <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                  <Database className="w-4 h-4 text-brand-olive" />
+                </div>
+                <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Identity & Locale</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Studio Brand Identity (Logo URL)</label>
+                  <div className="flex gap-6 items-center bg-brand-bg/30 p-6 rounded-[32px] border border-brand-border/40">
+                    {settings.logoUrl ? (
+                      <div className="w-24 h-24 rounded-2xl bg-white border border-brand-border p-4 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
                         <img src={settings.logoUrl} alt="Store Logo" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
                       </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-2xl bg-white border-2 border-dashed border-brand-border flex flex-col items-center justify-center shrink-0">
+                        <Link className="w-6 h-6 text-brand-muted opacity-30" />
+                      </div>
                     )}
-                    <input 
-                      type="url" 
-                      name="logoUrl" 
-                      value={settings.logoUrl || ''} 
-                      onChange={handleChange}
-                      placeholder="https://example.com/logo.png"
-                      className="flex-1 border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" 
-                    />
+                    <div className="flex-1 space-y-2">
+                      <input 
+                        type="url" 
+                        name="logoUrl" 
+                        value={settings.logoUrl || ''} 
+                        onChange={handleChange}
+                        placeholder="https://artisan.com/logo.png"
+                        className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" 
+                      />
+                      <p className="text-[9px] text-brand-muted font-bold uppercase tracking-widest leading-relaxed">Provide a public URL for your high-fidelity brand mark.</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-brand-muted mt-1 italic">Provide a public URL for your artisan logo to display it in the intro banner.</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Store Name</label>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Studio Name</label>
                   <input type="text" name="storeName" value={settings.storeName} onChange={handleChange}
-                    className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-serif text-lg font-bold" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Address</label>
-                  <input type="text" name="address" value={settings.address} onChange={handleChange}
-                    className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Operating Hours</label>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Artisan Hours</label>
                   <input type="text" name="hours" value={settings.hours} onChange={handleChange}
-                    className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Cobbler Bio</label>
-                  <textarea name="cobblerBio" rows={3} value={settings.cobblerBio} onChange={handleChange}
-                    className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Geographic Anchor (Address)</label>
+                  <input type="text" name="address" value={settings.address} onChange={handleChange}
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">The Artisan Philosophy (Bio)</label>
+                  <textarea name="cobblerBio" rows={4} value={settings.cobblerBio} onChange={handleChange}
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-[32px] px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium leading-relaxed" />
                 </div>
               </div>
             </div>
 
-            {/* Theme */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">App Theme</h3>
-              <select name="theme" value={settings.theme || 'olive'} onChange={handleChange}
-                className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="olive">Olive</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'Staff' && (
-          <>
-            {/* Employees */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Employees</h3>
-              <div className="space-y-4">
-                {settings.employees?.map((emp, index) => (
-                  <div key={emp.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50">
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Name</label>
-                      <input type="text" value={emp.name} onChange={(e) => {
-                        const newItems = [...settings.employees];
-                        newItems[index].name = e.target.value;
-                        updateSettings({ employees: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Role</label>
-                      <input type="text" value={emp.role} onChange={(e) => {
-                        const newItems = [...settings.employees];
-                        newItems[index].role = e.target.value;
-                        updateSettings({ employees: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Mobile</label>
-                      <input type="text" value={emp.mobile} onChange={(e) => {
-                        const newItems = [...settings.employees];
-                        newItems[index].mobile = e.target.value;
-                        updateSettings({ employees: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Email</label>
-                      <input type="text" value={emp.email} onChange={(e) => {
-                        const newItems = [...settings.employees];
-                        newItems[index].email = e.target.value;
-                        updateSettings({ employees: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => {
-                  updateSettings({
-                    employees: [...(settings.employees || []), { id: Math.random().toString(), name: 'New Employee', role: 'Staff', mobile: '', email: '' }]
-                  });
-                }} className="text-xs font-bold text-brand-accent uppercase hover:underline">
-                  + Add Employee
-                </button>
+            {/* Visual Interface */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-brand-border pb-4">
+                <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                  <Wifi className="w-4 h-4 text-brand-olive" />
+                </div>
+                <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Atmosphere</h3>
               </div>
-            </div>
-
-            {/* Cobblers */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Cobblers</h3>
-              <div className="space-y-4">
-                {settings.cobblers?.map((cobbler, index) => (
-                  <div key={cobbler.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-brand-border-dark rounded-lg bg-brand-bg/50">
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Name</label>
-                      <input type="text" value={cobbler.name} onChange={(e) => {
-                        const newItems = [...settings.cobblers];
-                        newItems[index].name = e.target.value;
-                        updateSettings({ cobblers: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Specialty</label>
-                      <input type="text" value={cobbler.specialty} onChange={(e) => {
-                        const newItems = [...settings.cobblers];
-                        newItems[index].specialty = e.target.value;
-                        updateSettings({ cobblers: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Mobile</label>
-                      <input type="text" value={cobbler.mobile} onChange={(e) => {
-                        const newItems = [...settings.cobblers];
-                        newItems[index].mobile = e.target.value;
-                        updateSettings({ cobblers: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-brand-dark mb-1">Email</label>
-                      <input type="text" value={cobbler.email} onChange={(e) => {
-                        const newItems = [...settings.cobblers];
-                        newItems[index].email = e.target.value;
-                        updateSettings({ cobblers: newItems });
-                      }} className="w-full border-brand-border-dark rounded-md sm:text-sm bg-white" />
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => {
-                  updateSettings({
-                    cobblers: [...(settings.cobblers || []), { id: Math.random().toString(), name: 'New Cobbler', specialty: 'General', mobile: '', email: '' }]
-                  });
-                }} className="text-xs font-bold text-brand-accent uppercase hover:underline">
-                  + Add Cobbler
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-
-
-
-
-        {activeTab === 'Integrations' && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Terms & Conditions</h3>
-            <p className="text-xs text-brand-muted">
-              Configure the Terms and Conditions that appear on your invoices.
-            </p>
-            <textarea name="termsAndConditions" rows={4} value={settings.termsAndConditions || ''} onChange={handleChange}
-              placeholder="Enter terms and conditions for the invoice..."
-              className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
-            
-            <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2 mt-8">Integrations & Notifications</h3>
-            <div className="flex items-center justify-between p-4 bg-brand-bg/50 rounded-xl border border-brand-border-dark">
-              <div className="space-y-1">
-                <p className="text-xs font-black text-brand-dark uppercase tracking-widest">Automated Pickup Notifications</p>
-                <p className="text-[10px] text-brand-muted font-medium">Send simulated SMS and Email when status moves to 'Completed'.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => updateSettings({ autoNotifyPickup: !settings.autoNotifyPickup })}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.autoNotifyPickup ? 'bg-brand-olive' : 'bg-brand-muted/30'}`}
-              >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.autoNotifyPickup ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-            <p className="text-xs text-brand-muted">
-              Configure automated WhatsApp messages and Google Sheets sync.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">WhatsApp Message Template</label>
-                <textarea name="whatsappTemplate" rows={3} value={settings.whatsappTemplate || ''} onChange={handleChange}
-                  placeholder="Hello {customerName}, your shoe repair ({repairType}) is now {status}. Invoice: {invoiceNumber}"
-                  className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
-                <p className="text-[10px] text-brand-muted mt-1">Available variables: {`{customerName}`}, {`{repairType}`}, {`{status}`}, {`{invoiceNumber}`}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Google Sheets Web App URL</label>
-                <div className="flex gap-2">
-                  <input type="url" name="googleSheetsWebAppUrl" value={settings.googleSheetsWebAppUrl} onChange={handleChange}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="flex-1 border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg px-3 py-2" />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['light', 'dark', 'olive'].map(theme => (
                   <button
-                    type="button"
-                    onClick={handleTestConnection}
-                    disabled={testStatus === 'testing'}
-                    className="px-4 py-2 bg-brand-dark text-white rounded-md text-xs font-bold uppercase tracking-wider hover:bg-brand-muted transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    key={theme}
+                    onClick={() => updateSettings({ theme: theme as any })}
+                    className={clsx(
+                      "p-6 rounded-[32px] border transition-all text-left group",
+                      settings.theme === theme 
+                        ? "bg-brand-dark border-brand-dark shadow-lg scale-[1.02]" 
+                        : "bg-white border-brand-border hover:bg-brand-bg"
+                    )}
                   >
-                    {testStatus === 'testing' ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Testing...
-                      </>
-                    ) : (
-                      'Test Connection'
-                    )}
+                    <div className="flex justify-between items-center">
+                      <span className={clsx(
+                        "text-[10px] font-black uppercase tracking-[0.2em]",
+                        settings.theme === theme ? "text-white" : "text-brand-dark"
+                      )}>
+                        {theme.charAt(0).toUpperCase() + theme.slice(1)} Palette
+                      </span>
+                      {settings.theme === theme && <CheckCircle className="w-5 h-5 text-brand-accent" />}
+                    </div>
                   </button>
-                </div>
-
-                {/* Connection Status Indicator */}
-                {testStatus !== 'idle' && (
-                  <div className={`mt-3 p-3 rounded-lg border flex items-start gap-2.5 text-xs ${
-                    testStatus === 'success' 
-                      ? 'bg-green-50 border-green-200 text-green-800' 
-                      : 'bg-red-50 border-red-200 text-red-800'
-                  }`}>
-                    {testStatus === 'success' ? (
-                      <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    )}
-                    <div>
-                      <p className="font-bold">{testStatus === 'success' ? 'Connection Verified' : 'Connection Failed'}</p>
-                      <p className="mt-0.5 opacity-90">{testMessage}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Script Setup Instructions */}
-                <div className="mt-4 border border-brand-border rounded-xl overflow-hidden bg-brand-bg/10">
-                  <button
-                    type="button"
-                    onClick={() => setShowScriptGuide(!showScriptGuide)}
-                    className="w-full flex items-center justify-between p-3 text-left text-xs font-bold text-brand-dark uppercase tracking-wider hover:bg-brand-bg/40 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-4 h-4 text-brand-olive" />
-                      Google Sheets Setup Guide
-                    </span>
-                    {showScriptGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-
-                  {showScriptGuide && (
-                    <div className="p-4 border-t border-brand-border bg-white space-y-4 text-xs text-brand-dark">
-                      <p className="leading-relaxed">
-                        Follow these simple steps to connect your <strong>Cordwainers Studio</strong> database to Google Sheets in real-time:
-                      </p>
-                      <ol className="list-decimal list-inside space-y-2 pl-1 leading-relaxed">
-                        <li>Create a new Google Sheet or open an existing one.</li>
-                        <li>In the top menu, go to <strong>Extensions &gt; Apps Script</strong>.</li>
-                        <li>Delete any existing code and paste the custom script below.</li>
-                        <li>Click the <strong>Save</strong> icon (floppy disk).</li>
-                        <li>Click <strong>Deploy &gt; New deployment</strong> in the top right.</li>
-                        <li>Select type <strong>Web app</strong> (gear icon).</li>
-                        <li>Under <em>Execute as</em>, select <strong>Me</strong>.</li>
-                        <li>Under <em>Who has access</em>, select <strong>Anyone</strong> (this allows the secure API requests).</li>
-                        <li>Click <strong>Deploy</strong>, authorize the permissions, and copy the <strong>Web App URL</strong>.</li>
-                        <li>Paste that URL into the input field above and click <strong>Test Connection</strong>!</li>
-                      </ol>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between bg-brand-bg px-3 py-1.5 rounded-t-lg border-t border-x border-brand-border">
-                          <span className="font-mono text-[10px] font-bold text-brand-olive uppercase">Apps Script Code</span>
-                          <button
-                            type="button"
-                            onClick={copyToClipboard}
-                            className="flex items-center gap-1 text-[10px] text-brand-dark font-semibold uppercase hover:text-brand-olive transition-colors"
-                          >
-                            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            {copied ? 'Copied!' : 'Copy Script'}
-                          </button>
-                        </div>
-                        <pre className="p-3 bg-brand-bg/40 border border-brand-border rounded-b-lg font-mono text-[10px] overflow-x-auto max-h-48 text-gray-700 leading-relaxed">
-                          {googleAppsScriptCode}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Connection Status and Sync Diagnostics Component */}
-                <div className="mt-6 border border-brand-border-dark bg-brand-bg/50 rounded-2xl p-5 space-y-5">
-                  <div className="flex items-center justify-between border-b border-brand-border-dark pb-3">
-                    <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4 text-brand-olive" />
-                      <h4 className="text-xs font-bold text-brand-dark uppercase tracking-wider">Sync Diagnostics & Connection Status</h4>
-                    </div>
-                    {/* Connection Status Badge */}
-                    <div className="flex items-center gap-2">
-                      {settings.isOfflineMode ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-800 border border-gray-200">
-                          <WifiOff className="w-3 h-3" /> Offline Mode
-                        </span>
-                      ) : !settings.googleSheetsWebAppUrl ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-800 border border-yellow-200">
-                          <AlertCircle className="w-3 h-3" /> Not Configured
-                        </span>
-                      ) : lastSyncStatus === 'syncing' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Syncing
-                        </span>
-                      ) : lastSyncStatus === 'success' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-800 border border-green-200">
-                          <CheckCircle className="w-3 h-3 text-green-600" /> Connected
-                        </span>
-                      ) : lastSyncStatus === 'error' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-800 border border-red-200">
-                          <XCircle className="w-3 h-3 text-red-600" /> Sync Error
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-800 border border-gray-200">
-                          <Wifi className="w-3 h-3" /> Idle
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status metrics grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="bg-white border border-brand-border rounded-xl p-3 space-y-1">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-brand-muted">Last Synchronized</span>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-brand-dark">
-                        <Clock className="w-3.5 h-3.5 text-brand-olive shrink-0" />
-                        <span className="truncate">
-                          {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Never'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-brand-border rounded-xl p-3 space-y-1">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-brand-muted">Pending Changes</span>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-brand-dark">
-                        <RefreshCw className="w-3.5 h-3.5 text-brand-olive shrink-0" />
-                        <span>{repairs.filter(r => !r.isSynced).length} items pending</span>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-brand-border rounded-xl p-3 col-span-2 sm:col-span-1 space-y-1">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-brand-muted">Connection Mode</span>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-brand-dark">
-                        {settings.isOfflineMode ? (
-                          <>
-                            <WifiOff className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                            <span>Offline</span>
-                          </>
-                        ) : (
-                          <>
-                            <Wifi className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                            <span>Online</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sync Retry Button and state feedback */}
-                  <div className="flex flex-col gap-2.5">
-                    <button
-                      type="button"
-                      onClick={handleRetrySync}
-                      disabled={isRetryingSync || settings.isOfflineMode || !settings.googleSheetsWebAppUrl}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-dark text-white text-xs font-bold uppercase tracking-wider rounded-xl border border-brand-border hover:bg-brand-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isRetryingSync ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      )}
-                      {isRetryingSync ? 'Updating Vault...' : 'Retry Synchronization'}
-                    </button>
-
-                    {retryFeedback && (
-                      <div className={`p-3 rounded-xl border text-xs leading-relaxed ${
-                        retryFeedback.status === 'success' 
-                          ? 'bg-green-50 border-green-200 text-green-800' 
-                          : 'bg-red-50 border-red-200 text-red-800'
-                      }`}>
-                        <div className="flex gap-2 items-center">
-                          {retryFeedback.status === 'success' ? (
-                            <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-                          )}
-                          <span className="font-semibold">{retryFeedback.message}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Diagnostic Error Logs Section */}
-                  <div className="space-y-3 pt-3 border-t border-brand-border-dark">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-brand-dark uppercase tracking-wider">Sync Error Log History</span>
-                      {syncErrorLogs.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={clearSyncErrorLogs}
-                          className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <Trash2 className="w-3 h-3" /> Clear Logs
-                        </button>
-                      )}
-                    </div>
-
-                    {syncErrorLogs.length === 0 ? (
-                      <div className="bg-white border border-brand-border rounded-xl p-4 text-center space-y-1.5">
-                        <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
-                        <p className="text-xs font-bold text-brand-dark">No errors found</p>
-                        <p className="text-[10px] text-brand-muted">All background and manual synchronization tasks are completing cleanly.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                        {syncErrorLogs.map((log) => (
-                          <div key={log.id} className="bg-white border border-red-100 rounded-xl p-3 text-xs flex gap-3 justify-between items-start">
-                            <div className="space-y-1 min-w-0">
-                              <p className="font-mono text-[9px] text-brand-muted">
-                                {new Date(log.timestamp).toLocaleString()} • Failed {log.payloadCount} repairs payload
-                              </p>
-                              <p className="text-red-800 font-semibold leading-relaxed break-words">
-                                {log.message}
-                              </p>
-                            </div>
-                            <span className="inline-flex px-1.5 py-0.5 bg-red-50 text-[9px] text-red-600 font-bold uppercase rounded-md shrink-0 border border-red-100">
-                              Failed
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 p-4 bg-brand-bg text-brand-olive text-sm rounded-md border border-brand-border-dark">
-              <strong>Note:</strong> To enable Gemini AI Chat, ensure you have set the <code>GEMINI_API_KEY</code> in the Settings menu.
-            </div>
-
-            <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2 mt-8">Payment Details</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Payment Link (URL)</label>
-                <input type="url" name="paymentLink" value={settings.paymentLink || ''} onChange={handleChange}
-                  placeholder="https://pay.example.com/..."
-                  className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">QR Code Image URL</label>
-                <input type="url" name="qrCode" value={settings.qrCode || ''} onChange={handleChange}
-                  placeholder="https://example.com/qr-code.png"
-                  className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
+                ))}
               </div>
             </div>
           </div>
         )}
 
+        {activeTab === 'Staff' && (
+          <div className="space-y-12">
+            {/* Employees */}
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <Database className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Concierge Team</h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    updateSettings({
+                      employees: [...(settings.employees || []), { id: Math.random().toString(), name: 'New Staff', role: 'Concierge', mobile: '', email: '' }]
+                    });
+                  }} 
+                  className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all"
+                >
+                  Deploy Personnel
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {settings.employees?.map((emp, index) => (
+                  <div key={emp.id} className="bg-brand-bg/30 border border-brand-border/40 rounded-[32px] p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative group">
+                    <button 
+                      onClick={() => {
+                        const newItems = settings.employees.filter((_, i) => i !== index);
+                        updateSettings({ employees: newItems });
+                      }}
+                      className="absolute top-6 right-6 p-2 text-brand-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name</label>
+                      <input type="text" value={emp.name} onChange={(e) => {
+                        const newItems = [...settings.employees];
+                        newItems[index].name = e.target.value;
+                        updateSettings({ employees: newItems });
+                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Role</label>
+                      <input type="text" value={emp.role} onChange={(e) => {
+                        const newItems = [...settings.employees];
+                        newItems[index].role = e.target.value;
+                        updateSettings({ employees: newItems });
+                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Cobblers */}
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <Database className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Master Cobblers</h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    updateSettings({
+                      cobblers: [...(settings.cobblers || []), { id: Math.random().toString(), name: 'New Cobbler', specialty: 'General Artisan', mobile: '', email: '' }]
+                    });
+                  }} 
+                  className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all"
+                >
+                  Enlist Artisan
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {settings.cobblers?.map((cobbler, index) => (
+                  <div key={cobbler.id} className="bg-brand-bg/30 border border-brand-border/40 rounded-[32px] p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative group">
+                    <button 
+                      onClick={() => {
+                        const newItems = settings.cobblers.filter((_, i) => i !== index);
+                        updateSettings({ cobblers: newItems });
+                      }}
+                      className="absolute top-6 right-6 p-2 text-brand-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Name</label>
+                      <input type="text" value={cobbler.name} onChange={(e) => {
+                        const newItems = [...settings.cobblers];
+                        newItems[index].name = e.target.value;
+                        updateSettings({ cobblers: newItems });
+                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-serif font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Specialty</label>
+                      <input type="text" value={cobbler.specialty} onChange={(e) => {
+                        const newItems = [...settings.cobblers];
+                        newItems[index].specialty = e.target.value;
+                        updateSettings({ cobblers: newItems });
+                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Integrations' && (
+          <div className="space-y-12">
+            {/* Legal Foundations */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-brand-border pb-4">
+                <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                  <Database className="w-4 h-4 text-brand-olive" />
+                </div>
+                <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Legal Foundations</h3>
+              </div>
+              <textarea name="termsAndConditions" rows={6} value={settings.termsAndConditions || ''} onChange={handleChange}
+                placeholder="Artisan service terms..."
+                className="w-full bg-brand-bg/30 border border-brand-border rounded-[32px] px-8 py-6 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium leading-relaxed italic" />
+            </div>
+
+            {/* Cloud Architecture */}
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <FileSpreadsheet className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Cloud Vault Architecture</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                   {lastSyncStatus === 'success' ? (
+                     <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-[9px] font-black uppercase tracking-widest">
+                       Vault Online
+                     </span>
+                   ) : (
+                     <span className="flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[9px] font-black uppercase tracking-widest">
+                       Sync Pending
+                     </span>
+                   )}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-brand-bg/30 p-8 rounded-[32px] border border-brand-border/40 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest ml-6">Google Sheets Web App URL</label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input type="url" name="googleSheetsWebAppUrl" value={settings.googleSheetsWebAppUrl} onChange={handleChange}
+                        placeholder="https://script.google.com/..."
+                        className="flex-1 bg-white border border-brand-border rounded-full px-8 py-4 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-mono" />
+                      <button
+                        type="button"
+                        onClick={handleTestConnection}
+                        disabled={testStatus === 'testing'}
+                        className="px-8 py-4 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {testStatus === 'testing' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        Test Connectivity
+                      </button>
+                    </div>
+                  </div>
+
+                  {testStatus !== 'idle' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={clsx(
+                        "p-6 rounded-[24px] border flex items-start gap-4 text-xs",
+                        testStatus === 'success' ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"
+                      )}
+                    >
+                      {testStatus === 'success' ? <CheckCircle className="w-5 h-5 shrink-0" /> : <XCircle className="w-5 h-5 shrink-0" />}
+                      <div>
+                        <p className="font-black uppercase tracking-widest">{testStatus === 'success' ? 'Vault Connection Secure' : 'Connectivity Disrupted'}</p>
+                        <p className="mt-1 font-medium opacity-80">{testMessage}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="bg-brand-dark text-white rounded-[32px] p-8 shadow-premium border border-brand-dark-surface">
+                   <div className="flex items-center gap-3 mb-6">
+                     <AlertCircle className="w-5 h-5 text-brand-accent" />
+                     <h4 className="text-[11px] font-black uppercase tracking-widest text-brand-bg/80">Diagnostic Center</h4>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <button
+                        onClick={handleRetrySync}
+                        disabled={isRetryingSync || settings.isOfflineMode}
+                        className="flex items-center justify-center gap-2 p-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-30"
+                     >
+                       <RefreshCw className={clsx("w-4 h-4", isRetryingSync && "animate-spin")} />
+                       Manual Sync Flush
+                     </button>
+                     <button
+                        onClick={clearSyncErrorLogs}
+                        disabled={syncErrorLogs.length === 0}
+                        className="flex items-center justify-center gap-2 p-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:text-red-400 transition-all disabled:opacity-30"
+                     >
+                       <Trash2 className="w-4 h-4" />
+                       Wipe Log Archive
+                     </button>
+                   </div>
+
+                   {syncErrorLogs.length > 0 && (
+                     <div className="mt-6 space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                       {syncErrorLogs.map(log => (
+                         <div key={log.id} className="bg-black/20 p-4 rounded-xl border border-white/5 space-y-1">
+                           <p className="text-[8px] font-black text-brand-accent uppercase tracking-widest">Fault logged at {new Date(log.timestamp).toLocaleTimeString()}</p>
+                           <p className="text-[11px] font-medium opacity-70 italic">"{log.message}"</p>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      <footer className="text-center space-y-4 opacity-40">
+        <div className="flex items-center justify-center gap-3">
+          <div className="h-px w-12 bg-brand-dark" />
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-dark">Arvind Kumar Shukla</p>
+          <div className="h-px w-12 bg-brand-dark" />
+        </div>
+        <p className="text-[8px] font-bold uppercase tracking-widest text-brand-muted max-w-xs mx-auto leading-relaxed">
+          Proprietary Artisan Ops Framework • Vers: 2.4.0 • Cordwainers Studio Global Sync
+        </p>
+      </footer>
     </div>
   );
 }

@@ -135,6 +135,25 @@ export default function NewRepair() {
     ? settings.shoeCarePackages
     : PACKAGES;
 
+  const salespersons = settings?.employees?.length > 0 ? settings.employees : [
+    { id: 'SP-001', name: 'Arvind Kumar Shukla', role: 'Store Lead & Chief Inspector' },
+    { id: 'SP-002', name: 'Pooja Sharma', role: 'Boutique Specialist' },
+    { id: 'SP-003', name: 'Rahul Deshmukh', role: 'Senior Artisan & Cordwainer' },
+    { id: 'SP-004', name: 'Amit Patel', role: 'Associate Intake Specialist' }
+  ];
+
+  const insurancePlans = settings?.insurancePlans?.length > 0 ? settings.insurancePlans : [
+    { id: 'basic', name: 'Basic Care Cover', price: 499, description: '1 Year accidental scuff cover & minor stitching repairs' },
+    { id: 'premium', name: 'Premium Lifetime Shield', price: 1499, description: 'Lifetime wear warranty & comprehensive material replacement discount' }
+  ];
+
+  const offerCodes = settings?.offers?.length > 0 ? settings.offers.map(o => ({ code: o.code, label: o.name, percentage: o.discountPercentage })) : [
+    { code: 'NONE', label: 'No Offer Applied', percentage: 0 },
+    { code: 'WELCOME10', label: 'Welcome Intake Discount (10%)', percentage: 10 },
+    { code: 'FESTIVE15', label: 'Festive Season Offer (15%)', percentage: 15 },
+    { code: 'ARTISAN20', label: 'Exclusive Artisan Circle (20%)', percentage: 20 }
+  ];
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<{ id: string; name: string; price: number; description: string } | null>(null);
 
@@ -546,13 +565,13 @@ Thank you for trusting Cordwainers Studio!
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0 animate-in fade-in duration-300">
       
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
         <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Care Portal</h2>
-          <p className="label-xs">Workshop Intake System</p>
+          <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Care Portal</h2>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3">Workshop Intake & Restoration System</p>
         </div>
         
-        <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium shrink-0">
+        <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm shadow-premium shrink-0">
           {[
             { id: 'history', label: 'History' },
             { id: 'new-repair', label: 'Intake' },
@@ -567,7 +586,7 @@ Thank you for trusting Cordwainers Studio!
               className={clsx(
                 "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
                 activeTab === tab.id
-                  ? "bg-brand-dark text-white shadow-lg" 
+                  ? "bg-brand-dark text-white shadow-premium" 
                   : "text-brand-muted hover:text-brand-dark"
               )}
             >
@@ -579,57 +598,62 @@ Thank you for trusting Cordwainers Studio!
 
       {/* SUCCESS SCREEN */}
       {submittedInvoice && (
-        <div className="bg-white border border-brand-border rounded-2xl shadow-xl p-6 md:p-12 max-w-2xl mx-auto space-y-8 animate-in fade-in duration-300 print:hidden">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto border border-green-100 shadow-sm">
-              <FileCheck className="w-8 h-8" />
+        <div className="bg-white border border-brand-border rounded-[40px] shadow-premium p-8 md:p-16 max-w-3xl mx-auto space-y-10 animate-in fade-in zoom-in-95 duration-500 print:hidden relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-emerald-500 to-green-400 opacity-20" />
+          
+          <div className="text-center space-y-6">
+            <div className="w-24 h-24 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto border border-green-100 shadow-premium">
+              <FileCheck className="w-10 h-10" />
             </div>
-            <h2 className="font-serif text-3xl font-bold text-brand-dark">Invoice Generated Successfully</h2>
-            <p className="text-sm text-brand-muted font-mono bg-brand-bg py-1.5 px-4 rounded-full inline-block">
-              Intake Ticket: {submittedInvoice.invoiceNumber}
-            </p>
-            <p className="text-sm text-brand-muted max-w-md mx-auto">
-              The intake ticket has been registered in the database. Choose from the professional actions below to communicate, save, or print the invoice.
+            <div className="space-y-2">
+              <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tight uppercase">Intake Successful</h2>
+              <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Handcrafted Care Registry Updated</p>
+            </div>
+            <div className="inline-block bg-brand-bg px-8 py-3 rounded-full border border-brand-border">
+              <p className="text-xs font-black text-brand-dark uppercase tracking-widest">
+                Ticket ID: <span className="font-mono text-brand-accent ml-2">{submittedInvoice.invoiceNumber}</span>
+              </p>
+            </div>
+            <p className="text-[11px] text-brand-muted font-bold uppercase tracking-widest max-w-md mx-auto leading-relaxed">
+              The intake ticket has been securely committed to the artisanal vault. Choose an action below to proceed with client communication.
             </p>
           </div>
 
-          <div className="border-t border-brand-border pt-8 space-y-4 max-w-md mx-auto">
-            <h3 className="font-serif text-base font-bold text-brand-dark text-center mb-4">Professional Intake Actions</h3>
-            
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-brand-border max-w-xl mx-auto">
             <a
               href={getWhatsAppURL(submittedInvoice)}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+              className="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
             >
               <Share2 className="w-4 h-4" />
-              Send via WhatsApp
+              WhatsApp Dispatch
             </a>
 
             <button
               type="button"
               onClick={() => downloadReceipt(submittedInvoice)}
-              className="flex items-center justify-center gap-3 w-full bg-brand-olive hover:bg-brand-olive/90 text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+              className="flex items-center justify-center gap-3 bg-brand-olive hover:bg-brand-olive/90 text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
             >
               <Download className="w-4 h-4" />
-              Save & Download Invoice (.txt)
+              Digital Receipt (.txt)
             </button>
 
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center justify-center gap-3 w-full bg-brand-dark hover:bg-brand-muted text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all shadow-md"
+              className="flex items-center justify-center gap-3 bg-brand-dark hover:bg-brand-muted text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium sm:col-span-2"
             >
               <Printer className="w-4 h-4" />
-              Print / Save PDF
+              Print Master Invoice (PDF)
             </button>
 
             <button
               type="button"
               onClick={resetForm}
-              className="flex items-center justify-center gap-3 w-full bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all"
+              className="flex items-center justify-center gap-3 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all sm:col-span-2"
             >
-              Create Another Ticket
+              Register New Intake
             </button>
           </div>
         </div>
@@ -640,22 +664,22 @@ Thank you for trusting Cordwainers Studio!
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* LEFT SIDE: STEPPED FORMS (8 Columns) */}
-          <div className="lg:col-span-7 bg-white border border-brand-border rounded-2xl shadow-lg overflow-hidden animate-in fade-in duration-300 print:hidden">
+          <div className="lg:col-span-7 bg-white border border-brand-border rounded-[40px] shadow-premium overflow-hidden animate-in fade-in duration-300 print:hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-olive to-brand-accent opacity-20" />
             
             {/* Form Headers */}
-            <div className="bg-brand-bg/50 border-b border-brand-border p-6 flex justify-between items-center">
+            <div className="bg-brand-bg/30 border-b border-brand-border p-8 flex justify-between items-center">
               <div>
-                <h2 className="font-serif text-xl font-bold text-brand-dark">Care Intake Wizard</h2>
-                <p className="text-xs text-brand-muted mt-0.5">Step {currentStep + 1} of 4: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Summary & Discount'][currentStep]}</p>
+                <h2 className="font-serif text-2xl font-black text-brand-dark uppercase tracking-tight">Care Intake Wizard</h2>
+                <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mt-1">Step {currentStep + 1} of 4: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Summary & Discount'][currentStep]}</p>
               </div>
               
               {/* Stepper Dots */}
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {[0, 1, 2, 3].map(step => (
                   <button
                     key={step}
                     onClick={() => {
-                      // Client side basic validation
                       if (step > currentStep) {
                         if (currentStep === 0 && (!clientName || !clientPhone)) return;
                         if (currentStep === 1 && !shoeModel) return;
@@ -663,7 +687,7 @@ Thank you for trusting Cordwainers Studio!
                       setCurrentStep(step);
                     }}
                     className={clsx(
-                      "w-7 h-2 rounded-full transition-all duration-300",
+                      "w-10 h-1.5 rounded-full transition-all duration-500",
                       step === currentStep ? "bg-brand-dark" : "bg-brand-border hover:bg-brand-muted"
                     )}
                   />
@@ -672,59 +696,62 @@ Thank you for trusting Cordwainers Studio!
             </div>
 
             {/* Form Container */}
-            <form onSubmit={handleFormSubmit} className="p-6 md:p-8 space-y-8">
+            <form onSubmit={handleFormSubmit} className="p-8 md:p-12 space-y-10">
               
               {/* STEP 1: CLIENT & SALESPERSON */}
               {currentStep === 0 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                <div className="space-y-10 animate-in slide-in-from-right-4 duration-300">
                   
                   {/* Client Details */}
-                  <div className="space-y-4">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
-                      Client Contact Profile
-                    </h3>
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 border-b border-brand-border pb-4">
+                      <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                        <User className="w-4 h-4 text-brand-olive" />
+                      </div>
+                      <h3 className="text-[11px] font-black text-brand-dark uppercase tracking-[0.2em]">Client Identity Node</h3>
+                    </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Client Full Name *</label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><User className="w-4 h-4" /></span>
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Full Name (Handwritten Registry) *</label>
+                        <div className="relative group">
+                          <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><User className="w-4 h-4" /></span>
                           <input
                             required
                             type="text"
                             placeholder="e.g. Arvind Kumar Shukla"
                             value={clientName}
                             onChange={e => setClientName(e.target.value)}
-                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-serif font-bold text-brand-dark"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Mobile Number *</label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><Phone className="w-4 h-4" /></span>
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Mobile Hub *</label>
+                        <div className="relative group">
+                          <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Phone className="w-4 h-4" /></span>
                           <input
                             required
                             type="tel"
                             placeholder="e.g. +91 99000 88776"
                             value={clientPhone}
                             onChange={e => setClientPhone(e.target.value)}
-                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Email Address</label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-brand-muted"><Mail className="w-4 h-4" /></span>
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Email Archive</label>
+                        <div className="relative group">
+                          <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Mail className="w-4 h-4" /></span>
                           <input
                             type="email"
                             placeholder="e.g. customer@luxury.com"
                             value={clientEmail}
                             onChange={e => setClientEmail(e.target.value)}
-                            className="w-full border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium text-brand-dark"
                           />
                         </div>
                       </div>
@@ -738,7 +765,7 @@ Thank you for trusting Cordwainers Studio!
                     </h3>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {SALESPERSONS.map(sp => {
+                      {salespersons.map(sp => {
                         const isSelected = salesperson.id === sp.id && !customSalespersonName;
                         return (
                           <button
@@ -751,16 +778,19 @@ Thank you for trusting Cordwainers Studio!
                             className={clsx(
                               "flex flex-col items-center p-3.5 rounded-xl border transition-all text-center space-y-2",
                               isSelected 
-                                ? "border-brand-olive bg-brand-olive/5 text-brand-dark ring-1 ring-brand-olive font-bold"
+                                ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.02] font-bold"
                                 : "border-brand-border bg-white hover:bg-brand-bg/30 text-brand-muted"
                             )}
                           >
-                            <div className="w-12 h-12 rounded-full bg-brand-bg/50 border border-brand-border/40 flex items-center justify-center text-brand-muted">
+                            <div className={clsx(
+                              "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
+                              isSelected ? "bg-white/10 border-white/20" : "bg-brand-bg/50 border-brand-border/40"
+                            )}>
                               <User className="w-6 h-6" />
                             </div>
                             <div>
-                              <p className="text-[11px] leading-tight font-semibold text-brand-dark">{sp.name.split(' ')[0]}</p>
-                              <p className="text-[9px] text-brand-muted tracking-tight mt-0.5">{sp.role.split(' ')[0]}</p>
+                              <p className={clsx("text-[11px] leading-tight font-semibold", isSelected ? "text-white" : "text-brand-dark")}>{sp.name.split(' ')[0]}</p>
+                              <p className={clsx("text-[9px] tracking-tight mt-0.5", isSelected ? "text-white/60" : "text-brand-muted")}>{sp.role.split(' ')[0]}</p>
                             </div>
                           </button>
                         );
@@ -1274,14 +1304,14 @@ Thank you for trusting Cordwainers Studio!
               )}
 
               {/* NAVIGATION BUTTONS */}
-              <div className="flex justify-between items-center pt-6 border-t border-brand-border mt-6">
+              <div className="flex justify-between items-center pt-10 border-t border-brand-border mt-10">
                 {currentStep > 0 ? (
                   <button
                     type="button"
                     onClick={() => setCurrentStep(currentStep - 1)}
-                    className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-brand-muted hover:text-brand-dark px-2 py-2"
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-dark px-6 py-4 rounded-full border border-transparent hover:border-brand-border transition-all"
                   >
-                    <ChevronLeft className="w-4 h-4" /> Return
+                    <ChevronLeft className="w-4 h-4" /> Previous Phase
                   </button>
                 ) : <div />}
 
@@ -1299,16 +1329,16 @@ Thank you for trusting Cordwainers Studio!
                       }
                       setCurrentStep(currentStep + 1);
                     }}
-                    className="flex items-center gap-1 bg-brand-dark text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand-muted transition-all"
+                    className="flex items-center gap-2 bg-brand-dark text-white px-10 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive transition-all shadow-premium"
                   >
-                    Continue <ChevronRight className="w-4 h-4" />
+                    Next Phase <ChevronRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 bg-brand-olive text-white px-7 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-opacity-90 transition-all shadow-md"
+                    className="flex items-center gap-2 bg-brand-olive text-white px-10 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-dark transition-all shadow-premium"
                   >
-                    <FileCheck className="w-4 h-4" /> Generate Invoice & Save
+                    <FileCheck className="w-4 h-4" /> Commit & Generate
                   </button>
                 )}
               </div>
@@ -1318,131 +1348,145 @@ Thank you for trusting Cordwainers Studio!
           </div>
 
           {/* RIGHT SIDE: LIVE RECALCULATING INVOICE PREVIEW (5 Columns) */}
-          <div className="lg:col-span-5 bg-white border border-brand-border rounded-2xl shadow-xl p-6 space-y-6 print:block print:border-none print:shadow-none print:p-0">
-            <h3 className="font-serif text-lg font-bold text-gray-900 border-b border-brand-border/60 pb-2 flex items-center justify-between print:hidden">
-              <span>Live Receipt Invoice</span>
-              <span className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-olive bg-brand-bg border border-brand-border/60 px-2 py-0.5 rounded animate-pulse">Live</span>
+          <div className="lg:col-span-5 bg-white border border-brand-border rounded-[32px] shadow-premium p-8 space-y-8 print:block print:border-none print:shadow-none print:p-0">
+            <h3 className="font-serif text-xl font-bold text-brand-dark border-b border-brand-border pb-4 flex items-center justify-between print:hidden">
+              <span>Live Registry Archive</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-accent bg-brand-bg border border-brand-border px-3 py-1 rounded-full animate-pulse">Live Draft</span>
             </h3>
 
             {/* Skeuomorphic Printed-Paper Container */}
-            <div className="bg-white border border-gray-200 p-6 rounded-xl space-y-5 font-mono text-xs text-gray-800 shadow-sm relative overflow-hidden">
+            <div className="bg-[#FCFCFA] border border-brand-border/40 p-8 rounded-2xl space-y-8 font-mono text-xs text-brand-dark shadow-inner relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-brand-border opacity-20" />
               
               {/* Receipt Header */}
-              <div className="text-center space-y-1">
-                <h4 className="font-serif text-sm font-extrabold uppercase tracking-wider text-black">Cordwainers Studio</h4>
-                <p className="text-[10px] text-gray-500">Luxury Shoe Restoration & Cobblers</p>
-                <p className="text-[9px] text-gray-500">Phone: +91 99000 88776 • Bangalore</p>
+              <div className="text-center space-y-2">
+                <h4 className="font-serif text-lg font-black uppercase tracking-[0.1em] text-brand-dark">Cordwainers Studio</h4>
+                <div className="flex flex-col items-center opacity-60 text-[10px] font-bold uppercase tracking-widest">
+                  <span>Luxury Footwear Restoration</span>
+                  <span>Artisanal Cobblers • Bangalore</span>
+                </div>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="border-t border-dashed border-brand-border opacity-40" />
 
               {/* Invoice Meta */}
-              <div className="grid grid-cols-2 gap-y-1 text-[11px]">
-                <span className="text-gray-500">Client Profile:</span>
-                <span className="text-black font-semibold font-sans text-right">{clientName || 'Arvind K. Shukla'}</span>
+              <div className="grid grid-cols-2 gap-y-2 text-[10px] font-bold uppercase tracking-widest">
+                <span className="text-brand-muted">Client Archive:</span>
+                <span className="text-brand-dark text-right font-serif lowercase italic">{clientName || 'Arvind K. Shukla'}</span>
                 
-                <span className="text-gray-500">Mobile No:</span>
-                <span className="text-black text-right">{clientPhone || '+91 99000 88776'}</span>
+                <span className="text-brand-muted">Contact:</span>
+                <span className="text-brand-dark text-right">{clientPhone || '+91 99000 88776'}</span>
 
-                <span className="text-gray-500">Email ID:</span>
-                <span className="text-black text-right truncate pl-2">{clientEmail || 'no-email@cordwainers.com'}</span>
+                <span className="text-brand-muted">Digital Node:</span>
+                <span className="text-brand-dark text-right truncate pl-4 lowercase">{clientEmail || 'no-email@cordwainers.com'}</span>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="border-t border-dashed border-brand-border opacity-40" />
 
               {/* Assigned Representative Profile */}
-              <div className="flex items-center gap-3 bg-brand-bg/25 border border-brand-border/40 p-2.5 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border/30 flex items-center justify-center text-brand-muted">
+              <div className="flex items-center gap-4 bg-white border border-brand-border p-4 rounded-2xl">
+                <div className="w-10 h-10 rounded-full bg-brand-bg flex items-center justify-center text-brand-olive border border-brand-border">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-wider text-gray-400 font-bold font-sans">Assigned Specialist</p>
-                  <p className="text-[11px] font-bold text-gray-900 font-sans">{customSalespersonName || salesperson.name}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-brand-muted font-black">Archive Representative</p>
+                  <p className="text-[11px] font-black text-brand-dark uppercase tracking-tight">{customSalespersonName || salesperson.name}</p>
                 </div>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="border-t border-dashed border-brand-border opacity-40" />
 
               {/* Footwear Diagnostics */}
-              <div className="space-y-2">
-                <p className="font-bold text-black font-sans text-[11px] tracking-wide">DIAGNOSED FOOTWEAR:</p>
-                <div className="flex items-start gap-3">
+              <div className="space-y-4">
+                <p className="font-black text-brand-dark text-[10px] uppercase tracking-[0.2em] opacity-80">Diagnosed Core:</p>
+                <div className="flex items-start gap-4">
                   {shoeImage ? (
                     <img
                       src={shoeImage}
                       alt="Diagnosed shoe"
-                      className="w-14 h-14 rounded object-cover border border-brand-border/30"
+                      className="w-16 h-16 rounded-xl object-cover border border-brand-border shadow-sm"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-14 h-14 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-gray-400">
-                      No Photo
+                    <div className="w-16 h-16 bg-brand-bg rounded-xl border border-brand-border flex items-center justify-center text-brand-muted">
+                      <Camera className="w-6 h-6 opacity-20" />
                     </div>
                   )}
-                  <div className="space-y-0.5">
-                    <p className="font-sans font-bold text-[11px] text-gray-900 line-clamp-2">{shoeModel || 'Bespoke Allen Edmonds'}</p>
-                    <p className="text-[10px] text-gray-500">Size: {shoeSize || 'UK 9'} • {leatherType}</p>
+                  <div className="space-y-1">
+                    <p className="font-serif font-black text-sm text-brand-dark leading-tight">{shoeModel || 'Bespoke Footwear Identity'}</p>
+                    <p className="text-[9px] font-bold text-brand-muted uppercase tracking-widest">Sizing: {shoeSize || 'UK 9'} • {leatherType}</p>
                   </div>
                 </div>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="border-t border-dashed border-brand-border opacity-40" />
 
               {/* Detailed itemized breakdown of repair cost */}
-              <div className="space-y-1.5 text-[11px]">
-                <p className="font-bold text-black font-sans text-[11px] tracking-wide mb-1">TOTAL RESTORATION DETAIL COST:</p>
+              <div className="space-y-3 text-[10px] font-bold uppercase tracking-widest">
+                <p className="text-brand-muted mb-2">Itemized Assessment:</p>
                 
                 {/* Base Value */}
                 <div className="flex justify-between">
-                  <span className="text-gray-500">- Initial Diagnostics/Base Fee:</span>
-                  <span className="text-black font-semibold">₹{basePrice}</span>
+                  <span>Diagnostics Fee</span>
+                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{basePrice}</span>
                 </div>
 
                 {/* Restoration package */}
                 <div className="flex justify-between">
-                  <span className="text-gray-500">- Program: {getPackageName()}</span>
-                  <span className="text-black font-semibold">₹{getPackageCost()}</span>
+                  <span className="truncate max-w-[200px]">Program: {getPackageName()}</span>
+                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{getPackageCost()}</span>
                 </div>
 
                 {/* Shoe plus items */}
                 {plusItems.map(item => (
-                  <div key={item.id} className="flex justify-between pl-3 text-gray-600">
-                    <span>* Plus Add-on: {item.name} (x{item.quantity})</span>
-                    <span>₹{item.price * item.quantity}</span>
+                  <div key={item.id} className="flex justify-between pl-4 text-brand-muted">
+                    <span>+ {item.name} (x{item.quantity})</span>
+                    <span className="font-serif lowercase italic">₹{item.price * item.quantity}</span>
                   </div>
                 ))}
 
                 {/* Insurance plan */}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">- protection: {insurancePlan.name}</span>
-                  <span className="text-black font-semibold">₹{getInsuranceCost()}</span>
+                <div className="flex justify-between text-brand-olive">
+                  <span>Protection Policy: {insurancePlan.name}</span>
+                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{getInsuranceCost()}</span>
                 </div>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="border-t border-dashed border-brand-border opacity-40" />
 
               {/* Total Calculation Area */}
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex justify-between">
-                  <span>Subtotal Cost:</span>
+              <div className="space-y-3">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-brand-muted">
+                  <span>Gross Assessment:</span>
                   <span>₹{getSubtotal()}</span>
                 </div>
 
                 {getDiscountAmount() > 0 && (
-                  <div className="flex justify-between text-red-600 font-semibold">
-                    <span>Coupon/Offer Discount:</span>
-                    <span>-₹{getDiscountAmount()}</span>
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-brand-accent">
+                    <span>Campaign Discount:</span>
+                    <span className="font-serif">-₹{getDiscountAmount()}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between font-sans font-bold text-black text-xs pt-1.5 border-t border-gray-200">
-                  <span className="uppercase tracking-wider">Estimated Grand Total</span>
-                  <span className="text-sm">₹{getGrandTotal()}</span>
+                <div className="flex justify-between font-serif font-black text-brand-dark text-lg pt-4 border-t border-brand-border">
+                  <span className="uppercase tracking-tight">Net Total</span>
+                  <span className="tracking-tighter">₹{getGrandTotal()}</span>
                 </div>
-                <p className="text-[8px] text-gray-400 font-sans italic text-right mt-1">Inclusive of estimated standard GST charges (18%)</p>
+                <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] text-brand-muted opacity-40">
+                  <span>Inclusive of 18% GST</span>
+                  <span>Valid for 15 Days</span>
+                </div>
               </div>
 
-              <hr className="border-dashed border-gray-300" />
+              <div className="pt-4 flex justify-center">
+                 <div className="w-32 h-32 opacity-10 grayscale hover:grayscale-0 transition-all">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CW-REGISTRY-VERIFIED" alt="Registry QR" className="w-full h-full" referrerPolicy="no-referrer" />
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-dashed border-gray-300" />
 
               {/* Print Footer / Terms Clickable Link */}
               <div className="text-center pt-2 space-y-3">
@@ -1460,10 +1504,7 @@ Thank you for trusting Cordwainers Studio!
               </div>
 
             </div>
-          </div>
-
-        </div>
-      )}
+        )}
 
       {/* MANAGE SERVICES TIER CATALOG */}
       {activeTab === 'manage-services' && (
@@ -1630,41 +1671,49 @@ Thank you for trusting Cordwainers Studio!
             {filteredRepairs.map((repair) => (
               <div 
                 key={repair.id}
-                className="bg-white p-6 rounded-[32px] border border-brand-border hover:shadow-premium transition-all group flex flex-col justify-between min-h-[200px]"
+                className="bg-white p-8 rounded-[40px] border border-brand-border hover:shadow-premium transition-all group flex flex-col justify-between min-h-[280px] relative overflow-hidden"
               >
-                <div className="space-y-4">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent to-brand-olive opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                <div className="space-y-6">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">{repair.invoiceNumber}</p>
-                      <h4 className="font-serif text-lg font-bold text-brand-dark leading-tight">{repair.shoeModel}</h4>
+                      <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">{repair.invoiceNumber}</p>
+                      <h4 className="font-serif text-xl font-bold text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">{repair.shoeModel}</h4>
                     </div>
-                    <p className="text-xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+                    <div className="text-right">
+                        <p className="text-2xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+                        <p className="text-[8px] font-black text-brand-muted uppercase tracking-widest mt-1 opacity-60">Total Cost</p>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {repair.repairType.map((t, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-brand-bg rounded-md text-[9px] font-black text-brand-muted uppercase tracking-tight">{t}</span>
+                      <span key={i} className="px-3 py-1 bg-brand-bg rounded-full text-[9px] font-black text-brand-dark border border-brand-border uppercase tracking-tight">{t}</span>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end pt-4 border-t border-brand-border/40 mt-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">{repair.customerName}</p>
-                    <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest">{repair.status}</p>
+                <div className="flex justify-between items-center pt-6 border-t border-brand-border mt-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center text-brand-olive font-serif font-black text-xs border border-brand-border">
+                        {repair.customerName.charAt(0)}
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-black text-brand-dark uppercase tracking-widest leading-none">{repair.customerName}</p>
+                        <p className="text-[9px] font-black text-brand-accent uppercase tracking-[0.2em]">{repair.status}</p>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button 
-                      onClick={() => {
-                        if (window.confirm(`Delete record for ${repair.customerName}?`)) {
-                          deleteRepair(repair.id);
-                        }
-                      }}
-                      className="p-2 text-brand-muted hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`Delete record for ${repair.customerName}?`)) {
+                        deleteRepair(repair.id);
+                      }
+                    }}
+                    className="p-2 text-brand-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

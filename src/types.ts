@@ -1,6 +1,19 @@
 export type RepairStatus = 'Received' | 'In Progress' | 'Polishing' | 'Completed' | 'Delivered';
 export type PriorityLevel = 'Low' | 'Medium' | 'High';
 
+export interface Appointment {
+  id: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  date: string;
+  time: string;
+  serviceType: 'Drop-off' | 'Consultation' | 'Home Pickup';
+  notes?: string;
+  status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
+  createdAt: string;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;

@@ -59,6 +59,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isPublicRoute = location.pathname === '/book';
+
   const handleLogout = async () => {
     if (!auth) return;
     try {
@@ -98,7 +100,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     setIsMoreOpen(false);
   }, [location.pathname]);
 
-  if (!user) {
+  if (!user && !isPublicRoute) {
     return (
       <>
         <AuthObserver />
@@ -142,15 +144,17 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const primaryNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Home' },
-    { to: '/insurance', icon: Shield, label: 'Protection' },
+    { to: '/insurance', icon: Shield, label: 'CW Cover' },
     { to: '/new-repair', icon: PlusCircle, label: 'CW Care' },
     { to: '/inventory', icon: Package, label: 'CW Plus' },
   ];
 
   const moreHubItems = [
+    { to: '/appointments', icon: Calendar, label: 'Schedule Hub', desc: 'Manage artisan consultations & drop-off slots' },
     { to: '/cobbler-desk', icon: Hammer, label: "Cobbler's Desk", desc: 'Manage assigned repairs, check photos, log payments & balances' },
     { to: '/offers', icon: Tag, label: 'Offers & Loyalty', desc: 'Manage artisan discounts & seasonal repair deals' },
     { to: '/customers', icon: Users, label: 'Customer Directory', desc: 'Manage artisan CRM & footwear profiles' },
+    { to: '/book', icon: Sparkles, label: 'Public Booking', desc: 'Customer-facing consultation scheduler' },
     { to: '/socials-payments', icon: Share2, label: 'Socials & Payments', desc: 'Configure payment gateways, QR codes & social links' },
     { to: '/settings', icon: SettingsIcon, label: 'App Settings & API', desc: 'Configure cloud spreadsheets & pricing' },
   ];

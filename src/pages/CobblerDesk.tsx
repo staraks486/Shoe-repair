@@ -110,8 +110,8 @@ export default function CobblerDesk() {
             <button
               onClick={() => setActiveTab('assigned')}
               className={clsx(
-                'flex-1 min-w-[100px] py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all',
-                activeTab === 'assigned' ? 'bg-white text-brand-dark shadow-sm border border-brand-border/60' : 'text-brand-muted'
+                'flex-1 min-w-[120px] py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all',
+                activeTab === 'assigned' ? 'bg-brand-dark text-white shadow-lg' : 'text-brand-muted hover:text-brand-dark'
               )}
             >
               Assigned ({assignedRepairs.length})
@@ -119,8 +119,8 @@ export default function CobblerDesk() {
             <button
               onClick={() => setActiveTab('in-progress')}
               className={clsx(
-                'flex-1 min-w-[100px] py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all',
-                activeTab === 'in-progress' ? 'bg-white text-brand-dark shadow-sm border border-brand-border/60' : 'text-brand-muted'
+                'flex-1 min-w-[120px] py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all',
+                activeTab === 'in-progress' ? 'bg-brand-dark text-white shadow-lg' : 'text-brand-muted hover:text-brand-dark'
               )}
             >
               Progress ({inProgressRepairs.length})
@@ -128,11 +128,11 @@ export default function CobblerDesk() {
             <button
               onClick={() => setActiveTab('completed')}
               className={clsx(
-                'flex-1 min-w-[100px] py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all',
-                activeTab === 'completed' ? 'bg-white text-brand-dark shadow-sm border border-brand-border/60' : 'text-brand-muted'
+                'flex-1 min-w-[120px] py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all',
+                activeTab === 'completed' ? 'bg-brand-dark text-white shadow-lg' : 'text-brand-muted hover:text-brand-dark'
               )}
             >
-              Ready for Pickup ({completedRepairs.length})
+              Ready ({completedRepairs.length})
             </button>
           </div>
         </div>

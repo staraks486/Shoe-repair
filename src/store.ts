@@ -8,11 +8,13 @@ import {
   Settings, 
   VoiceNote,
   AppNotification,
-  UserProfile
+  UserProfile,
+  Appointment
 } from './types';
 import { NotificationService } from './services/NotificationService';
 import { db, auth } from './services/firebase';
 import { User } from 'firebase/auth';
+import { format, parseISO } from 'date-fns';
 import { 
   collection, 
   doc, 
@@ -29,6 +31,7 @@ interface AppState {
   customers: Customer[];
   inventory: InventoryItem[];
   insurance: ShoeInsurance[];
+  appointments: Appointment[];
   settings: Settings;
   syncErrorLogs: Array<{ id: string; timestamp: string; message: string; payloadCount: number }>;
   lastSyncStatus: 'idle' | 'success' | 'error' | 'syncing';
@@ -54,6 +57,10 @@ interface AppState {
   updateInsurance: (id: string, data: Partial<ShoeInsurance>) => void;
   deleteInsurance: (id: string) => void;
   
+  addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  updateAppointment: (id: string, data: Partial<Appointment>) => void;
+  deleteAppointment: (id: string) => void;
+  
   updateSettings: (settings: Partial<Settings>) => void;
   addVoiceNote: (repairId: string, voiceNote: Omit<VoiceNote, 'id'>) => void;
   deleteVoiceNote: (repairId: string, noteId: string) => void;
@@ -76,6 +83,7 @@ export const useAppStore = create<AppState>()(
         { id: '3', name: 'Black Polish', category: 'Polish', quantity: 15, unit: 'tins', minThreshold: 5 },
       ],
       insurance: [],
+      appointments: [],
       settings: {
         storeName: 'Cordwainers Studio',
         address: '123 Main St, Cityville',
@@ -125,15 +133,23 @@ export const useAppStore = create<AppState>()(
           }
         ],
         offers: [
-          { id: '1', name: 'Welcome 10%', code: 'WELCOME10', discountPercentage: 10 }
+          { id: '1', name: 'Welcome 10%', code: 'WELCOME10', discountPercentage: 10 },
+          { id: '2', name: 'Artisan 20%', code: 'ARTISAN20', discountPercentage: 20 }
         ],
         shoeCarePackages: [
-          { id: '1', name: 'Standard Cleaning', description: 'Deep wash, internal deodorization & polish', price: 299 },
-          { id: '2', name: 'Premium Restoration', description: 'Complete leather conditioning, edge dressing & waterproofing', price: 599 },
-          { id: '3', name: 'Suede Deluxe Care', description: 'Stain extraction, pile revival & stain repellent guard', price: 449 }
+          { id: '1', name: 'The Refresh & Polish', description: 'Deep leather cleansing, conditioning, minor scuff removal, edge dressing, and a hand-burnished cream polish finish.', price: 2499 },
+          { id: '2', name: 'The Signature Recrafting', description: 'Includes everything in the Refresh package, plus a full out-sole replacement and new premium stacked leather heel blocks.', price: 8999 },
+          { id: '3', name: 'The Master Restoration', description: 'A complete strip-down and rebuilding of the shoe, full re-sole, interior lining repair, and a complete hand-dyed patina restoration.', price: 14999 }
         ],
-        employees: [],
-        cobblers: [],
+        employees: [
+          { id: 'SP-001', name: 'Arvind Shukla', role: 'Store Lead', mobile: '', email: '' },
+          { id: 'SP-002', name: 'Pooja Sharma', role: 'Specialist', mobile: '', email: '' },
+          { id: 'SP-003', name: 'Rahul Deshmukh', role: 'Senior Artisan', mobile: '', email: '' }
+        ],
+        cobblers: [
+          { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt', mobile: '', email: '' },
+          { id: 'C-002', name: 'Baldev Prasad', specialty: 'Patina Master', mobile: '', email: '' }
+        ],
         repairCharges: [
           { id: '1', service: 'Heel Repair', price: 200 },
           { id: '2', service: 'Sole Repair', price: 500 }
@@ -176,6 +192,12 @@ export const useAppStore = create<AppState>()(
             insuranceList.push(doc.data() as ShoeInsurance);
           });
 
+          const appointmentsSnapshot = await getDocs(collection(db, 'appointments'));
+          const appointmentsList: Appointment[] = [];
+          appointmentsSnapshot.forEach((doc) => {
+            appointmentsList.push(doc.data() as Appointment);
+          });
+
           const settingsSnapshot = await getDocs(collection(db, 'settings'));
           let settingsObj: Settings | null = null;
           settingsSnapshot.forEach((doc) => {
@@ -184,12 +206,13 @@ export const useAppStore = create<AppState>()(
             }
           });
 
-          if (repairsList.length > 0 || customersList.length > 0 || inventoryList.length > 0 || insuranceList.length > 0 || settingsObj) {
+          if (repairsList.length > 0 || customersList.length > 0 || inventoryList.length > 0 || insuranceList.length > 0 || appointmentsList.length > 0 || settingsObj) {
             set((state) => ({
               repairs: repairsList.length > 0 ? repairsList : state.repairs,
               customers: customersList.length > 0 ? customersList : state.customers,
               inventory: inventoryList.length > 0 ? inventoryList : state.inventory,
               insurance: insuranceList.length > 0 ? insuranceList : state.insurance,
+              appointments: appointmentsList.length > 0 ? appointmentsList : state.appointments,
               settings: settingsObj ? { ...state.settings, ...settingsObj } : state.settings,
               lastSyncStatus: 'success',
               lastSyncTime: new Date().toISOString()
@@ -551,6 +574,62 @@ export const useAppStore = create<AppState>()(
         }));
         if (db) {
           deleteDoc(doc(db, 'insurance', id)).catch(e => console.error("Firestore insurance delete failed", e));
+        }
+      },
+
+      addAppointment: async (appointmentData) => {
+        const id = generateId();
+        const createdAt = new Date().toISOString();
+        const newAppointment: Appointment = {
+          ...appointmentData,
+          id,
+          status: 'Pending',
+          createdAt
+        };
+        
+        set((state) => ({
+          appointments: [newAppointment, ...state.appointments]
+        }));
+        
+        if (db) {
+          try {
+            await setDoc(doc(db, 'appointments', id), newAppointment);
+            
+            // Add notification for the artisan
+            await get().addNotification({
+              title: 'New Appointment Booked',
+              message: `${newAppointment.customerName} has scheduled a ${newAppointment.serviceType} for ${format(parseISO(newAppointment.date), 'MMM dd')} at ${newAppointment.time}.`,
+              type: 'info'
+            });
+          } catch (e) {
+            console.error("Firestore appointment add failed", e);
+          }
+        }
+      },
+
+      updateAppointment: (id, data) => {
+        let updatedAppointment: Appointment | undefined;
+        set((state) => {
+          const newAppointments = state.appointments.map(a => {
+            if (a.id === id) {
+              updatedAppointment = { ...a, ...data };
+              return updatedAppointment;
+            }
+            return a;
+          });
+          return { appointments: newAppointments };
+        });
+        if (updatedAppointment && db) {
+          setDoc(doc(db, 'appointments', id), updatedAppointment).catch(e => console.error("Firestore appointment update failed", e));
+        }
+      },
+
+      deleteAppointment: (id) => {
+        set((state) => ({
+          appointments: state.appointments.filter(a => a.id !== id)
+        }));
+        if (db) {
+          deleteDoc(doc(db, 'appointments', id)).catch(e => console.error("Firestore appointment delete failed", e));
         }
       },
       

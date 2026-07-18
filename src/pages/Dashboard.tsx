@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import DashboardSummary from '../components/DashboardSummary';
+import AppointmentSummary from '../components/AppointmentSummary';
 import DashboardCalendar from '../components/DashboardCalendar';
 import StatusDistribution from '../components/StatusDistribution';
 import InvoiceModal from '../components/InvoiceModal';
@@ -63,9 +64,14 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Metrics Section */}
-      <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <DashboardSummary />
+      {/* Metrics & Appointments Section */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="lg:col-span-2">
+          <DashboardSummary />
+        </div>
+        <div className="lg:col-span-1">
+          <AppointmentSummary />
+        </div>
       </section>
       
       {/* Analytics Visualization */}
