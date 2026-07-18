@@ -11,6 +11,10 @@ async function startServer() {
 
   app.use(express.json());
 
+  console.log(`[SERVER] Environment: ${process.env.NODE_ENV}`);
+  console.log(`[SERVER] Port: ${PORT}`);
+  console.log(`[SERVER] Firebase Project ID: ${process.env.VITE_FIREBASE_PROJECT_ID ? 'Configured' : 'Missing'}`);
+
   // Health check for Render
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

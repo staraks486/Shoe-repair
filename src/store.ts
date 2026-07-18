@@ -127,6 +127,10 @@ export const useAppStore = create<AppState>()(
       lastSyncTime: null,
 
       fetchFromFirestore: async () => {
+        if (!db) {
+          console.warn("Firestore is not initialized. Skipping fetch.");
+          return;
+        }
         try {
           const repairsSnapshot = await getDocs(collection(db, 'repairs'));
           const repairsList: ShoeRepairRequest[] = [];
@@ -217,7 +221,7 @@ export const useAppStore = create<AppState>()(
         });
         
         // Write to Firestore asynchronously
-        if (createdRepair) {
+        if (createdRepair && db) {
           const rep = createdRepair as ShoeRepairRequest;
           setDoc(doc(db, 'repairs', rep.id), rep).catch(e => console.error("Firestore repairs set failed", e));
           
@@ -258,7 +262,7 @@ export const useAppStore = create<AppState>()(
           return { repairs: newRepairs };
         });
 
-        if (updatedRepair) {
+        if (updatedRepair && db) {
           const rep = updatedRepair as ShoeRepairRequest;
           setDoc(doc(db, 'repairs', id), rep).catch(e => console.error("Firestore repairs update status failed", e));
         }
@@ -287,7 +291,7 @@ export const useAppStore = create<AppState>()(
           return { repairs: newRepairs };
         });
 
-        if (updatedRepair) {
+        if (updatedRepair && db) {
           setDoc(doc(db, 'repairs', id), updatedRepair).catch(e => console.error("Firestore repairs update failed", e));
         }
 
@@ -301,7 +305,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           repairs: state.repairs.filter(r => r.id !== id)
         }));
-        deleteDoc(doc(db, 'repairs', id)).catch(e => console.error("Firestore repairs delete failed", e));
+        if (db) {
+          deleteDoc(doc(db, 'repairs', id)).catch(e => console.error("Firestore repairs delete failed", e));
+        }
       },
       
       syncAllPending: async () => {
@@ -395,7 +401,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           customers: [...state.customers, customer]
         }));
-        setDoc(doc(db, 'customers', customer.phoneNumber), customer).catch(e => console.error("Firestore customer add failed", e));
+        if (db) {
+          setDoc(doc(db, 'customers', customer.phoneNumber), customer).catch(e => console.error("Firestore customer add failed", e));
+        }
       },
       
       updateCustomer: (phone, data) => {
@@ -410,7 +418,7 @@ export const useAppStore = create<AppState>()(
           });
           return { customers: newCustomers };
         });
-        if (updatedCustomer) {
+        if (updatedCustomer && db) {
           setDoc(doc(db, 'customers', phone), updatedCustomer).catch(e => console.error("Firestore customer update failed", e));
         }
       },
@@ -421,7 +429,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           inventory: [...state.inventory, newItem]
         }));
-        setDoc(doc(db, 'inventory', id), newItem).catch(e => console.error("Firestore inventory add failed", e));
+        if (db) {
+          setDoc(doc(db, 'inventory', id), newItem).catch(e => console.error("Firestore inventory add failed", e));
+        }
       },
       
       updateInventoryItem: (id, data) => {
@@ -436,7 +446,7 @@ export const useAppStore = create<AppState>()(
           });
           return { inventory: newInventory };
         });
-        if (updatedItem) {
+        if (updatedItem && db) {
           setDoc(doc(db, 'inventory', id), updatedItem).catch(e => console.error("Firestore inventory update failed", e));
         }
       },
@@ -445,7 +455,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           inventory: state.inventory.filter(i => i.id !== id)
         }));
-        deleteDoc(doc(db, 'inventory', id)).catch(e => console.error("Firestore inventory delete failed", e));
+        if (db) {
+          deleteDoc(doc(db, 'inventory', id)).catch(e => console.error("Firestore inventory delete failed", e));
+        }
       },
       
       addInsurance: (policy) => {
@@ -455,7 +467,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           insurance: [...state.insurance, newPolicy]
         }));
-        setDoc(doc(db, 'insurance', id), newPolicy).catch(e => console.error("Firestore insurance add failed", e));
+        if (db) {
+          setDoc(doc(db, 'insurance', id), newPolicy).catch(e => console.error("Firestore insurance add failed", e));
+        }
       },
 
       updateInsurance: (id, data) => {
@@ -470,7 +484,7 @@ export const useAppStore = create<AppState>()(
           });
           return { insurance: newInsurance };
         });
-        if (updatedInsurance) {
+        if (updatedInsurance && db) {
           setDoc(doc(db, 'insurance', id), updatedInsurance).catch(e => console.error("Firestore insurance update failed", e));
         }
       },
@@ -479,13 +493,17 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           insurance: state.insurance.filter(i => i.id !== id)
         }));
-        deleteDoc(doc(db, 'insurance', id)).catch(e => console.error("Firestore insurance delete failed", e));
+        if (db) {
+          deleteDoc(doc(db, 'insurance', id)).catch(e => console.error("Firestore insurance delete failed", e));
+        }
       },
       
       updateSettings: (newSettings) => {
         set((state) => {
           const updatedSettings = { ...state.settings, ...newSettings };
-          setDoc(doc(db, 'settings', 'global_settings'), updatedSettings).catch(e => console.error("Firestore settings update failed", e));
+          if (db) {
+            setDoc(doc(db, 'settings', 'global_settings'), updatedSettings).catch(e => console.error("Firestore settings update failed", e));
+          }
           return { settings: updatedSettings };
         });
       },
