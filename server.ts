@@ -11,6 +11,11 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Health check for Render
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // API Routes
   app.post("/api/notify/email", async (req, res) => {
     try {
@@ -107,7 +112,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 

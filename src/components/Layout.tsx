@@ -107,14 +107,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Professional Centered Header */}
         <header className="bg-white border-b border-brand-border/60 px-6 py-10 relative z-20 shadow-sm md:rounded-b-[40px]">
           <div className="flex flex-col items-center justify-center text-center">
-            {/* Logo above title */}
-            <div className="mb-6 transform hover:scale-110 transition-transform duration-500 cursor-pointer">
-              <div className="w-16 h-16 bg-brand-dark rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-dark/30 rotate-3">
-                <div className="w-11 h-11 border-2 border-brand-accent/40 rounded-lg flex items-center justify-center -rotate-3">
-                  <span className="text-white font-serif text-2xl font-black">C</span>
-                </div>
-              </div>
-            </div>
+            {/* Logo removed per user request */}
             
             <h1 className="font-serif text-2xl md:text-4xl font-black tracking-tight text-brand-dark uppercase">
               Cordwainers Studio

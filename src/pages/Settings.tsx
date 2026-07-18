@@ -183,20 +183,7 @@ export default function Settings() {
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2">Store Details</h3>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Logo Upload</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        updateSettings({ logoUrl: reader.result as string });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }} className="w-full text-sm text-brand-dark file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-dark hover:file:bg-brand-bg/80" />
-                  {settings.logoUrl && <img src={settings.logoUrl} alt="Logo Preview" className="mt-2 h-16 w-16 object-contain" />}
-                </div>
+                {/* Logo upload removed per user request */}
                 <div>
                   <label className="block text-xs font-medium text-brand-dark mb-1 uppercase tracking-wider">Store Name</label>
                   <input type="text" name="storeName" value={settings.storeName} onChange={handleChange}

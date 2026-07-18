@@ -4,11 +4,15 @@ import { getAnalytics } from 'firebase/analytics';
 // Support both JSON file (for AI Studio) and Environment Variables (for Render/GitHub)
 let aiStudioConfig: any = {};
 try {
-  // @ts-ignore
+  // @ts-ignore - Vite specific glob
   const configs = import.meta.glob('../../firebase-applet-config.json', { eager: true });
-  aiStudioConfig = configs['../../firebase-applet-config.json']?.default || {};
+  // Find the config file in the glob results
+  const configKey = Object.keys(configs).find(k => k.includes('firebase-applet-config.json'));
+  if (configKey) {
+    aiStudioConfig = (configs[configKey] as any)?.default || configs[configKey] || {};
+  }
 } catch (e) {
-  // Ignore missing file
+  console.warn('Firebase config file not found or failed to load. Falling back to env vars.');
 }
 
 const firebaseConfig = {
@@ -22,11 +26,14 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || aiStudioConfig.firestoreDatabaseId || '(default)'
 };
 
-const app = initializeApp(firebaseConfig);
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Only initialize if we have at least a Project ID
+const hasConfig = !!firebaseConfig.projectId;
 
-const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+const app = hasConfig ? initializeApp(firebaseConfig) : null;
+const analytics = (hasConfig && typeof window !== 'undefined') ? getAnalytics(app!) : null;
+
+const db = hasConfig 
+  ? initializeFirestore(app!, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId || '(default)')
+  : null as any; // Cast as any to avoid breaking types if config is missing
 
 export { db, analytics };
