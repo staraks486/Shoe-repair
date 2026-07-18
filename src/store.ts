@@ -126,7 +126,8 @@ export const useAppStore = create<AppState>()(
           { id: '1', service: 'Heel Repair', price: 200 },
           { id: '2', service: 'Sole Repair', price: 500 }
         ],
-        theme: 'olive'
+        theme: 'olive',
+        autoNotifyPickup: true
       },
       syncErrorLogs: [],
       lastSyncStatus: 'idle',
@@ -279,7 +280,7 @@ export const useAppStore = create<AppState>()(
           setDoc(doc(db, 'repairs', id), rep).catch(e => console.error("Firestore repairs update status failed", e));
         }
 
-        if (status === 'Completed' && updatedRepair) {
+        if (status === 'Completed' && updatedRepair && settings.autoNotifyPickup) {
           NotificationService.sendStatusUpdateEmail(updatedRepair, settings);
           NotificationService.sendStatusUpdateSms(updatedRepair, settings);
         }

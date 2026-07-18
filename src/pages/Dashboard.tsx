@@ -7,6 +7,7 @@ import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Sear
 import clsx from 'clsx';
 import DashboardSummary from '../components/DashboardSummary';
 import DashboardCalendar from '../components/DashboardCalendar';
+import StatusDistribution from '../components/StatusDistribution';
 import InvoiceModal from '../components/InvoiceModal';
 
 const FALLBACK_COBBLERS = [
@@ -93,6 +94,8 @@ export default function Dashboard() {
       </header>
 
       <DashboardSummary />
+      
+      <StatusDistribution repairs={repairs} />
       
       {/* Calendar Deadlines & Pick-ups Track */}
       <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} />

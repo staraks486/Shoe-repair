@@ -7,20 +7,23 @@ export class NotificationService {
       return;
     }
 
-    const subject = `Update on your shoe repair: ${repair.invoiceNumber} is now ${repair.status}`;
+    const subject = `[SIMULATED] Your shoe repair ${repair.invoiceNumber} is now ${repair.status}`;
     const body = `
+--- SIMULATED NOTIFICATION ---
+To: ${repair.email}
+
 Dear ${repair.customerName},
 
 We are writing to inform you that your shoe repair order (${repair.invoiceNumber}) for your ${repair.shoeModel} has been updated to: ${repair.status}.
 
-${repair.status === 'Completed' ? `Great news! Your shoes are ready for pickup.
-The remaining balance due is ₹${(repair.balance || 0).toFixed(2)}.` : ''}
+${repair.status === 'Completed' ? `Great news! Your shoes are ready for pickup. 
+Please visit the workshop at your earliest convenience.` : ''}
 
 Thank you for choosing ${settings.storeName}!
 
 Best regards,
 The team at ${settings.storeName}
-${settings.address}
+--- END SIMULATION ---
     `.trim();
 
     try {
@@ -52,7 +55,7 @@ ${settings.address}
       return;
     }
 
-    const message = `Hi ${repair.customerName}, your shoe repair (${repair.invoiceNumber}) is now ${repair.status}.${repair.status === 'Completed' ? ` Ready for pickup! Balance: ₹${(repair.balance || 0).toFixed(2)}.` : ''} - ${settings.storeName}`;
+    const message = `[SIMULATED SMS] Hi ${repair.customerName}, your shoe repair (${repair.invoiceNumber}) is now ${repair.status}.${repair.status === 'Completed' ? ' READY FOR PICKUP!' : ''} - ${settings.storeName}`;
 
     try {
       const response = await fetch('/api/notify/sms', {

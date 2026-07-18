@@ -162,4 +162,5 @@ export interface Settings {
   repairCharges: RepairCharge[];
   theme: 'light' | 'dark' | 'olive';
   termsAndConditions?: string;
+  autoNotifyPickup?: boolean;
 }

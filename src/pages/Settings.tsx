@@ -357,6 +357,19 @@ export default function Settings() {
               className="w-full border-brand-border-dark rounded-md shadow-sm focus:ring-brand-accent focus:border-brand-accent sm:text-sm bg-brand-bg" />
             
             <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2 mt-8">Integrations & Notifications</h3>
+            <div className="flex items-center justify-between p-4 bg-brand-bg/50 rounded-xl border border-brand-border-dark">
+              <div className="space-y-1">
+                <p className="text-xs font-black text-brand-dark uppercase tracking-widest">Automated Pickup Notifications</p>
+                <p className="text-[10px] text-brand-muted font-medium">Send simulated SMS and Email when status moves to 'Completed'.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateSettings({ autoNotifyPickup: !settings.autoNotifyPickup })}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.autoNotifyPickup ? 'bg-brand-olive' : 'bg-brand-muted/30'}`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.autoNotifyPickup ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
             <p className="text-xs text-brand-muted">
               Configure automated WhatsApp messages and Google Sheets sync.
             </p>

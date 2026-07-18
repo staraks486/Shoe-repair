@@ -132,7 +132,7 @@ export default function CobblerDesk() {
                 activeTab === 'completed' ? 'bg-white text-brand-dark shadow-sm border border-brand-border/60' : 'text-brand-muted'
               )}
             >
-              Ready ({completedRepairs.length})
+              Ready for Pickup ({completedRepairs.length})
             </button>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function CobblerDesk() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Current Status</p>
-                    <p className="text-sm font-black">{selectedRepair.status}</p>
+                    <p className="text-sm font-black">{selectedRepair.status === 'Completed' ? 'Ready for Pickup' : selectedRepair.status}</p>
                   </div>
                 </div>
                 <button className="bg-white/50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-white transition-colors">
@@ -390,7 +390,7 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
                 "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border",
                 getStatusColor(repair.status)
               )}>
-                {repair.status}
+                {repair.status === 'Completed' ? 'Ready for Pickup' : repair.status}
               </span>
             </div>
             <h4 className="font-serif text-base font-black text-brand-dark truncate leading-tight mb-0.5">{repair.shoeModel}</h4>
