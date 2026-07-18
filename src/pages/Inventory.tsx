@@ -142,11 +142,6 @@ export default function Inventory() {
       
       {/* HEADER: Matching Artisan style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Supplies</h2>
-          <p className="label-xs">Inventory & Stock Tracking</p>
-        </div>
-        
         <div className="flex gap-4">
           <button
             type="button"
@@ -194,7 +189,7 @@ export default function Inventory() {
         <div className="premium-card overflow-hidden p-8 animate-in fade-in duration-300">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-brand-border pb-8">
             <div className="space-y-1">
-              <h3 className="font-serif text-2xl font-black text-brand-dark">Stock Archive</h3>
+              <h3 className="font-display text-2xl font-black text-brand-dark">Stock Archive</h3>
               <p className="label-xs">Supply Lifecycle Management</p>
             </div>
             <div className="relative w-full md:w-80">
@@ -320,7 +315,7 @@ export default function Inventory() {
           <form onSubmit={handleSubmit} className="premium-card overflow-hidden">
             <div className="p-10 md:p-16 space-y-10">
               <div className="text-center space-y-2 mb-10">
-                <h3 className="font-serif text-3xl font-black text-brand-dark">Register Supply</h3>
+                <h3 className="font-display text-3xl font-black text-brand-dark">Register Supply</h3>
                 <p className="label-xs">Resource Acquisition</p>
               </div>
 
@@ -442,7 +437,7 @@ export default function Inventory() {
             </div>
 
             {/* Item Name */}
-            <h3 className="font-serif text-2xl font-bold text-brand-dark mb-1">
+            <h3 className="font-display text-2xl font-bold text-brand-dark mb-1">
               {selectedItem.name}
             </h3>
             <p className="text-xs text-brand-muted mb-6 uppercase tracking-widest font-semibold">

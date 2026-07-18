@@ -82,7 +82,7 @@ export default function Booking() {
             <CheckCircle2 className="w-12 h-12" />
           </div>
           <div className="space-y-3">
-            <h1 className="font-serif text-4xl font-black text-brand-dark tracking-tight uppercase">Booking Confirmed</h1>
+            <h1 className="font-display text-4xl font-black text-brand-dark tracking-tight uppercase">Booking Confirmed</h1>
             <p className="text-brand-muted font-bold uppercase tracking-[0.2em] text-[10px]">Your artisan slot is reserved</p>
           </div>
           
@@ -123,7 +123,7 @@ export default function Booking() {
           <Sparkles className="w-3 h-3 text-brand-accent" />
           <span className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Cordwainer Consultations</span>
         </motion.div>
-        <h1 className="font-serif text-5xl font-black text-brand-dark tracking-tighter uppercase leading-none">Book Your Artisan Slot</h1>
+        <h1 className="font-display text-5xl font-black text-brand-dark tracking-tighter uppercase leading-none">Book Your Artisan Slot</h1>
         <p className="text-sm font-bold text-brand-muted max-w-lg mx-auto leading-relaxed">
           Select your preferred service and time for a premium footwear restoration experience.
         </p>
@@ -199,7 +199,7 @@ export default function Booking() {
                 className="space-y-8 relative z-10"
               >
                 <div className="space-y-2">
-                  <h2 className="font-serif text-2xl font-black text-brand-dark uppercase tracking-tight">How should we meet?</h2>
+                  <h2 className="font-display text-2xl font-black text-brand-dark uppercase tracking-tight">How should we meet?</h2>
                   <p className="text-xs font-bold text-brand-muted">Select the consultation format that suits your needs.</p>
                 </div>
 
@@ -227,7 +227,7 @@ export default function Booking() {
                       </div>
                       <div className="flex-1 space-y-1">
                         <p className={clsx(
-                          "font-serif text-lg font-black",
+                          "font-display text-lg font-black",
                           formData.serviceType === service.id ? "text-white" : "text-brand-dark"
                         )}>
                           {service.name}
@@ -258,7 +258,7 @@ export default function Booking() {
                 className="space-y-8 relative z-10"
               >
                 <div className="space-y-2">
-                  <h2 className="font-serif text-2xl font-black text-brand-dark uppercase tracking-tight">Select a date & time</h2>
+                  <h2 className="font-display text-2xl font-black text-brand-dark uppercase tracking-tight">Select a date & time</h2>
                   <p className="text-xs font-bold text-brand-muted">Consultations are typically 30 minutes in duration.</p>
                 </div>
 
@@ -281,7 +281,7 @@ export default function Booking() {
                           <span className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">
                             {format(date, 'EEE')}
                           </span>
-                          <span className="text-xl font-serif font-black">
+                          <span className="text-xl font-display font-black">
                             {format(date, 'dd')}
                           </span>
                         </button>
@@ -340,7 +340,7 @@ export default function Booking() {
                 className="space-y-8 relative z-10"
               >
                 <div className="space-y-2">
-                  <h2 className="font-serif text-2xl font-black text-brand-dark uppercase tracking-tight">Finalize your profile</h2>
+                  <h2 className="font-display text-2xl font-black text-brand-dark uppercase tracking-tight">Finalize your profile</h2>
                   <p className="text-xs font-bold text-brand-muted">Provide your contact details to receive the artisan ticket.</p>
                 </div>
 

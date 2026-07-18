@@ -58,10 +58,6 @@ export default function Dashboard() {
     <div className="space-y-12 flex flex-col pb-24 max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
       {/* HEADER: Matching Artisan style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Workshop</h2>
-          <p className="label-xs">Command Center & Analytics</p>
-        </div>
       </header>
 
       {/* Metrics & Appointments Section */}
@@ -155,7 +151,7 @@ export default function Dashboard() {
                   <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center mx-auto text-brand-muted opacity-60">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <h3 className="font-serif font-extrabold text-sm text-brand-dark">No Care Tickets Found</h3>
+                  <h3 className="font-display font-extrabold text-sm text-brand-dark">No Care Tickets Found</h3>
                   <p className="text-xs text-brand-muted max-w-xs mx-auto">No footwear care logs match your search queries or active filters.</p>
                 </motion.div>
               )}
@@ -181,7 +177,7 @@ export default function Dashboard() {
                   <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center mx-auto text-brand-muted opacity-60">
                     <Sparkles className="w-6 h-6 animate-pulse text-brand-olive" />
                   </div>
-                  <h3 className="font-serif font-extrabold text-sm text-brand-dark">All Caught Up</h3>
+                  <h3 className="font-display font-extrabold text-sm text-brand-dark">All Caught Up</h3>
                   <p className="text-xs text-brand-muted max-w-xs mx-auto">There are no active footwear care tickets in the "{columns.find(c => c.status === selectedStatus)?.title}" stage.</p>
                 </motion.div>
               )}
@@ -193,7 +189,7 @@ export default function Dashboard() {
       {editingRepair && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md">
-            <h3 className="text-lg font-bold font-serif mb-4 text-brand-dark">Edit Repair</h3>
+            <h3 className="text-lg font-bold font-display mb-4 text-brand-dark">Edit Repair</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-brand-dark mb-1 uppercase">Shoe Model</label>
@@ -307,7 +303,7 @@ export default function Dashboard() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <div className="flex items-center space-x-3 mb-1">
-                    <h2 className="text-2xl font-serif font-bold text-brand-dark">{viewingRepair.invoiceNumber}</h2>
+                    <h2 className="text-2xl font-display font-bold text-brand-dark">{viewingRepair.invoiceNumber}</h2>
                     {viewingRepair.priority && (
                       <span className={clsx(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
@@ -603,7 +599,7 @@ function RepairCard({
         <div className="flex justify-between items-start">
           <div className="space-y-1.5">
             <p className="label-xs">{repair.invoiceNumber}</p>
-            <h4 onClick={() => onView(repair)} className="text-xl font-serif font-black text-brand-dark leading-tight tracking-tight group-hover:text-brand-accent transition-colors cursor-pointer">{repair.shoeModel}</h4>
+            <h4 onClick={() => onView(repair)} className="text-xl font-display font-black text-brand-dark leading-tight tracking-tight group-hover:text-brand-accent transition-colors cursor-pointer">{repair.shoeModel}</h4>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={() => onEdit(repair)} className="p-2 text-brand-muted hover:text-brand-dark transition-colors"><Edit className="w-4 h-4" /></button>
@@ -648,7 +644,7 @@ function RepairCard({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+            <p className="text-2xl font-display font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
           </div>
         </div>
 

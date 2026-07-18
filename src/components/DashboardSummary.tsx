@@ -15,15 +15,15 @@ export default function DashboardSummary() {
     <div className="grid grid-cols-3 gap-6">
       <div className="premium-card p-8 space-y-2">
         <p className="label-xs">Revenue</p>
-        <p className="text-3xl font-serif font-black text-brand-dark tracking-tighter">₹{Math.floor(totalRevenue).toLocaleString()}</p>
+        <p className="text-3xl font-display font-black text-brand-dark tracking-tighter">₹{Math.floor(totalRevenue).toLocaleString()}</p>
       </div>
       <div className="premium-card p-8 space-y-2">
         <p className="label-xs">Active Queue</p>
-        <p className="text-3xl font-serif font-black text-brand-dark tracking-tighter">{pendingRepairs}</p>
+        <p className="text-3xl font-display font-black text-brand-dark tracking-tighter">{pendingRepairs}</p>
       </div>
       <div className="premium-card p-8 space-y-2">
         <p className="label-xs">Low Stock</p>
-        <p className={clsx("text-3xl font-serif font-black tracking-tighter", lowInventory > 0 ? "text-red-500" : "text-brand-dark")}>{lowInventory}</p>
+        <p className={clsx("text-3xl font-display font-black tracking-tighter", lowInventory > 0 ? "text-red-500" : "text-brand-dark")}>{lowInventory}</p>
       </div>
     </div>
     </div>

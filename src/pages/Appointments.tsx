@@ -58,7 +58,7 @@ export default function Appointments() {
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-6">
         <div className="space-y-1">
-          <h1 className="font-serif text-4xl font-black text-brand-dark tracking-tight">Studio Schedule</h1>
+          <h1 className="font-display text-4xl font-black text-brand-dark tracking-tight">Studio Schedule</h1>
           <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.3em]">Drop-offs & Consultations</p>
         </div>
         
@@ -119,14 +119,14 @@ export default function Appointments() {
                         <span className="text-[10px] font-black text-brand-muted uppercase tracking-tighter">
                           {format(date, 'MMM')}
                         </span>
-                        <span className="text-xl font-serif font-black text-brand-dark">
+                        <span className="text-xl font-display font-black text-brand-dark">
                           {format(date, 'dd')}
                         </span>
                       </div>
                       
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-serif text-lg font-black text-brand-dark">{apt.customerName}</h3>
+                          <h3 className="font-display text-lg font-black text-brand-dark">{apt.customerName}</h3>
                           <span className={clsx(
                             "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
                             getStatusColor(apt.status)
@@ -164,7 +164,7 @@ export default function Appointments() {
             <div className="bg-white/50 border border-dashed border-brand-border p-20 rounded-[3rem] text-center space-y-4">
               <CalendarDays className="w-12 h-12 text-brand-muted mx-auto opacity-20" />
               <div className="space-y-1">
-                <h3 className="font-serif text-xl font-black text-brand-dark">No appointments found</h3>
+                <h3 className="font-display text-xl font-black text-brand-dark">No appointments found</h3>
                 <p className="text-xs font-bold text-brand-muted">Try adjusting your filters or search query.</p>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function Appointments() {
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Appointment Detail</p>
-                      <h2 className="font-serif text-3xl font-black">{selectedAppointment.customerName}</h2>
+                      <h2 className="font-display text-3xl font-black">{selectedAppointment.customerName}</h2>
                     </div>
                     <button 
                       onClick={() => setSelectedAppointment(null)}
@@ -289,7 +289,7 @@ export default function Appointments() {
                   <AlertCircle className="w-10 h-10 opacity-30" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-serif text-2xl font-black text-brand-dark">Selection Required</h3>
+                  <h3 className="font-display text-2xl font-black text-brand-dark">Selection Required</h3>
                   <p className="text-xs font-medium text-brand-muted max-w-[200px] mx-auto leading-relaxed">
                     Select an appointment from the list to view client details and manage the studio workflow.
                   </p>

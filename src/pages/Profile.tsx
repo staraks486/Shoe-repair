@@ -100,7 +100,7 @@ export default function Profile() {
       {/* HEADER: Matching Artisan style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
         <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Artisan Profile</h2>
+          <h2 className="font-display text-3xl font-bold text-brand-dark tracking-tight">Artisan Profile</h2>
           <p className="label-xs">Personal Identity & Performance</p>
         </div>
       </header>
@@ -123,7 +123,7 @@ export default function Profile() {
 
         <div className="pt-16 pb-8 px-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
-            <h1 className="font-serif text-3xl font-black text-brand-dark tracking-tight">
+            <h1 className="font-display text-3xl font-black text-brand-dark tracking-tight">
               {profile?.displayName}
             </h1>
             <div className="flex items-center gap-2 text-xs font-bold text-brand-muted uppercase tracking-widest">
@@ -137,11 +137,11 @@ export default function Profile() {
           
           <div className="flex items-center gap-4">
             <div className="text-center px-6 py-3 bg-brand-bg rounded-[20px] border border-brand-border">
-              <span className="block text-2xl font-serif font-black text-brand-dark">{completedRepairs}</span>
+              <span className="block text-2xl font-display font-black text-brand-dark">{completedRepairs}</span>
               <span className="text-[9px] font-black text-brand-muted uppercase tracking-[0.2em]">Completed</span>
             </div>
             <div className="text-center px-6 py-3 bg-brand-bg rounded-[20px] border border-brand-border">
-              <span className="block text-2xl font-serif font-black text-brand-dark">{inProgressRepairs}</span>
+              <span className="block text-2xl font-display font-black text-brand-dark">{inProgressRepairs}</span>
               <span className="text-[9px] font-black text-brand-muted uppercase tracking-[0.2em]">Active</span>
             </div>
           </div>
@@ -198,7 +198,7 @@ export default function Profile() {
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
                   <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Success Rate</span>
-                  <span className="text-xl font-serif font-black text-brand-dark">98%</span>
+                  <span className="text-xl font-display font-black text-brand-dark">98%</span>
                 </div>
                 <div className="h-1 bg-brand-bg rounded-full overflow-hidden">
                   <div className="h-full bg-brand-dark w-[98%]" />
@@ -207,7 +207,7 @@ export default function Profile() {
 
               <div className="space-y-2">
                 <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Avg. TAT</span>
-                <p className="text-xl font-serif font-black text-brand-dark">4.2 Days</p>
+                <p className="text-xl font-display font-black text-brand-dark">4.2 Days</p>
               </div>
             </div>
           </div>

@@ -251,7 +251,7 @@ export default function BarcodeScannerModal({
               <Barcode className="w-4 h-4 animate-pulse" />
             </div>
             <div>
-              <h3 className="font-serif text-lg font-bold text-brand-dark">Studio Barcode Scanner</h3>
+              <h3 className="font-display text-lg font-bold text-brand-dark">Studio Barcode Scanner</h3>
               <p className="text-[10px] text-brand-muted uppercase tracking-wider font-semibold">Instantly check and update material stock levels</p>
             </div>
           </div>
@@ -401,7 +401,7 @@ export default function BarcodeScannerModal({
                     <Check className="w-8 h-8 stroke-[3]" />
                   </div>
                   <div>
-                    <h4 className="font-serif text-xl font-bold text-brand-dark">Stock Synced Successfully</h4>
+                    <h4 className="font-display text-xl font-bold text-brand-dark">Stock Synced Successfully</h4>
                     <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">
                       {detectedItem ? `Updated ${detectedItem.name} level to ${tempQuantity} ${detectedItem.unit || 'pcs'}` : ''}
                     </p>
@@ -416,7 +416,7 @@ export default function BarcodeScannerModal({
                     </div>
                     <div className="space-y-1">
                       <div className="text-[9px] font-bold text-brand-olive uppercase tracking-widest">Scanned / Detected Item</div>
-                      <h4 className="font-serif text-lg font-bold text-brand-dark">
+                      <h4 className="font-display text-lg font-bold text-brand-dark">
                         {detectedItem ? detectedItem.name : 'Unknown Barcode'}
                       </h4>
                       <p className="text-xs font-mono text-brand-muted">

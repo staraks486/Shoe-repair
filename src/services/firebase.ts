@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 // Support both JSON file (for AI Studio) and Environment Variables (for Render/GitHub)
 let aiStudioConfig: any = {};
@@ -35,6 +35,8 @@ const app = hasConfig ? initializeApp(firebaseConfig) : null;
 const analytics = (hasConfig && typeof window !== 'undefined') ? getAnalytics(app!) : null;
 const auth = hasConfig ? getAuth(app!) : null as any;
 
+const googleProvider = new GoogleAuthProvider();
+
 const db = hasConfig 
   ? initializeFirestore(app!, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId || '(default)')
   : null as any;
@@ -54,4 +56,4 @@ if (db && typeof window !== 'undefined') {
   });
 }
 
-export { db, analytics, auth };
+export { db, analytics, auth, googleProvider };

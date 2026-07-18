@@ -18,7 +18,7 @@ export default function AppointmentSummary() {
             <Calendar className="w-5 h-5 text-brand-accent" />
           </div>
           <div>
-            <h3 className="font-serif text-xl font-black text-brand-dark uppercase tracking-tight">Today's Schedule</h3>
+            <h3 className="font-display text-xl font-black text-brand-dark uppercase tracking-tight">Today's Schedule</h3>
             <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">{todayAppointments.length} Bookings for today</p>
           </div>
         </div>

@@ -566,11 +566,6 @@ Thank you for trusting Cordwainers Studio!
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0 animate-in fade-in duration-300">
       
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Care Portal</h2>
-          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3">Workshop Intake & Restoration System</p>
-        </div>
-        
         <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm shadow-premium shrink-0">
           {[
             { id: 'history', label: 'History' },
@@ -606,7 +601,7 @@ Thank you for trusting Cordwainers Studio!
               <FileCheck className="w-10 h-10" />
             </div>
             <div className="space-y-2">
-              <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tight uppercase">Intake Successful</h2>
+              <h2 className="font-display text-4xl font-black text-brand-dark tracking-tight uppercase">Intake Successful</h2>
               <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Handcrafted Care Registry Updated</p>
             </div>
             <div className="inline-block bg-brand-bg px-8 py-3 rounded-full border border-brand-border">
@@ -670,7 +665,7 @@ Thank you for trusting Cordwainers Studio!
             {/* Form Headers */}
             <div className="bg-brand-bg/30 border-b border-brand-border p-8 flex justify-between items-center">
               <div>
-                <h2 className="font-serif text-2xl font-black text-brand-dark uppercase tracking-tight">Care Intake Wizard</h2>
+                <h2 className="font-display text-2xl font-black text-brand-dark uppercase tracking-tight">Care Intake Wizard</h2>
                 <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mt-1">Step {currentStep + 1} of 4: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Summary & Discount'][currentStep]}</p>
               </div>
               
@@ -722,7 +717,7 @@ Thank you for trusting Cordwainers Studio!
                             placeholder="e.g. Arvind Kumar Shukla"
                             value={clientName}
                             onChange={e => setClientName(e.target.value)}
-                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-serif font-bold text-brand-dark"
+                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-display font-bold text-brand-dark"
                           />
                         </div>
                       </div>
@@ -760,7 +755,7 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Salesperson Identity Section */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                    <h3 className="font-display text-lg font-bold text-brand-dark">
                       Store Representative (Salesperson)
                     </h3>
                     
@@ -819,7 +814,7 @@ Thank you for trusting Cordwainers Studio!
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
                   <div className="space-y-4">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                    <h3 className="font-display text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
                       Footwear Information
                     </h3>
 
@@ -967,7 +962,7 @@ Thank you for trusting Cordwainers Studio!
                   
                   {/* Package tier picker */}
                   <div className="space-y-4">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                    <h3 className="font-display text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
                       Select Restoration Package
                     </h3>
 
@@ -989,7 +984,7 @@ Thank you for trusting Cordwainers Studio!
                             )}
                           >
                             <div className="space-y-1">
-                              <h4 className="font-serif text-sm font-bold">{pkg.name}</h4>
+                              <h4 className="font-display text-sm font-bold">{pkg.name}</h4>
                               <p className={clsx("text-xs leading-relaxed", isSelected ? "text-gray-200" : "text-brand-muted")}>
                                 {pkg.description}
                               </p>
@@ -1010,7 +1005,7 @@ Thank you for trusting Cordwainers Studio!
                         )}
                       >
                         <div className="flex justify-between items-center">
-                          <h4 className="font-serif text-sm font-bold text-brand-dark">Bespoke Custom Restoration</h4>
+                          <h4 className="font-display text-sm font-bold text-brand-dark">Bespoke Custom Restoration</h4>
                           <span className="text-[9px] font-bold text-brand-olive uppercase tracking-wider bg-brand-bg border border-brand-border/60 px-2 py-0.5 rounded">Custom Rate</span>
                         </div>
                         <p className="text-xs text-brand-muted">
@@ -1046,7 +1041,7 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Shoe Plus items (supplies search and append) */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                    <h3 className="font-display text-lg font-bold text-brand-dark">
                       Shoe Plus Accessories & Supplies
                     </h3>
                     
@@ -1101,7 +1096,7 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Insurance cover protection */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                    <h3 className="font-display text-lg font-bold text-brand-dark">
                       Shoe Insurance Cover Plan
                     </h3>
 
@@ -1122,7 +1117,7 @@ Thank you for trusting Cordwainers Studio!
                           >
                             <div className="space-y-1">
                               <div className="flex justify-between items-center w-full">
-                                <span className="font-serif text-xs font-extrabold text-brand-dark">{plan.name}</span>
+                                <span className="font-display text-xs font-extrabold text-brand-dark">{plan.name}</span>
                                 {plan.price > 0 && <span className="font-mono text-[10px] font-bold text-brand-olive bg-brand-bg px-1.5 py-0.5 rounded border border-brand-border">Cover</span>}
                               </div>
                               <p className="text-[10px] leading-snug text-brand-muted">{plan.description}</p>
@@ -1143,7 +1138,7 @@ Thank you for trusting Cordwainers Studio!
                   
                   {/* Offers Dropdown */}
                   <div className="space-y-4">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
+                    <h3 className="font-display text-lg font-bold text-brand-dark border-b border-brand-border pb-1.5">
                       Coupon Offers & Custom Discounts
                     </h3>
 
@@ -1190,7 +1185,7 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Cobbler & Payment Details Section */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                    <h3 className="font-display text-lg font-bold text-brand-dark">
                       Artisan & Payment Allocation
                     </h3>
                     
@@ -1270,7 +1265,7 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Notes input */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-serif text-lg font-bold text-brand-dark">
+                    <h3 className="font-display text-lg font-bold text-brand-dark">
                       Studio Inspector Notes / Instructions
                     </h3>
                     <textarea
@@ -1349,7 +1344,7 @@ Thank you for trusting Cordwainers Studio!
 
           {/* RIGHT SIDE: LIVE RECALCULATING INVOICE PREVIEW (5 Columns) */}
           <div className="lg:col-span-5 bg-white border border-brand-border rounded-[32px] shadow-premium p-8 space-y-8 print:block print:border-none print:shadow-none print:p-0">
-            <h3 className="font-serif text-xl font-bold text-brand-dark border-b border-brand-border pb-4 flex items-center justify-between print:hidden">
+            <h3 className="font-display text-xl font-bold text-brand-dark border-b border-brand-border pb-4 flex items-center justify-between print:hidden">
               <span>Live Registry Archive</span>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-accent bg-brand-bg border border-brand-border px-3 py-1 rounded-full animate-pulse">Live Draft</span>
             </h3>
@@ -1360,7 +1355,7 @@ Thank you for trusting Cordwainers Studio!
               
               {/* Receipt Header */}
               <div className="text-center space-y-2">
-                <h4 className="font-serif text-lg font-black uppercase tracking-[0.1em] text-brand-dark">Cordwainers Studio</h4>
+                <h4 className="font-display text-lg font-black uppercase tracking-[0.1em] text-brand-dark">Cordwainers Studio</h4>
                 <div className="flex flex-col items-center opacity-60 text-[10px] font-bold uppercase tracking-widest">
                   <span>Luxury Footwear Restoration</span>
                   <span>Artisanal Cobblers • Bangalore</span>
@@ -1372,7 +1367,7 @@ Thank you for trusting Cordwainers Studio!
               {/* Invoice Meta */}
               <div className="grid grid-cols-2 gap-y-2 text-[10px] font-bold uppercase tracking-widest">
                 <span className="text-brand-muted">Client Archive:</span>
-                <span className="text-brand-dark text-right font-serif lowercase italic">{clientName || 'Arvind K. Shukla'}</span>
+                <span className="text-brand-dark text-right font-display lowercase italic">{clientName || 'Arvind K. Shukla'}</span>
                 
                 <span className="text-brand-muted">Contact:</span>
                 <span className="text-brand-dark text-right">{clientPhone || '+91 99000 88776'}</span>
@@ -1413,7 +1408,7 @@ Thank you for trusting Cordwainers Studio!
                     </div>
                   )}
                   <div className="space-y-1">
-                    <p className="font-serif font-black text-sm text-brand-dark leading-tight">{shoeModel || 'Bespoke Footwear Identity'}</p>
+                    <p className="font-display font-black text-sm text-brand-dark leading-tight">{shoeModel || 'Bespoke Footwear Identity'}</p>
                     <p className="text-[9px] font-bold text-brand-muted uppercase tracking-widest">Sizing: {shoeSize || 'UK 9'} • {leatherType}</p>
                   </div>
                 </div>
@@ -1428,27 +1423,27 @@ Thank you for trusting Cordwainers Studio!
                 {/* Base Value */}
                 <div className="flex justify-between">
                   <span>Diagnostics Fee</span>
-                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{basePrice}</span>
+                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{basePrice}</span>
                 </div>
 
                 {/* Restoration package */}
                 <div className="flex justify-between">
                   <span className="truncate max-w-[200px]">Program: {getPackageName()}</span>
-                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{getPackageCost()}</span>
+                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{getPackageCost()}</span>
                 </div>
 
                 {/* Shoe plus items */}
                 {plusItems.map(item => (
                   <div key={item.id} className="flex justify-between pl-4 text-brand-muted">
                     <span>+ {item.name} (x{item.quantity})</span>
-                    <span className="font-serif lowercase italic">₹{item.price * item.quantity}</span>
+                    <span className="font-display lowercase italic">₹{item.price * item.quantity}</span>
                   </div>
                 ))}
 
                 {/* Insurance plan */}
                 <div className="flex justify-between text-brand-olive">
                   <span>Protection Policy: {insurancePlan.name}</span>
-                  <span className="font-serif text-xs font-black lowercase tracking-tighter">₹{getInsuranceCost()}</span>
+                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{getInsuranceCost()}</span>
                 </div>
               </div>
 
@@ -1464,11 +1459,11 @@ Thank you for trusting Cordwainers Studio!
                 {getDiscountAmount() > 0 && (
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-brand-accent">
                     <span>Campaign Discount:</span>
-                    <span className="font-serif">-₹{getDiscountAmount()}</span>
+                    <span className="font-display">-₹{getDiscountAmount()}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between font-serif font-black text-brand-dark text-lg pt-4 border-t border-brand-border">
+                <div className="flex justify-between font-display font-black text-brand-dark text-lg pt-4 border-t border-brand-border">
                   <span className="uppercase tracking-tight">Net Total</span>
                   <span className="tracking-tighter">₹{getGrandTotal()}</span>
                 </div>
@@ -1511,7 +1506,7 @@ Thank you for trusting Cordwainers Studio!
         <div className="bg-white border border-brand-border rounded-2xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
             <div>
-              <h3 className="font-serif text-2xl font-bold text-brand-dark">CW Care Services</h3>
+              <h3 className="font-display text-2xl font-bold text-brand-dark">CW Care Services</h3>
               <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Configure luxury shoe restoration services, diagnostic options, and custom charges</p>
             </div>
             
@@ -1530,7 +1525,7 @@ Thank you for trusting Cordwainers Studio!
           {/* Form Modal / Inline editor for adding/editing */}
           {isFormOpen && editingPackage && (
             <div className="mb-8 p-6 bg-brand-bg/30 border border-brand-border rounded-xl space-y-4 animate-in slide-in-from-top-4 duration-200">
-              <h4 className="font-serif text-sm font-bold text-brand-dark uppercase tracking-wide">
+              <h4 className="font-display text-sm font-bold text-brand-dark uppercase tracking-wide">
                 {editingPackage.id ? 'Edit Care Service' : 'Create Custom Care Service'}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1600,7 +1595,7 @@ Thank you for trusting Cordwainers Studio!
                 >
                   <div className="space-y-2">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-serif text-sm font-bold text-brand-dark leading-tight">{pkg.name}</h4>
+                      <h4 className="font-display text-sm font-bold text-brand-dark leading-tight">{pkg.name}</h4>
                       <span className="font-mono text-xs font-bold text-brand-olive bg-brand-olive/10 px-2 py-0.5 rounded border border-brand-olive/20 shrink-0">
                         ₹{pkg.price.toLocaleString()}
                       </span>
@@ -1679,10 +1674,10 @@ Thank you for trusting Cordwainers Studio!
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">{repair.invoiceNumber}</p>
-                      <h4 className="font-serif text-xl font-bold text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">{repair.shoeModel}</h4>
+                      <h4 className="font-display text-xl font-bold text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">{repair.shoeModel}</h4>
                     </div>
                     <div className="text-right">
-                        <p className="text-2xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+                        <p className="text-2xl font-display font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
                         <p className="text-[8px] font-black text-brand-muted uppercase tracking-widest mt-1 opacity-60">Total Cost</p>
                     </div>
                   </div>
@@ -1696,7 +1691,7 @@ Thank you for trusting Cordwainers Studio!
 
                 <div className="flex justify-between items-center pt-6 border-t border-brand-border mt-8">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center text-brand-olive font-serif font-black text-xs border border-brand-border">
+                    <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center text-brand-olive font-display font-black text-xs border border-brand-border">
                         {repair.customerName.charAt(0)}
                     </div>
                     <div className="space-y-0.5">
@@ -1741,7 +1736,7 @@ Thank you for trusting Cordwainers Studio!
 
             <div className="space-y-2 text-center border-b border-brand-border pb-4">
               <ShieldCheck className="w-10 h-10 text-brand-olive mx-auto" />
-              <h3 className="font-serif text-xl font-bold text-brand-dark">CW Care Handcrafted Terms</h3>
+              <h3 className="font-display text-xl font-bold text-brand-dark">CW Care Handcrafted Terms</h3>
               <p className="text-[10px] text-brand-muted uppercase tracking-widest font-semibold">Official Code of Handcrafted Restoration Service</p>
             </div>
 

@@ -75,7 +75,7 @@ export default function CobblerDesk() {
       <header className="bg-white border-b border-brand-border/60 p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="font-serif text-2xl font-black text-brand-dark flex items-center gap-2">
+            <h1 className="font-display text-2xl font-black text-brand-dark flex items-center gap-2">
               <Hammer className="w-6 h-6 text-brand-olive" />
               Cobbler's Desk
             </h1>
@@ -167,7 +167,7 @@ export default function CobblerDesk() {
             <div className="w-16 h-16 bg-brand-light rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-border/20">
               <Search className="w-8 h-8 text-brand-muted" />
             </div>
-            <p className="font-serif text-lg font-bold text-brand-dark">No repairs found</p>
+            <p className="font-display text-lg font-bold text-brand-dark">No repairs found</p>
             <p className="text-sm text-brand-muted mt-1">Try adjusting your filters or search term</p>
           </div>
         )}
@@ -184,7 +184,7 @@ export default function CobblerDesk() {
               >
                 <ChevronRight className="w-6 h-6 rotate-180" />
               </button>
-              <span className="font-serif text-lg font-bold text-brand-dark">Repair Details</span>
+              <span className="font-display text-lg font-bold text-brand-dark">Repair Details</span>
               <button className="p-2 hover:bg-brand-light rounded-lg transition-colors">
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -240,13 +240,13 @@ export default function CobblerDesk() {
               <section className="space-y-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="font-serif text-2xl font-black text-brand-dark leading-tight">
+                    <h2 className="font-display text-2xl font-black text-brand-dark leading-tight">
                       {selectedRepair.shoeModel}
                     </h2>
                     <p className="text-sm font-bold text-brand-olive mt-1">Invoice: {selectedRepair.invoiceNumber}</p>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center justify-end gap-1 font-serif text-xl font-black text-brand-dark">
+                    <div className="flex items-center justify-end gap-1 font-display text-xl font-black text-brand-dark">
                       <IndianRupee className="w-4 h-4" />
                       {selectedRepair.price}
                     </div>
@@ -393,7 +393,7 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
                 {repair.status === 'Completed' ? 'Ready for Pickup' : repair.status}
               </span>
             </div>
-            <h4 className="font-serif text-base font-black text-brand-dark truncate leading-tight mb-0.5">{repair.shoeModel}</h4>
+            <h4 className="font-display text-base font-black text-brand-dark truncate leading-tight mb-0.5">{repair.shoeModel}</h4>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-brand-muted truncate">{repair.customerName}</span>
               <span className="w-1 h-1 bg-brand-border rounded-full" />

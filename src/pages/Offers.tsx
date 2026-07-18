@@ -143,7 +143,7 @@ export default function Offers() {
       {/* HEADER: Matching Care Portal style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
         <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Catalog</h2>
+          <h2 className="font-display text-3xl font-bold text-brand-dark tracking-tight">Catalog</h2>
           <p className="label-xs">Offers & Care Packages</p>
         </div>
         
@@ -168,7 +168,7 @@ export default function Offers() {
         {/* RIGHT: Shoe Care Packages (Main Content) */}
         <div className="lg:col-span-8 space-y-8 order-1 lg:order-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-serif text-2xl font-black text-brand-dark">Service Add-ons</h3>
+            <h3 className="font-display text-2xl font-black text-brand-dark">Service Add-ons</h3>
             <span className="label-xs bg-brand-bg px-4 py-1.5 rounded-full border border-brand-border">
               {carePackages.length} Collections
             </span>
@@ -188,10 +188,10 @@ export default function Offers() {
                 >
                   <div className="space-y-4">
                     <div className="flex justify-between items-start gap-4">
-                      <h4 className="font-serif font-black text-xl text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
+                      <h4 className="font-display font-black text-xl text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
                         {pkg.name}
                       </h4>
-                      <p className="text-2xl font-serif font-black text-brand-dark tracking-tighter">
+                      <p className="text-2xl font-display font-black text-brand-dark tracking-tighter">
                         ₹{pkg.price.toLocaleString()}
                       </p>
                     </div>
@@ -220,7 +220,7 @@ export default function Offers() {
 
         {/* LEFT: Active Promotional Coupons (Sidebar) */}
         <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
-          <h3 className="font-serif text-2xl font-black text-brand-dark">Promo Bank</h3>
+          <h3 className="font-display text-2xl font-black text-brand-dark">Promo Bank</h3>
           
           {activeOffers.length === 0 ? (
             <div className="premium-card p-10 text-center border-dashed">
@@ -237,10 +237,10 @@ export default function Offers() {
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <p className="label-xs">Loyalty Reward</p>
-                      <h4 className="font-serif font-black text-base text-brand-dark">{offer.name}</h4>
+                      <h4 className="font-display font-black text-base text-brand-dark">{offer.name}</h4>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-serif font-black text-brand-accent tracking-tighter">
+                      <p className="text-2xl font-display font-black text-brand-accent tracking-tighter">
                         {offer.discountPercentage}%
                       </p>
                       <p className="label-xs text-[7px]">Off</p>
@@ -285,7 +285,7 @@ export default function Offers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-brand-dark/20 backdrop-blur-xl transition-opacity" onClick={() => setIsOfferModalOpen(false)} />
           <div className="bg-white rounded-[40px] border border-brand-border shadow-2xl p-10 w-full max-w-md relative z-10 animate-in zoom-in-95 duration-300">
-            <h3 className="font-serif font-black text-2xl text-brand-dark mb-2">Create Promo</h3>
+            <h3 className="font-display font-black text-2xl text-brand-dark mb-2">Create Promo</h3>
             <p className="label-xs mb-8">Loyalty Program Engine</p>
 
             <form onSubmit={handleCreateOffer} className="space-y-8">
@@ -348,7 +348,7 @@ export default function Offers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-brand-dark/20 backdrop-blur-xl transition-opacity" onClick={() => setIsPackageModalOpen(false)} />
           <div className="bg-white rounded-[40px] border border-brand-border shadow-2xl p-10 w-full max-w-lg relative z-10 animate-in zoom-in-95 duration-300">
-            <h3 className="font-serif font-black text-2xl text-brand-dark mb-2">New Care Package</h3>
+            <h3 className="font-display font-black text-2xl text-brand-dark mb-2">New Care Package</h3>
             <p className="label-xs mb-8">Service Catalog Definition</p>
 
             <form onSubmit={handleCreatePackage} className="space-y-8">

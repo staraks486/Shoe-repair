@@ -59,7 +59,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
               <Camera className="w-5 h-5 text-brand-olive" />
             </div>
             <div>
-              <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight">Receipt Scanner</h3>
+              <h3 className="font-display font-black text-brand-dark uppercase tracking-tight">Receipt Scanner</h3>
               <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Scan ticket QR code</p>
             </div>
           </div>

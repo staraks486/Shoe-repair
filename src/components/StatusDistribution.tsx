@@ -29,7 +29,7 @@ export default function StatusDistribution({ repairs }: StatusDistributionProps)
       <div className="flex justify-between items-end">
         <div>
           <span className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1 block">Workflow Health</span>
-          <h3 className="font-serif text-xl font-bold text-brand-dark">Status Distribution</h3>
+          <h3 className="font-display text-xl font-bold text-brand-dark">Status Distribution</h3>
         </div>
         <div className="text-right">
           <span className="text-2xl font-black text-brand-dark">{total}</span>

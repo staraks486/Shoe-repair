@@ -209,11 +209,6 @@ export default function Insurance() {
       
       {/* HEADER: Matching Artisan style */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">CW Cover</h2>
-          <p className="label-xs">Protection & Guarantee Registry</p>
-        </div>
-        
         <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium shrink-0">
           {[
             { id: 'history', label: 'Archive' },
@@ -244,7 +239,7 @@ export default function Insurance() {
         <div className="premium-card overflow-hidden p-8 animate-in fade-in duration-300">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-brand-border pb-8">
             <div className="space-y-1">
-              <h3 className="font-serif text-2xl font-black text-brand-dark">Active Policies</h3>
+              <h3 className="font-display text-2xl font-black text-brand-dark">Active Policies</h3>
               <p className="label-xs">Asset Preservation Status</p>
             </div>
             <div className="relative w-full md:w-80">
@@ -270,10 +265,10 @@ export default function Insurance() {
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">{policy.invoiceNumber}</p>
-                        <h4 className="font-serif text-lg font-bold text-brand-dark leading-tight">{policy.shoeModel}</h4>
+                        <h4 className="font-display text-lg font-bold text-brand-dark leading-tight">{policy.shoeModel}</h4>
                       </div>
                       <div className="text-right">
-                        <p className="text-xl font-serif font-black text-brand-dark tracking-tighter">₹{policy.insurancePrice?.toLocaleString() || '0'}</p>
+                        <p className="text-xl font-display font-black text-brand-dark tracking-tighter">₹{policy.insurancePrice?.toLocaleString() || '0'}</p>
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-green-50 text-green-700 border border-green-100 mt-2">
                           Active
                         </span>
@@ -360,7 +355,7 @@ export default function Insurance() {
                   <ShieldCheck className="w-5 h-5 text-brand-accent animate-pulse" />
                 </div>
                 
-                <h2 className="font-serif text-4xl md:text-5xl font-black mb-6 tracking-tight leading-none text-white text-center md:text-left">
+                <h2 className="font-display text-4xl md:text-5xl font-black mb-6 tracking-tight leading-none text-white text-center md:text-left">
                   The <span className="text-brand-accent">Cordwainers</span> Guarantee
                 </h2>
                 
@@ -370,12 +365,12 @@ export default function Insurance() {
                 
                 <div className="flex flex-wrap justify-center md:justify-start gap-8">
                   <div className="flex flex-col items-center md:items-start">
-                    <span className="text-2xl font-serif font-black text-white">Lifetime</span>
+                    <span className="text-2xl font-display font-black text-white">Lifetime</span>
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Restoration Support</span>
                   </div>
                   <div className="h-10 w-px bg-white/10 hidden md:block" />
                   <div className="flex flex-col items-center md:items-start">
-                    <span className="text-2xl font-serif font-black text-white">Global</span>
+                    <span className="text-2xl font-display font-black text-white">Global</span>
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Registry Access</span>
                   </div>
                 </div>
@@ -412,7 +407,7 @@ export default function Insurance() {
             {currentStep === 0 && (
               <div className="p-10 md:p-16 space-y-10 animate-in fade-in slide-in-from-bottom-4">
                 <div className="text-center space-y-2 mb-10">
-                  <h3 className="font-serif text-3xl font-black text-brand-dark">Client Identity</h3>
+                  <h3 className="font-display text-3xl font-black text-brand-dark">Client Identity</h3>
                   <p className="label-xs">Bespoke Registry Admission</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -438,7 +433,7 @@ export default function Insurance() {
             {currentStep === 1 && (
               <div className="p-10 md:p-16 space-y-10 animate-in fade-in slide-in-from-bottom-4">
                 <div className="text-center space-y-2 mb-10">
-                  <h3 className="font-serif text-3xl font-black text-brand-dark">Asset Registration</h3>
+                  <h3 className="font-display text-3xl font-black text-brand-dark">Asset Registration</h3>
                   <p className="label-xs">Footwear Provenance Details</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -488,7 +483,7 @@ export default function Insurance() {
             {currentStep === 2 && (
               <div className="p-10 md:p-16 space-y-10 animate-in fade-in slide-in-from-bottom-4">
                 <div className="text-center space-y-2 mb-10">
-                  <h3 className="font-serif text-3xl font-black text-brand-dark">Coverage Tiers</h3>
+                  <h3 className="font-display text-3xl font-black text-brand-dark">Coverage Tiers</h3>
                   <p className="label-xs">Asset Protection Selection</p>
                 </div>
                 <div className="space-y-6">
@@ -505,7 +500,7 @@ export default function Insurance() {
                     >
                       <div className="flex justify-between items-start mb-4 gap-4">
                         <div className="flex items-center gap-3 flex-wrap">
-                          <h4 className="font-serif text-2xl font-bold">{tier.name}</h4>
+                          <h4 className="font-display text-2xl font-bold">{tier.name}</h4>
                           <span className={clsx(
                             "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
                             formData.planName === tier.name 
@@ -562,7 +557,7 @@ export default function Insurance() {
             {currentStep === 3 && (
               <div className="p-10 md:p-16 space-y-10 animate-in fade-in slide-in-from-bottom-4">
                 <div className="text-center space-y-2 mb-10">
-                  <h3 className="font-serif text-3xl font-black text-brand-dark">Terms of Mandate</h3>
+                  <h3 className="font-display text-3xl font-black text-brand-dark">Terms of Mandate</h3>
                   <p className="label-xs">Artisanal Preservation Rules</p>
                 </div>
                 
@@ -591,7 +586,7 @@ export default function Insurance() {
             )}            {currentStep === 4 && (
               <div className="p-10 md:p-16 space-y-10 animate-in fade-in slide-in-from-bottom-4">
                 <div className="text-center space-y-2 mb-10">
-                  <h3 className="font-serif text-3xl font-black text-brand-dark">Attestation</h3>
+                  <h3 className="font-display text-3xl font-black text-brand-dark">Attestation</h3>
                   <p className="label-xs">Final Policy Authorization</p>
                 </div>
 
@@ -631,7 +626,7 @@ export default function Insurance() {
                   <div className="space-y-3">
                     <label className="label-xs ml-1">Digital Autograph</label>
                     <input required type="text" name="signature" value={formData.signature} onChange={handleChange}
-                      className="w-full px-6 py-6 bg-brand-bg border-none rounded-[20px] text-2xl font-serif italic text-brand-dark focus:ring-0 placeholder-brand-muted/30 shadow-inner" placeholder="Type full name to sign" />
+                      className="w-full px-6 py-6 bg-brand-bg border-none rounded-[20px] text-2xl font-display italic text-brand-dark focus:ring-0 placeholder-brand-muted/30 shadow-inner" placeholder="Type full name to sign" />
                   </div>
                 </div>
               </div>
@@ -673,7 +668,7 @@ export default function Insurance() {
             <div className="premium-card p-8 md:p-10 animate-in fade-in">
               <div className="flex justify-between items-center border-b border-brand-border pb-6 mb-8">
                 <div className="space-y-1">
-                  <h3 className="font-serif text-2xl font-black text-brand-dark">Plan Catalog</h3>
+                  <h3 className="font-display text-2xl font-black text-brand-dark">Plan Catalog</h3>
                   <p className="label-xs">Active Protection Offerings</p>
                 </div>
                 <button
@@ -705,7 +700,7 @@ export default function Insurance() {
                     <div>
                       <div className="flex justify-between items-start gap-4 mb-3">
                         <div className="flex items-center gap-3 flex-wrap">
-                          <h4 className="font-serif text-xl font-bold text-brand-dark">{plan.name}</h4>
+                          <h4 className="font-display text-xl font-bold text-brand-dark">{plan.name}</h4>
                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-brand-bg text-brand-dark border border-brand-border">
                             {plan.timePeriod || '12 Months'}
                           </span>
@@ -779,7 +774,7 @@ export default function Insurance() {
             <div className="premium-card p-8 md:p-10 lg:sticky lg:top-6">
               <div className="flex items-center gap-3 mb-8 border-b border-brand-border pb-4">
                 <Shield className="w-5 h-5 text-brand-olive" />
-                <h3 className="font-serif text-xl font-bold text-brand-dark">
+                <h3 className="font-display text-xl font-bold text-brand-dark">
                   {editingPlan ? (isExistingPlan(editingPlan.id) ? 'Refine Tier' : 'Policy Forge') : 'Plan Designer'}
                 </h3>
               </div>
@@ -927,7 +922,7 @@ export default function Insurance() {
       {editingPolicy && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in fade-in">
           <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md animate-in zoom-in-95">
-            <h3 className="text-lg font-bold font-serif mb-4 text-brand-dark border-b border-brand-border pb-2">Edit Policy</h3>
+            <h3 className="text-lg font-bold font-display mb-4 text-brand-dark border-b border-brand-border pb-2">Edit Policy</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-brand-dark mb-1 uppercase tracking-widest">Customer Name</label>

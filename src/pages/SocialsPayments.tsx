@@ -95,7 +95,7 @@ export default function SocialsPayments() {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h2 className="font-serif text-lg font-extrabold text-brand-dark leading-tight">Socials & Payments</h2>
+          <h2 className="font-display text-lg font-extrabold text-brand-dark leading-tight">Socials & Payments</h2>
           <p className="text-[10px] text-brand-muted font-bold tracking-widest uppercase mt-0.5">Configure artisan client touchpoints</p>
         </div>
       </header>
@@ -119,7 +119,7 @@ export default function SocialsPayments() {
             <span className="text-[8px] bg-brand-accent/20 text-brand-accent border border-brand-accent/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest leading-none">
               Digital Touchpoint
             </span>
-            <h3 className="font-serif text-sm font-bold mt-1.5 text-white/95">{settings.storeName || 'Cordwainers Studio'}</h3>
+            <h3 className="font-display text-sm font-bold mt-1.5 text-white/95">{settings.storeName || 'Cordwainers Studio'}</h3>
             <p className="text-[8px] text-white/65 mt-0.5">Bespoke Footwear Restoration</p>
           </div>
           <Coins className="w-5 h-5 text-brand-accent" />

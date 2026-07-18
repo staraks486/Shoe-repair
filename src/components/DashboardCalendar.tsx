@@ -132,7 +132,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="space-y-1">
-            <h3 className="font-serif text-2xl font-bold text-brand-dark">Schedule</h3>
+            <h3 className="font-display text-2xl font-bold text-brand-dark">Schedule</h3>
             <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Repair Deadlines</p>
           </div>
           
@@ -186,7 +186,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
                 )}
               >
                 <span className={clsx(
-                  "text-xs font-serif font-black",
+                  "text-xs font-display font-black",
                   isSelected ? "text-white" : isTodayDay ? "text-brand-accent" : "text-brand-dark"
                 )}>
                   {format(day, 'd')}
@@ -215,7 +215,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
       <div className="w-full lg:w-[350px] bg-brand-bg/30 p-8 flex flex-col">
         <div className="mb-8">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-muted mb-2">Selected Date</p>
-          <h4 className="font-serif text-2xl font-bold text-brand-dark">
+          <h4 className="font-display text-2xl font-bold text-brand-dark">
             {format(selectedDate, 'MMMM d')}
           </h4>
           <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mt-1">
@@ -235,7 +235,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">{repair.invoiceNumber}</p>
-                      <h5 className="font-serif font-bold text-sm text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
+                      <h5 className="font-display font-bold text-sm text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
                         {repair.shoeModel}
                       </h5>
                     </div>
@@ -246,7 +246,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
                     <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest truncate max-w-[120px]">
                       {repair.customerName}
                     </p>
-                    <p className="text-xs font-serif font-black text-brand-dark">
+                    <p className="text-xs font-display font-black text-brand-dark">
                       ₹{repair.price.toLocaleString()}
                     </p>
                   </div>
@@ -264,11 +264,11 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white p-4 rounded-2xl border border-brand-border space-y-1">
               <p className="text-[8px] font-black text-brand-muted uppercase tracking-widest">Month Target</p>
-              <p className="text-xl font-serif font-black text-brand-dark">{monthStats.total}</p>
+              <p className="text-xl font-display font-black text-brand-dark">{monthStats.total}</p>
             </div>
             <div className="bg-white p-4 rounded-2xl border border-brand-border space-y-1">
               <p className="text-[8px] font-black text-brand-muted uppercase tracking-widest">Ready</p>
-              <p className="text-xl font-serif font-black text-brand-accent">{monthStats.completed}</p>
+              <p className="text-xl font-display font-black text-brand-accent">{monthStats.completed}</p>
             </div>
           </div>
         </div>

@@ -193,7 +193,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               <div className="p-6 border-b border-brand-border flex items-center justify-between">
                 <div>
-                  <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight text-lg">Repair Found</h3>
+                  <h3 className="font-display font-black text-brand-dark uppercase tracking-tight text-lg">Repair Found</h3>
                   <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{scannedRepair.invoiceNumber}</p>
                 </div>
                 <button 
@@ -207,7 +207,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <div className="p-6 space-y-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-serif text-xl font-black text-brand-dark">{scannedRepair.shoeModel}</h4>
+                    <h4 className="font-display text-xl font-black text-brand-dark">{scannedRepair.shoeModel}</h4>
                     <p className="text-sm font-bold text-brand-olive">{scannedRepair.customerName}</p>
                   </div>
                   <div className={clsx(
@@ -286,7 +286,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <p className="text-[8px] text-brand-muted font-bold uppercase tracking-widest mt-0.5">Lead Designer</p>
                 </motion.div>
 
-                <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight text-lg mb-2">Did you know?</h3>
+                <h3 className="font-display font-black text-brand-dark uppercase tracking-tight text-lg mb-2">Did you know?</h3>
                 <p className="text-xs text-brand-olive font-bold leading-relaxed italic">
                   "{currentFact}"
                 </p>
@@ -313,16 +313,20 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* Left: Brand Identity */}
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => navigate('/profile')}
+                onClick={() => user ? navigate('/profile') : navigate('/login')}
                 className="relative group transition-transform active:scale-95"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand-dark text-white hover:bg-brand-olive flex items-center justify-center text-xs font-black tracking-tighter transition-all shadow-lg">
-                  {(user.displayName || user.email?.split('@')[0] || 'AS').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {user ? (user.displayName || user.email?.split('@')[0] || 'AS').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'G'}
                 </div>
               </button>
               <div>
-                <h1 className="font-serif text-lg font-bold text-brand-dark tracking-tight leading-none uppercase">Studio</h1>
-                <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest mt-1">Artisan Ops</p>
+                <h1 className="font-display text-lg font-bold text-brand-dark tracking-tight leading-none uppercase">
+                  {location.pathname === '/insurance' ? 'COVER' : location.pathname === '/new-repair' ? 'CARE' : location.pathname === '/inventory' ? 'PLUS' : 'Studio'}
+                </h1>
+                <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest mt-1">
+                  {location.pathname === '/insurance' ? 'Asset Preservation' : location.pathname === '/new-repair' ? 'Artisan Ops' : location.pathname === '/inventory' ? 'Premium Supplies' : 'Artisan Ops'}
+                </p>
               </div>
             </div>
 
@@ -343,6 +347,16 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </div>
               </button>
               <NotificationCenter />
+              
+              {user && (
+                <button 
+                  onClick={handleLogout}
+                  className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 border border-red-100 shadow-sm flex items-center justify-center transition-colors"
+                  title="Log Out"
+                >
+                  <LogOut className="w-4 h-4 ml-0.5" />
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -393,7 +407,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       <Sparkles className="w-4 h-4 text-brand-olive" />
                     </div>
                     <div>
-                      <h3 className="font-serif font-extrabold text-base text-brand-dark">Service Hub</h3>
+                      <h3 className="font-display font-extrabold text-base text-brand-dark">Service Hub</h3>
                       <p className="text-[9px] text-brand-muted uppercase tracking-wider font-semibold">Extended Management Portal</p>
                     </div>
                   </div>

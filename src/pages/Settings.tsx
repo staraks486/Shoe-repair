@@ -162,7 +162,7 @@ export default function Settings() {
     <div className="max-w-4xl mx-auto space-y-10 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Settings</h2>
+          <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Settings</h2>
           <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3">Configure artisan studio parameters</p>
         </div>
         <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm self-start">
@@ -227,7 +227,7 @@ export default function Settings() {
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Studio Name</label>
                   <input type="text" name="storeName" value={settings.storeName} onChange={handleChange}
-                    className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-serif text-lg font-bold" />
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-display text-lg font-bold" />
                 </div>
 
                 <div className="space-y-2">
@@ -382,7 +382,7 @@ export default function Settings() {
                         const newItems = [...settings.cobblers];
                         newItems[index].name = e.target.value;
                         updateSettings({ cobblers: newItems });
-                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-serif font-bold" />
+                      }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-display font-bold" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Specialty</label>

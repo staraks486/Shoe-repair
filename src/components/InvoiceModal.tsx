@@ -41,7 +41,7 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden max-h-screen overflow-y-auto">
         <div id="printable-invoice" className="p-8 bg-white text-brand-dark">
           <div className="text-center mb-6 border-b border-brand-border-dark pb-6">
-            <h2 className="font-serif text-3xl font-bold mb-1">{settings.storeName}</h2>
+            <h2 className="font-display text-3xl font-bold mb-1">{settings.storeName}</h2>
             <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{settings.address}</p>
             <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{settings.hours}</p>
           </div>

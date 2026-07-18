@@ -18,7 +18,7 @@ export default function Customers() {
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="font-serif text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Customers</h2>
+          <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none">Customers</h2>
           <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3">Artisan Client Archive & CRM</p>
         </div>
         <div className="relative group min-w-[320px]">
@@ -49,10 +49,10 @@ export default function Customers() {
                 <tr key={c.phoneNumber} className="hover:bg-brand-bg/20 transition-colors group">
                   <td className="px-8 py-6 whitespace-nowrap">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-olive font-serif font-black text-sm">
+                      <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-olive font-display font-black text-sm">
                         {c.name.charAt(0)}
                       </div>
-                      <div className="text-sm font-bold text-brand-dark font-serif">{c.name}</div>
+                      <div className="text-sm font-bold text-brand-dark font-display">{c.name}</div>
                     </div>
                   </td>
                   <td className="px-8 py-6 whitespace-nowrap">

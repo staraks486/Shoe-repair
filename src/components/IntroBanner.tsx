@@ -27,7 +27,7 @@ export default function IntroBanner() {
             <Sparkles className="w-4 h-4 text-brand-accent animate-pulse" />
           </div>
           
-          <h2 className="font-serif text-4xl md:text-6xl font-black mb-6 tracking-tight leading-none text-white">
+          <h2 className="font-display text-4xl md:text-6xl font-black mb-6 tracking-tight leading-none text-white">
             Welcome to <span className="text-brand-accent block mt-2">{settings.storeName}</span>
           </h2>
           
