@@ -40,15 +40,21 @@ import Login from '../pages/Login';
 import logo from '../assets/logo.svg';
 import NotificationCenter from './NotificationCenter';
 import NotificationToastProvider from './NotificationToastProvider';
+import QRScanner from './QRScanner';
 import { SHOE_FACTS } from '../data/shoeFacts';
+import { ShoeRepairRequest } from '../types';
+import { format } from 'date-fns';
+import { IndianRupee, Clock, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user } = useAppStore();
+  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, updateRepairStatus } = useAppStore();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
   const [currentFact, setCurrentFact] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedRepair, setScannedRepair] = useState<ShoeRepairRequest | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,8 +124,25 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleScanResult = (decodedText: string) => {
+    setShowScanner(false);
+    
+    // Look up repair by invoice number or ID
+    const repair = repairs.find(r => 
+      r.invoiceNumber.toLowerCase() === decodedText.toLowerCase() || 
+      r.id === decodedText
+    );
+
+    if (repair) {
+      setScannedRepair(repair);
+    } else {
+      alert("No repair found for this ticket. Please check the QR code.");
+    }
+  };
+
   const primaryNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Home' },
+    { to: '/insurance', icon: Shield, label: 'Protection' },
     { to: '/new-repair', icon: PlusCircle, label: 'CW Care' },
     { to: '/inventory', icon: Package, label: 'CW Plus' },
   ];
@@ -128,7 +151,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     { to: '/cobbler-desk', icon: Hammer, label: "Cobbler's Desk", desc: 'Manage assigned repairs, check photos, log payments & balances' },
     { to: '/offers', icon: Tag, label: 'Offers & Loyalty', desc: 'Manage artisan discounts & seasonal repair deals' },
     { to: '/customers', icon: Users, label: 'Customer Directory', desc: 'Manage artisan CRM & footwear profiles' },
-    { to: '/insurance', icon: Shield, label: 'CW Cover Protection', desc: 'Secure high-end shoes with guarantee plans' },
     { to: '/socials-payments', icon: Share2, label: 'Socials & Payments', desc: 'Configure payment gateways, QR codes & social links' },
     { to: '/settings', icon: SettingsIcon, label: 'App Settings & API', desc: 'Configure cloud spreadsheets & pricing' },
   ];
@@ -137,14 +159,112 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-full bg-[#EAE6DD] flex flex-col font-sans relative">
       <AuthObserver />
       <NotificationToastProvider />
-      {/* Global Sync Loading Spinner Overlay */}
+      
+      {/* QR Scanner Overlay */}
       <AnimatePresence>
-        {lastSyncStatus === 'syncing' && (
+        {showScanner && (
+          <QRScanner 
+            onScan={handleScanResult} 
+            onClose={() => setShowScanner(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Scanned Repair Detail Modal */}
+      <AnimatePresence>
+        {scannedRepair && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center"
+            className="fixed inset-0 bg-brand-dark/60 backdrop-blur-sm z-[210] flex items-center justify-center p-4"
+            onClick={() => setScannedRepair(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-brand-border flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight text-lg">Repair Found</h3>
+                  <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{scannedRepair.invoiceNumber}</p>
+                </div>
+                <button 
+                  onClick={() => setScannedRepair(null)}
+                  className="p-2 rounded-full bg-brand-bg text-brand-muted hover:text-brand-dark"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-serif text-xl font-black text-brand-dark">{scannedRepair.shoeModel}</h4>
+                    <p className="text-sm font-bold text-brand-olive">{scannedRepair.customerName}</p>
+                  </div>
+                  <div className={clsx(
+                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                    scannedRepair.status === 'Completed' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"
+                  )}>
+                    {scannedRepair.status}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-brand-light/50 p-4 rounded-2xl border border-brand-border/40">
+                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">Due Date</p>
+                    <p className="text-sm font-bold text-brand-dark">
+                      {format(new Date(scannedRepair.dueDate), 'dd MMM, yyyy')}
+                    </p>
+                  </div>
+                  <div className="bg-brand-light/50 p-4 rounded-2xl border border-brand-border/40">
+                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">Total Amount</p>
+                    <div className="flex items-center gap-1 text-sm font-black text-brand-dark">
+                      <IndianRupee className="w-3.5 h-3.5" />
+                      {scannedRepair.price}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Services</p>
+                  <div className="flex flex-wrap gap-2">
+                    {scannedRepair.repairType.map((type, idx) => (
+                      <span key={idx} className="px-3 py-1 bg-white border border-brand-border rounded-full text-[10px] font-bold text-brand-dark uppercase tracking-tight">
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScannedRepair(null);
+                    navigate('/cobbler-desk');
+                  }}
+                  className="w-full bg-brand-dark text-white py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+                >
+                  Manage in Workshop
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Sync Loading Spinner Overlay */}
+      <AnimatePresence mode="wait">
+        {lastSyncStatus === 'syncing' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.15 } }}
+            className="fixed inset-0 bg-white/80 backdrop-blur-md z-[300] flex flex-col items-center justify-center"
           >
             <div className="bg-white p-8 rounded-3xl shadow-2xl border border-brand-border flex flex-col items-center space-y-4">
               <div className="relative">
@@ -152,11 +272,23 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <CloudLightning className="w-5 h-5 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
               </div>
               <div className="text-center max-w-xs">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-4"
+                >
+                  <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Arvind Kumar Shukla</p>
+                  <p className="text-[8px] text-brand-muted font-bold uppercase tracking-widest mt-0.5">Lead Designer</p>
+                </motion.div>
+
                 <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight text-lg mb-2">Did you know?</h3>
                 <p className="text-xs text-brand-olive font-bold leading-relaxed italic">
                   "{currentFact}"
                 </p>
-                <p className="text-[8px] text-brand-muted font-black uppercase tracking-[0.3em] mt-4 opacity-40">Workshop Sync in Progress</p>
+                <p className="text-[8px] text-brand-muted font-black uppercase tracking-[0.3em] mt-4 opacity-40 text-center">
+                  Aligning Artisan Vault...
+                </p>
               </div>
             </div>
           </motion.div>
@@ -171,65 +303,44 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Main Content Wrapper (Full Screen) */}
       <div className="flex-1 flex flex-col relative z-10 w-full max-w-screen-2xl mx-auto md:px-8">
         
-        {/* Redesigned Header based on user image */}
-        <header className="bg-[#FBFAFC] px-6 pt-8 pb-4 relative z-20 flex flex-col items-center">
+        {/* Redesigned Header based on user image - Shown on all pages */}
+        <header className="bg-white/80 backdrop-blur-md px-6 py-6 border-b border-brand-border sticky top-0 relative z-20 flex flex-col items-center">
           <div className="w-full max-w-7xl flex items-center justify-between">
-            {/* Left: Avatar with QR */}
-            <NavLink to="/profile" className="relative group">
-              <div className="w-14 h-14 rounded-full bg-white border border-brand-border/40 shadow-sm flex items-center justify-center text-lg font-black text-brand-dark tracking-tight hover:scale-105 transition-transform">
-                {(user.displayName || user.email?.split('@')[0] || 'AS').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-lg border border-brand-border/40 shadow-sm flex items-center justify-center">
-                <Globe className="w-3.5 h-3.5 text-brand-dark" />
-              </div>
-            </NavLink>
-
-            {/* Center: Pill Toggle */}
-            <div className="flex bg-[#F1F3F6] p-1.5 rounded-full shadow-inner border border-brand-border/20">
+            {/* Left: Brand Identity */}
+            <div className="flex items-center gap-4">
               <button 
                 onClick={() => navigate('/profile')}
-                className={clsx(
-                  "flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-xs font-black uppercase tracking-widest",
-                  location.pathname === '/profile' 
-                    ? "bg-[#FFE8D6] text-[#E87B35] shadow-sm ring-1 ring-[#E87B35]/20" 
-                    : "text-brand-muted hover:text-brand-dark"
-                )}
+                className="relative group transition-transform active:scale-95"
               >
-                <UserIcon className={clsx("w-4 h-4", location.pathname === '/profile' ? "text-[#E87B35]" : "text-brand-muted")} />
-                <span>Me</span>
+                <div className="w-10 h-10 rounded-xl bg-brand-dark text-white hover:bg-brand-olive flex items-center justify-center text-xs font-black tracking-tighter transition-all shadow-lg">
+                  {(user.displayName || user.email?.split('@')[0] || 'AS').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </div>
               </button>
-              <button 
-                onClick={() => navigate('/customers')}
-                className={clsx(
-                  "flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-xs font-black uppercase tracking-widest",
-                  location.pathname === '/customers' 
-                    ? "bg-[#D6F5E1] text-[#1E8A44] shadow-sm ring-1 ring-[#1E8A44]/20" 
-                    : "text-brand-muted hover:text-brand-dark"
-                )}
-              >
-                <Users className={clsx("w-4 h-4", location.pathname === '/customers' ? "text-[#1E8A44]" : "text-brand-muted")} />
-              </button>
+              <div>
+                <h1 className="font-serif text-lg font-bold text-brand-dark tracking-tight leading-none uppercase">Studio</h1>
+                <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest mt-1">Artisan Ops</p>
+              </div>
             </div>
 
-            {/* Right: Notification Bell */}
-            <div className="flex items-center">
+            {/* Right: Quick Tools */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowScanner(true)}
+                className="w-10 h-10 rounded-xl bg-white border border-brand-border shadow-sm flex items-center justify-center text-brand-dark hover:bg-brand-bg transition-colors"
+                title="Scan Receipt"
+              >
+                <div className="flex flex-col items-center gap-0.5 scale-90">
+                  <div className="grid grid-cols-2 gap-0.5">
+                    <div className="w-1.5 h-1.5 bg-brand-dark rounded-[1px]" />
+                    <div className="w-1.5 h-1.5 bg-brand-dark rounded-[1px]" />
+                    <div className="w-1.5 h-1.5 bg-brand-dark rounded-[1px]" />
+                    <div className="w-1.5 h-1.5 bg-brand-dark rounded-[1px]" />
+                  </div>
+                </div>
+              </button>
               <NotificationCenter />
             </div>
           </div>
-
-          {/* Bottom Banner */}
-          <NavLink 
-            to="/offers" 
-            className="mt-6 flex items-center gap-3 px-6 py-3 rounded-full bg-white/50 border border-brand-border/20 hover:bg-white transition-all group shadow-sm"
-          >
-            <div className="w-6 h-6 rounded-full bg-[#FFD700] border border-[#E6C200] flex items-center justify-center shadow-sm">
-              <span className="text-[10px] font-black text-[#8B4513]">₹</span>
-            </div>
-            <p className="text-xs font-black text-brand-dark uppercase tracking-widest">
-              Workshop Efficiency at 98% <span className="text-brand-accent">⚡️</span>
-            </p>
-            <ChevronRight className="w-4 h-4 text-[#E87B35] group-hover:translate-x-1 transition-transform" />
-          </NavLink>
         </header>
 
         {/* Scrollable Viewport Context */}
@@ -395,10 +506,19 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </div>
 
                 {/* Human Signature/Footer Details */}
-                <div className="text-center pt-1.5 border-t border-brand-bg/60">
-                  <p className="text-[8px] text-brand-muted font-bold tracking-widest uppercase">Designed by Arvind Kumar Shukla</p>
-                  <p className="text-[8px] text-brand-muted/70 mt-0.5">© 2026 Cordwainers Studio • ShoeRepair Pro</p>
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  className="text-center pt-2 border-t border-brand-bg/60"
+                >
+                  <p className="text-[9px] text-brand-accent font-black tracking-[0.3em] uppercase">App design by Arvind Kumar Shukla</p>
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                    <Sparkles className="w-2.5 h-2.5 text-brand-olive" />
+                    <span className="text-[7px] text-brand-muted font-bold uppercase tracking-widest">Handcrafted Excellence</span>
+                    <Sparkles className="w-2.5 h-2.5 text-brand-olive" />
+                  </div>
+                  <p className="text-[8px] text-brand-muted/70 mt-1">© 2026 Cordwainers Studio • ShoeRepair Pro</p>
+                </motion.div>
               </motion.div>
             </>
           )}
@@ -477,7 +597,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
     </div>
   );

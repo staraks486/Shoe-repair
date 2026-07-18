@@ -138,69 +138,73 @@ export default function Inventory() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-6 pb-12 animate-in fade-in duration-300">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-12 pb-24 animate-in fade-in duration-300">
       
-      {/* Toggle View Segmented Control and Scanner Trigger */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex bg-brand-bg p-1 rounded-lg border border-brand-border shadow-sm">
+      {/* HEADER: Matching Artisan style */}
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
+        <div className="space-y-1 text-center sm:text-left">
+          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Supplies</h2>
+          <p className="label-xs">Inventory & Stock Tracking</p>
+        </div>
+        
+        <div className="flex gap-4">
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('history');
-            }}
-            className={clsx(
-              "px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5",
-              activeTab === 'history'
-                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
-                : "text-brand-muted hover:text-brand-dark"
-            )}
+            onClick={() => setIsScannerOpen(true)}
+            className="px-8 py-2.5 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent transition-all shadow-lg active:scale-95 flex items-center gap-2"
           >
-            <span>📜 Care History ({inventory.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('add-item');
-            }}
-            className={clsx(
-              "px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5",
-              activeTab === 'add-item'
-                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
-                : "text-brand-muted hover:text-brand-dark"
-            )}
-          >
-            <span>✨ Add Item</span>
+            <Camera className="w-3.5 h-3.5" />
+            Scan Barcode
           </button>
         </div>
+      </header>
 
-        <button
-          type="button"
-          onClick={() => setIsScannerOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-dark hover:bg-brand-muted text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm text-white transition-colors cursor-pointer border border-brand-border/20"
-        >
-          <Camera className="w-4 h-4 text-emerald-400" />
-          <span>Scan Barcode Supplies</span>
-        </button>
+      {/* Toggle View Segmented Control */}
+      <div className="flex justify-center">
+        <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium">
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={clsx(
+              "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
+              activeTab === 'history'
+                ? "bg-brand-dark text-white shadow-lg" 
+                : "text-brand-muted hover:text-brand-dark"
+            )}
+          >
+            History ({inventory.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('add-item')}
+            className={clsx(
+              "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
+              activeTab === 'add-item'
+                ? "bg-brand-dark text-white shadow-lg" 
+                : "text-brand-muted hover:text-brand-dark"
+            )}
+          >
+            Add Supply
+          </button>
+        </div>
       </div>
 
       {/* Care History (Stock List) Tab */}
       {activeTab === 'history' && (
-        <div className="bg-white border border-brand-border rounded-xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-brand-dark">Care History</h3>
-              <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Track and manage shoe add-ons and supplies. Click an item to view details and generate its barcode.</p>
+        <div className="premium-card overflow-hidden p-8 animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-brand-border pb-8">
+            <div className="space-y-1">
+              <h3 className="font-serif text-2xl font-black text-brand-dark">Stock Archive</h3>
+              <p className="label-xs">Supply Lifecycle Management</p>
             </div>
-            <div className="relative w-full md:w-72">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-brand-muted" />
-              </div>
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
               <input
                 type="text"
-                placeholder="Search supplies or barcode..."
+                placeholder="Filter supplies..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-brand-border rounded-md text-sm placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-dark focus:border-brand-dark bg-brand-bg transition-colors"
+                className="w-full pl-11 pr-4 py-3 bg-brand-bg border-none rounded-full text-xs font-bold shadow-inner focus:ring-0"
               />
             </div>
           </div>
@@ -313,32 +317,32 @@ export default function Inventory() {
       {/* Add Item Tab */}
       {activeTab === 'add-item' && (
         <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
-          <form onSubmit={handleSubmit} className="bg-white border border-brand-border rounded-xl shadow-xl overflow-hidden">
-            <div className="p-8 md:p-12 space-y-8">
-              <div className="text-center mb-8">
-                <h3 className="font-serif text-2xl font-bold text-brand-dark mb-2">Register Premium Supply</h3>
-                <p className="text-sm text-brand-muted">Add luxury leather, specialty soles, or bespoke hardware to the studio registry.</p>
+          <form onSubmit={handleSubmit} className="premium-card overflow-hidden">
+            <div className="p-10 md:p-16 space-y-10">
+              <div className="text-center space-y-2 mb-10">
+                <h3 className="font-serif text-3xl font-black text-brand-dark">Register Supply</h3>
+                <p className="label-xs">Resource Acquisition</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Item Name</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="md:col-span-2 space-y-2">
+                  <label className="label-xs ml-1">Item Nomenclature</label>
                   <input 
                     required 
                     type="text" 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors placeholder-brand-muted/30" 
-                    placeholder="e.g. Vibram Eton Rubber Sole" 
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-lg font-bold focus:ring-0" 
+                    placeholder="Vibram Eton..." 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Category</label>
+                <div className="space-y-2">
+                  <label className="label-xs ml-1">Category</label>
                   <select 
                     value={formData.category} 
                     onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors appearance-none"
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0"
                   >
                     <option>Soles</option>
                     <option>Heels</option>
@@ -352,69 +356,68 @@ export default function Inventory() {
                   </select>
                 </div>
 
-                <div className="md:col-span-1">
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Barcode Number</label>
-                  <div className="flex gap-2">
+                <div className="md:col-span-1 space-y-2">
+                  <label className="label-xs ml-1">Barcode Registry</label>
+                  <div className="flex gap-4">
                     <input 
                       required
                       type="text" 
                       value={formData.barcode} 
                       onChange={e => setFormData({...formData, barcode: e.target.value})}
-                      className="flex-1 border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors font-mono" 
-                      placeholder="e.g. 890123456789" 
+                      className="flex-1 px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-mono font-bold focus:ring-0" 
+                      placeholder="890..." 
                     />
                     <button
                       type="button"
                       onClick={() => setFormData({...formData, barcode: generateRandomBarcode()})}
-                      className="px-4 py-2 bg-brand-bg border border-brand-border rounded-md text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-brand-dark transition-colors"
-                      title="Generate random barcode"
+                      className="px-6 py-4 bg-white border border-brand-border rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-bg transition-all"
                     >
-                      Generate
+                      Gen
                     </button>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Initial Quantity</label>
+                <div className="space-y-2">
+                  <label className="label-xs ml-1">Initial Vol.</label>
                   <input 
                     required 
                     type="number" 
                     value={formData.quantity} 
                     onChange={e => setFormData({...formData, quantity: Number(e.target.value)})}
-                    className="w-full border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors" 
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0" 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Unit Price (₹)</label>
+                <div className="space-y-2">
+                  <label className="label-xs ml-1">Unit Valuation (₹)</label>
                   <input 
                     required 
                     type="number" 
                     value={formData.price} 
                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors" 
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0" 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-brand-dark mb-2 uppercase tracking-widest">Minimum Alert Threshold</label>
+                <div className="space-y-2">
+                  <label className="label-xs ml-1">Alert Threshold</label>
                   <input 
                     required 
                     type="number" 
                     value={formData.minThreshold} 
                     onChange={e => setFormData({...formData, minThreshold: Number(e.target.value)})}
-                    className="w-full border-b-2 border-brand-border bg-transparent p-3 text-lg focus:outline-none focus:border-brand-dark transition-colors" 
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0" 
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-6 md:p-8 flex items-center justify-end border-t border-brand-border">
+            <div className="bg-brand-bg p-8 md:p-12 flex items-center justify-end border-t border-brand-border">
               <button 
                 type="submit" 
-                className="flex items-center space-x-2 bg-brand-dark text-white px-8 py-3 rounded text-xs font-bold uppercase tracking-widest hover:bg-brand-muted transition-colors shadow-lg"
+                className="px-12 py-4 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent transition-all shadow-lg active:scale-95"
               >
-                <span>Add Premium Supply</span>
+                Commit Registry
               </button>
             </div>
           </form>

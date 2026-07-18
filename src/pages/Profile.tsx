@@ -95,9 +95,17 @@ export default function Profile() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto space-y-8 pb-12"
+      className="max-w-6xl mx-auto space-y-12 pb-24 px-4 sm:px-6 md:px-8"
     >
-      <div className="bg-white rounded-[32px] border border-brand-border shadow-sm overflow-hidden">
+      {/* HEADER: Matching Artisan style */}
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
+        <div className="space-y-1 text-center sm:text-left">
+          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Artisan Profile</h2>
+          <p className="label-xs">Personal Identity & Performance</p>
+        </div>
+      </header>
+
+      <div className="bg-white rounded-[32px] border border-brand-border shadow-premium overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="h-32 bg-brand-dark relative">
           <div className="absolute -bottom-12 left-8 p-1 bg-white rounded-[24px] border border-brand-border shadow-lg">
             <div className="w-24 h-24 rounded-[20px] bg-brand-bg flex items-center justify-center relative group">
@@ -128,65 +136,51 @@ export default function Profile() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="text-center px-4 py-2 bg-brand-bg rounded-2xl border border-brand-border">
-              <span className="block text-xl font-black text-brand-dark">{completedRepairs}</span>
-              <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Mastered</span>
+            <div className="text-center px-6 py-3 bg-brand-bg rounded-[20px] border border-brand-border">
+              <span className="block text-2xl font-serif font-black text-brand-dark">{completedRepairs}</span>
+              <span className="text-[9px] font-black text-brand-muted uppercase tracking-[0.2em]">Completed</span>
             </div>
-            <div className="text-center px-4 py-2 bg-brand-bg rounded-2xl border border-brand-border">
-              <span className="block text-xl font-black text-brand-dark">{inProgressRepairs}</span>
-              <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest">In Forge</span>
+            <div className="text-center px-6 py-3 bg-brand-bg rounded-[20px] border border-brand-border">
+              <span className="block text-2xl font-serif font-black text-brand-dark">{inProgressRepairs}</span>
+              <span className="text-[9px] font-black text-brand-muted uppercase tracking-[0.2em]">Active</span>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
-          <div className="bg-white p-8 rounded-[32px] border border-brand-border shadow-sm space-y-8">
-            <div className="flex items-center gap-3 border-b border-brand-border/40 pb-4">
-              <SettingsIcon className="w-5 h-5 text-brand-dark" />
-              <h2 className="font-serif text-xl font-black text-brand-dark uppercase tracking-tight">Account Settings</h2>
-            </div>
+        <div className="md:col-span-2">
+          <div className="bg-white p-8 rounded-[32px] border border-brand-border shadow-premium space-y-8">
+            <h2 className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] border-b border-brand-border pb-4">Account Settings</h2>
 
-            <form onSubmit={handleSave} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <form onSubmit={handleSave} className="space-y-8">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                    <input 
-                      type="text" 
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:ring-brand-accent focus:border-brand-accent"
-                    />
-                  </div>
+                  <label className="text-[9px] font-black text-brand-dark uppercase tracking-widest ml-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full bg-brand-bg border-none rounded-[16px] p-4 text-xs font-bold focus:ring-0"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                    <input 
-                      type="email" 
-                      value={profile?.email}
-                      disabled
-                      className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-sm font-bold opacity-60 cursor-not-allowed"
-                    />
-                  </div>
+                  <label className="text-[9px] font-black text-brand-dark uppercase tracking-widest ml-1">Email</label>
+                  <input 
+                    type="email" 
+                    value={profile?.email}
+                    disabled
+                    className="w-full bg-brand-bg/50 border-none rounded-[16px] p-4 text-xs font-bold opacity-60 cursor-not-allowed"
+                  />
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-4">
-                {message && (
-                  <span className="text-xs font-bold text-green-600 flex items-center gap-2">
-                    <Award className="w-4 h-4" />
-                    {message}
-                  </span>
-                )}
+                {message && <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">{message}</span>}
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="bg-brand-dark text-white rounded-2xl px-8 py-4 font-black uppercase tracking-widest text-xs flex items-center gap-3 hover:bg-brand-olive transition-all active:scale-[0.98] disabled:opacity-50 ml-auto"
+                  className="bg-brand-dark text-white rounded-full px-10 py-3.5 font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:bg-brand-accent transition-all active:scale-[0.98] disabled:opacity-50 ml-auto"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
@@ -196,30 +190,24 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="space-y-8">
-          <div className="bg-white p-6 rounded-[32px] border border-brand-border shadow-sm space-y-6">
-            <div className="flex items-center gap-3 border-b border-brand-border/40 pb-4">
-              <Activity className="w-5 h-5 text-brand-dark" />
-              <h2 className="font-serif text-sm font-black text-brand-dark uppercase tracking-widest">Performance</h2>
-            </div>
+        <div>
+          <div className="bg-white p-8 rounded-[32px] border border-brand-border shadow-premium space-y-8">
+            <h2 className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] border-b border-brand-border pb-4">Performance</h2>
             
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-brand-bg border border-brand-border/50">
-                <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest block mb-1">Success Rate</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-2xl font-serif font-black text-brand-dark">98%</span>
-                  <div className="w-24 h-1.5 bg-white rounded-full overflow-hidden border border-brand-border/20">
-                    <div className="h-full bg-green-500 w-[98%]" />
-                  </div>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Success Rate</span>
+                  <span className="text-xl font-serif font-black text-brand-dark">98%</span>
+                </div>
+                <div className="h-1 bg-brand-bg rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-dark w-[98%]" />
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-brand-bg border border-brand-border/50">
-                <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest block mb-1">Avg. TAT</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-2xl font-serif font-black text-brand-dark">4.2d</span>
-                  <span className="text-[9px] font-bold text-green-600 uppercase">-12% vs last mo</span>
-                </div>
+              <div className="space-y-2">
+                <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Avg. TAT</span>
+                <p className="text-xl font-serif font-black text-brand-dark">4.2 Days</p>
               </div>
             </div>
           </div>

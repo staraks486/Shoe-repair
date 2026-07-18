@@ -54,95 +54,77 @@ export default function Dashboard() {
   const COLORS = ['#f59e0b', '#3b82f6', '#a855f7', '#22c55e', '#64748b'];
 
   return (
-    <div className="space-y-6 md:space-y-8 flex flex-col pb-10">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 bg-white p-6 border border-brand-border rounded-[24px] shadow-sm">
-        <div className="space-y-1">
-          <h2 className="font-serif text-2xl font-bold text-brand-dark tracking-tight">Workshop Monitor</h2>
-          <p className="text-[10px] font-black text-brand-olive uppercase tracking-[0.2em] opacity-80">{format(new Date(), 'EEEE, MMMM do yyyy')}</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="flex-1 sm:w-32">
-            <select 
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="block w-full py-2 px-3 border border-brand-border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all"
-            >
-              <option value="All">All Priority</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-          <div className="flex-1 md:w-64">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-muted" />
-              <input
-                type="text"
-                placeholder="Search tickets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-9 pr-3 py-2 border border-brand-border rounded-xl text-xs font-bold placeholder-brand-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all"
-              />
-            </div>
-          </div>
+    <div className="space-y-12 flex flex-col pb-24 max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
+      {/* HEADER: Matching Artisan style */}
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
+        <div className="space-y-1 text-center sm:text-left">
+          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Workshop</h2>
+          <p className="label-xs">Command Center & Analytics</p>
         </div>
       </header>
 
-      <DashboardSummary />
+      {/* Metrics Section */}
+      <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <DashboardSummary />
+      </section>
       
-      <StatusDistribution repairs={repairs} />
+      {/* Analytics Visualization */}
+      <section className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+        <StatusDistribution repairs={repairs} />
+      </section>
       
       {/* Calendar Deadlines & Pick-ups Track */}
-      <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} />
+      <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+        <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} />
+      </section>
       
       {/* Interactive Status Pills Navigation Bar */}
-      <div className="space-y-2 shrink-0">
-        <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider">Filter by Status</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <button
-            onClick={() => setSelectedStatus('All')}
-            className={clsx(
-              "px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all whitespace-nowrap border shrink-0 flex items-center gap-1.5 cursor-pointer",
-              selectedStatus === 'All'
-                ? "bg-brand-dark text-white border-brand-dark shadow-md scale-[1.02]"
-                : "bg-white text-brand-muted border-brand-border hover:text-brand-dark hover:border-brand-muted"
-            )}
-          >
-            <span>All Tickets</span>
-            <span className={clsx(
-              "text-[9px] px-1.5 py-0.5 rounded-full font-black",
-              selectedStatus === 'All' ? "bg-white/20 text-white" : "bg-brand-bg text-brand-dark"
-            )}>
-              {filteredRepairs.length}
-            </span>
-          </button>
+      <section className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="flex gap-8 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setSelectedStatus('All')}
+              className={clsx(
+                "px-1 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all whitespace-nowrap border-b-2 shrink-0",
+                selectedStatus === 'All'
+                  ? "border-brand-dark text-brand-dark"
+                  : "border-transparent text-brand-muted hover:text-brand-dark"
+              )}
+            >
+              All Queue
+            </button>
 
-          {columns.map((col) => {
-            const count = filteredRepairs.filter(r => r.status === col.status).length;
-            const isSelected = selectedStatus === col.status;
-            return (
-              <button
-                key={col.status}
-                onClick={() => setSelectedStatus(col.status)}
-                className={clsx(
-                  "px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all whitespace-nowrap border shrink-0 flex items-center gap-1.5 cursor-pointer",
-                  isSelected
-                    ? "bg-brand-olive text-white border-brand-olive shadow-md scale-[1.02]"
-                    : "bg-white text-brand-muted border-brand-border hover:text-brand-dark hover:border-brand-muted"
-                )}
-              >
-                <span>{col.title}</span>
-                <span className={clsx(
-                  "text-[9px] px-1.5 py-0.5 rounded-full font-black",
-                  isSelected ? "bg-white/25 text-white" : "bg-brand-bg text-brand-dark"
-                )}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+            {columns.map((col) => {
+              const isSelected = selectedStatus === col.status;
+              return (
+                <button
+                  key={col.status}
+                  onClick={() => setSelectedStatus(col.status)}
+                  className={clsx(
+                    "px-1 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all whitespace-nowrap border-b-2 shrink-0",
+                    isSelected
+                      ? "border-brand-dark text-brand-dark"
+                      : "border-transparent text-brand-muted hover:text-brand-dark"
+                  )}
+                >
+                  {col.title}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
+            <input
+              type="text"
+              placeholder="Search active jobs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border-none rounded-full text-xs font-bold shadow-premium focus:ring-0"
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className="flex-1 min-h-0">
         <AnimatePresence mode="popLayout">
@@ -600,174 +582,85 @@ function RepairCard({
     }
   };
 
-  const steps = [
-    { key: 'Received', label: 'Received' },
-    { key: 'In Progress', label: 'In Progress' },
-    { key: 'Polishing', label: 'Polishing' },
-    { key: 'Completed', label: 'Ready for Pickup' }
-  ];
-
-  const getCurrentStepIndex = () => {
-    switch (repair.status) {
-      case 'Received': return 0;
-      case 'In Progress': return 1;
-      case 'Polishing': return 2;
-      case 'Completed': return 3;
-      case 'Delivered': return 4;
-      default: return 0;
-    }
-  };
-
-  const currentStep = getCurrentStepIndex();
-
   return (
     <motion.div 
       layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3 }}
       className={clsx(
-        "bg-white rounded-2xl p-5 border border-brand-border shadow-sm flex flex-col space-y-4 transition-shadow duration-300 hover:shadow-premium group relative",
-        repair.status === 'Completed' ? 'border-green-200 bg-green-50/10' : ''
+        "premium-card p-8 flex flex-col justify-between min-h-[280px] group",
+        repair.status === 'Completed' ? 'ring-2 ring-brand-accent/10' : ''
       )}
     >
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <span className="text-[10px] font-black text-brand-muted uppercase tracking-[0.15em] bg-brand-bg px-2 py-0.5 rounded-sm">{repair.invoiceNumber}</span>
-          {repair.priority && (
-            <span className={clsx(
-              "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider",
-              repair.priority === 'High' ? 'bg-red-100 text-red-700' :
-              repair.priority === 'Medium' ? 'bg-amber-100 text-amber-700' :
-              'bg-green-100 text-green-700'
-            )}>
-              {repair.priority}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center space-x-1.5">
-          {!repair.isSynced && <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
-          <button onClick={(e) => { e.stopPropagation(); onEdit(repair); }} className="p-1.5 text-brand-muted hover:text-brand-dark hover:bg-brand-bg rounded-lg transition-all">
-            <Edit className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete this repair?')) onDelete(repair.id); }} className="p-1.5 text-brand-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-      
-      <div onClick={() => onView(repair)} className="cursor-pointer space-y-4">
-        <div>
-          <h4 className="font-serif text-lg font-bold text-brand-dark leading-tight tracking-tight group-hover:text-brand-olive transition-colors">{repair.shoeModel}</h4>
-          <p className="text-xs font-medium text-brand-muted mt-1 leading-relaxed">
-            {Array.isArray(repair.repairType) ? repair.repairType.join(', ') : repair.repairType}
-          </p>
-          {repair.assignedCobblerName && (
-            <div className="flex items-center gap-2 mt-2.5">
-              <div className="w-5 h-5 rounded-full bg-brand-olive/10 flex items-center justify-center">
-                <span className="text-[8px] font-black text-brand-olive uppercase">{repair.assignedCobblerName.charAt(0)}</span>
-              </div>
-              <p className="text-[10px] text-brand-olive font-bold tracking-tight">
-                Artisan: {repair.assignedCobblerName}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Visual Progress Stepper - Refined */}
-        <div className="py-3 border-t border-b border-brand-border/30" onClick={(e) => e.stopPropagation()}>
-          <div className="relative flex items-center justify-between px-1">
-            <div className="absolute left-2.5 right-2.5 h-[1.5px] bg-brand-border/40 top-1/2 -translate-y-1/2 z-0" />
-            <div 
-              className="absolute left-2.5 h-[1.5px] bg-brand-olive top-1/2 -translate-y-1/2 z-0 transition-all duration-500 ease-out" 
-              style={{ width: `${currentStep === 4 ? 92 : (currentStep / 3) * 92}%` }} 
-            />
-
-            {steps.map((step, idx) => {
-              const isCompleted = currentStep > idx;
-              const isActive = currentStep === idx;
-              return (
-                <button
-                  key={step.key}
-                  type="button"
-                  onClick={() => {
-                    onStatusChange(repair.id, step.key as RepairStatus);
-                    if (['In Progress', 'Polishing', 'Completed'].includes(step.key)) triggerWhatsApp(step.key as RepairStatus);
-                  }}
-                  className="relative z-10 flex flex-col items-center group/step focus:outline-none"
-                >
-                  <div className={clsx(
-                    "w-5 h-5 rounded-full flex items-center justify-center border transition-all duration-500 text-[9px] shadow-sm",
-                    isCompleted && "bg-brand-olive border-brand-olive text-white",
-                    isActive && "bg-white border-brand-olive text-brand-olive font-black ring-[5px] ring-brand-olive/10 scale-125 shadow-md",
-                    !isCompleted && !isActive && "bg-white border-brand-border text-brand-muted group-hover/step:border-brand-muted"
-                  )}>
-                    {isCompleted ? '✓' : idx + 1}
-                  </div>
-                  <span className={clsx(
-                    "text-[8px] mt-2 font-black uppercase tracking-widest transition-colors",
-                    isActive ? "text-brand-dark" : "text-brand-muted/70",
-                  )}>
-                    {idx === 3 ? 'Ready' : step.key === 'In Progress' ? 'PRG' : step.key.substring(0, 3)}
-                  </span>
-                </button>
-              );
-            })}
+      <div className="space-y-6">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1.5">
+            <p className="label-xs">{repair.invoiceNumber}</p>
+            <h4 onClick={() => onView(repair)} className="text-xl font-serif font-black text-brand-dark leading-tight tracking-tight group-hover:text-brand-accent transition-colors cursor-pointer">{repair.shoeModel}</h4>
+          </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onEdit(repair)} className="p-2 text-brand-muted hover:text-brand-dark transition-colors"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => onDelete(repair.id)} className="p-2 text-brand-muted hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
           </div>
         </div>
-        
-        <div className="flex items-end justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-black text-brand-muted uppercase tracking-wider">Customer</p>
-            <p className="text-xs font-bold text-brand-dark">{repair.customerName}</p>
-            <div className="flex items-center gap-2 text-[10px]">
-              <span className="text-brand-muted">Paid: ₹{(repair.advance || 0).toFixed(0)}</span>
-              <span className={clsx(
-                "font-black uppercase tracking-wider text-[8px]",
-                repair.paymentStatus === 'Fully Paid' ? 'text-green-600' :
-                repair.paymentStatus === 'Partially Paid' ? 'text-amber-500' :
-                'text-red-500'
-              )}>
-                {repair.paymentStatus || 'Unpaid'}
-              </span>
+
+        <div className="flex flex-wrap gap-2">
+          {Array.isArray(repair.repairType) ? repair.repairType.slice(0, 2).map((t, i) => (
+            <span key={i} className="px-3 py-1 bg-brand-bg rounded-full text-[9px] font-black text-brand-muted uppercase tracking-widest">{t}</span>
+          )) : (
+            <span className="px-3 py-1 bg-brand-bg rounded-full text-[9px] font-black text-brand-muted uppercase tracking-widest">{repair.repairType}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6 pt-6 border-t border-brand-border/40">
+        <div className="flex justify-between items-end">
+          <div className="space-y-4 flex-1">
+            <div className="space-y-1.5">
+              <p className="label-xs text-brand-accent">{repair.customerName}</p>
+              <select 
+                value={repair.status} 
+                onChange={handleStatusChange}
+                className="text-[10px] font-black uppercase tracking-widest bg-brand-bg border-none rounded-full px-4 py-2 cursor-pointer hover:bg-brand-border/40 transition-all"
+              >
+                <option value="Received">Received</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Polishing">Polishing</option>
+                <option value="Completed">Ready</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-emerald-500 transition-colors">
+                <Phone className="w-4 h-4" />
+              </button>
+              <button onClick={() => setShowTimeline(!showTimeline)} className="text-brand-muted hover:text-brand-dark transition-colors">
+                <History className="w-4 h-4" />
+              </button>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-black text-brand-muted uppercase tracking-wider">Estimate</p>
-            <p className="text-lg font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+            <p className="text-2xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-brand-border">
-        <button onClick={(e) => { e.stopPropagation(); triggerWhatsApp(repair.status); }} className="text-brand-muted hover:text-green-600 transition-colors">
-          <Phone className="w-4 h-4" />
-        </button>
-        
-        <select value={repair.status} onChange={(e) => { e.stopPropagation(); handleStatusChange(e); }} onClick={(e) => e.stopPropagation()} className="text-[10px] border-none bg-brand-bg rounded px-2 py-1">
-          <option value="Received">Received</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Polishing">Polishing</option>
-          <option value="Completed">Completed (Ready)</option>
-          <option value="Delivered">Delivered</option>
-        </select>
-        
-        <button onClick={(e) => { e.stopPropagation(); setShowTimeline(!showTimeline); }} className="text-brand-muted">
-          {showTimeline ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
+        {showTimeline && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="pt-2 space-y-1 overflow-hidden"
+          >
+            {repair.statusHistory.slice(-3).map((item, idx) => (
+              <div key={idx} className="flex justify-between text-[8px] text-brand-muted font-bold uppercase tracking-tight">
+                <span>{item.status}</span>
+                <span>{format(new Date(item.timestamp), 'MMM d')}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
       </div>
-
-      {showTimeline && (
-        <div className="pt-2 border-t border-brand-border space-y-1">
-          {repair.statusHistory.map((item, idx) => (
-            <div key={idx} className="flex justify-between text-[9px] text-brand-muted">
-              <span>{format(new Date(item.timestamp), 'MMM d, HH:mm')}</span>
-              <span>{item.status === 'Completed' ? 'Ready for Pickup' : item.status}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </motion.div>
   );
 }

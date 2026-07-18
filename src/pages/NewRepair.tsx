@@ -544,63 +544,38 @@ Thank you for trusting Cordwainers Studio!
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0 animate-in fade-in duration-300">
       
-      {/* HEADER CONTROLS - Hidden when printing */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
-        <div>
-          <h1 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">CW Care Professional</h1>
-          <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Official internal intake form & invoice generator</p>
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
+        <div className="space-y-1 text-center sm:text-left">
+          <h2 className="font-serif text-3xl font-bold text-brand-dark tracking-tight">Care Portal</h2>
+          <p className="label-xs">Workshop Intake System</p>
         </div>
         
-        <div className="flex bg-brand-bg p-1 rounded-lg border border-brand-border shadow-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('history');
-              resetForm();
-            }}
-            className={clsx(
-              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
-              activeTab === 'history'
-                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
-                : "text-brand-muted hover:text-brand-dark"
-            )}
-          >
-            📜 Care History ({repairs.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('new-repair');
-              setCurrentStep(0);
-            }}
-            className={clsx(
-              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
-              activeTab === 'new-repair'
-                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
-                : "text-brand-muted hover:text-brand-dark"
-            )}
-          >
-            ⚡ New Intake Ticket
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('manage-services');
-              resetForm();
-            }}
-            className={clsx(
-              "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5",
-              activeTab === 'manage-services'
-                ? "bg-white text-brand-dark shadow-sm border border-brand-border/40" 
-                : "text-brand-muted hover:text-brand-dark"
-            )}
-          >
-            ✨ Care Catalog ({carePackages.length})
-          </button>
+        <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium shrink-0">
+          {[
+            { id: 'history', label: 'History' },
+            { id: 'new-repair', label: 'Intake' },
+            { id: 'manage-services', label: 'Catalog' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                if (tab.id !== 'new-repair') resetForm();
+              }}
+              className={clsx(
+                "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
+                activeTab === tab.id
+                  ? "bg-brand-dark text-white shadow-lg" 
+                  : "text-brand-muted hover:text-brand-dark"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </header>
 
       {/* SUCCESS SCREEN */}
       {submittedInvoice && (
@@ -1637,86 +1612,67 @@ Thank you for trusting Cordwainers Studio!
 
       {/* CARE RECORDS HISTORY TABLE */}
       {activeTab === 'history' && (
-        <div className="bg-white border border-brand-border rounded-2xl shadow-xl overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-brand-border pb-6">
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-brand-dark">CW Care Intake Logs</h3>
-              <p className="text-xs text-brand-muted uppercase tracking-wider mt-1">Search or delete customer care records & premium diagnostic assessments</p>
-            </div>
-            
-            <div className="relative w-full md:w-80">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-brand-muted" />
-              </span>
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center bg-white p-4 rounded-[24px] border border-brand-border shadow-premium">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
               <input
                 type="text"
-                placeholder="Search Client, Model or Ticket ID..."
+                placeholder="Search history..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-brand-border rounded-xl text-xs placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg transition-colors"
+                className="w-full pl-11 pr-4 py-3 text-xs font-bold border-none bg-brand-bg rounded-full focus:ring-0"
               />
             </div>
           </div>
 
-          {filteredRepairs.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-brand-border">
-                <thead>
-                  <tr className="bg-brand-bg">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Ticket ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Client Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Diagnosed Footwear</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Care Specialist</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Intake Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-brand-olive uppercase tracking-widest">Amount</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-brand-olive uppercase tracking-widest">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-brand-border">
-                  {filteredRepairs.map(item => (
-                    <tr key={item.id} className="hover:bg-brand-bg/25 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono font-bold text-brand-dark">
-                        {item.invoiceNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-brand-dark">
-                        {item.customerName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-muted">
-                        {item.shoeModel}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-dark">
-                        {item.receivedBy}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-brand-muted">
-                        {format(new Date(item.createdAt), 'MMM dd, yyyy')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-serif font-bold text-brand-dark">
-                        ₹{(item.price || 0).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to permanently delete intake record for ${item.customerName}?`)) {
-                              deleteRepair(item.id);
-                            }
-                          }}
-                          className="text-brand-muted hover:text-red-500 transition-colors p-1"
-                          title="Delete Intake Log"
-                        >
-                          <Trash2 className="w-4 h-4 inline" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-16 border-2 border-dashed border-brand-border rounded-2xl bg-brand-bg/10">
-              <p className="text-xs text-brand-muted italic">
-                {searchQuery ? 'No intake logs matched your search filters.' : 'No customer intake records registered in CW Care yet.'}
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRepairs.map((repair) => (
+              <div 
+                key={repair.id}
+                className="bg-white p-6 rounded-[32px] border border-brand-border hover:shadow-premium transition-all group flex flex-col justify-between min-h-[200px]"
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">{repair.invoiceNumber}</p>
+                      <h4 className="font-serif text-lg font-bold text-brand-dark leading-tight">{repair.shoeModel}</h4>
+                    </div>
+                    <p className="text-xl font-serif font-black text-brand-dark tracking-tighter">₹{repair.price.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1.5">
+                    {repair.repairType.map((t, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-brand-bg rounded-md text-[9px] font-black text-brand-muted uppercase tracking-tight">{t}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-end pt-4 border-t border-brand-border/40 mt-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">{repair.customerName}</p>
+                    <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest">{repair.status}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(`Delete record for ${repair.customerName}?`)) {
+                          deleteRepair(repair.id);
+                        }
+                      }}
+                      className="p-2 text-brand-muted hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {filteredRepairs.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-[32px] border border-brand-border border-dashed">
+              <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">No matching records found</p>
             </div>
           )}
         </div>
