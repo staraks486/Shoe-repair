@@ -97,7 +97,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen w-full bg-[#EAE6DD] flex flex-col font-sans relative">
       {/* Background Noise & Blurs */}
-      <div className="absolute inset-0 bg-noise pointer-events-none opacity-5 fixed" />
+      <div className="fixed inset-0 bg-noise pointer-events-none opacity-5 z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent/10 blur-[150px] pointer-events-none" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand-olive/5 blur-[150px] pointer-events-none" />
 

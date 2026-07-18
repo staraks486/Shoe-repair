@@ -609,7 +609,7 @@ export default function Settings() {
               </div>
             </div>
             <div className="mt-4 p-4 bg-brand-bg text-brand-olive text-sm rounded-md border border-brand-border-dark">
-              <strong>Note:</strong> To enable Gemini AI Chat, ensure you have set the <code>GEMINI_API_KEY</code> in the AI Studio Settings menu.
+              <strong>Note:</strong> To enable Gemini AI Chat, ensure you have set the <code>GEMINI_API_KEY</code> in the Settings menu.
             </div>
 
             <h3 className="text-sm font-bold text-brand-olive uppercase tracking-widest border-b border-brand-border-dark pb-2 mt-8">Payment Details</h3>

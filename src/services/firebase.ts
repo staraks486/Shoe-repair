@@ -1,9 +1,16 @@
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
-import aiStudioConfig from '../../firebase-applet-config.json';
-
 // Support both JSON file (for AI Studio) and Environment Variables (for Render/GitHub)
+let aiStudioConfig: any = {};
+try {
+  // @ts-ignore
+  const configs = import.meta.glob('../../firebase-applet-config.json', { eager: true });
+  aiStudioConfig = configs['../../firebase-applet-config.json']?.default || {};
+} catch (e) {
+  // Ignore missing file
+}
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || aiStudioConfig.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || aiStudioConfig.authDomain,
