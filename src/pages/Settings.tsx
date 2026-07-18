@@ -561,7 +561,7 @@ export default function Settings() {
                       ) : (
                         <RefreshCw className="w-3.5 h-3.5" />
                       )}
-                      {isRetryingSync ? 'Synchronizing now...' : 'Retry Synchronization'}
+                      {isRetryingSync ? 'Updating Vault...' : 'Retry Synchronization'}
                     </button>
 
                     {retryFeedback && (

@@ -37,6 +37,21 @@ const auth = hasConfig ? getAuth(app!) : null as any;
 
 const db = hasConfig 
   ? initializeFirestore(app!, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId || '(default)')
-  : null as any; // Cast as any to avoid breaking types if config is missing
+  : null as any;
+
+// Enable offline persistence
+if (db && typeof window !== 'undefined') {
+  import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // Multiple tabs open, persistence can only be enabled in one tab at a a time.
+        console.warn('Firestore persistence failed: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        // The current browser doesn't support all of the features required to enable persistence
+        console.warn('Firestore persistence failed: browser not supported');
+      }
+    });
+  });
+}
 
 export { db, analytics, auth };

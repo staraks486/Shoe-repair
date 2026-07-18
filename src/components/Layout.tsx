@@ -28,7 +28,9 @@ import {
   Hammer,
   Tag,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  UserCircle,
+  Bell
 } from 'lucide-react';
 import clsx from 'clsx';
 import { auth } from '../services/firebase';
@@ -36,6 +38,9 @@ import { signOut } from 'firebase/auth';
 import AuthObserver from './AuthObserver';
 import Login from '../pages/Login';
 import logo from '../assets/logo.svg';
+import NotificationCenter from './NotificationCenter';
+import NotificationToastProvider from './NotificationToastProvider';
+import { SHOE_FACTS } from '../data/shoeFacts';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user } = useAppStore();
@@ -43,6 +48,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
+  const [currentFact, setCurrentFact] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,14 +62,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   };
 
-  if (!user) {
-    return (
-      <>
-        <AuthObserver />
-        <Login />
-      </>
-    );
-  }
   const pendingSyncCount = repairs.filter(r => !r.isSynced).length;
 
   // Simulate real-time clock in mock status bar
@@ -82,10 +80,26 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (lastSyncStatus === 'syncing') {
+      const randomFact = SHOE_FACTS[Math.floor(Math.random() * SHOE_FACTS.length)];
+      setCurrentFact(randomFact);
+    }
+  }, [lastSyncStatus]);
+
   // Automatically close bottom drawer upon navigating
   useEffect(() => {
     setIsMoreOpen(false);
   }, [location.pathname]);
+
+  if (!user) {
+    return (
+      <>
+        <AuthObserver />
+        <Login />
+      </>
+    );
+  }
 
   const handleSync = async () => {
     if (settings.isOfflineMode) return;
@@ -122,6 +136,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen w-full bg-[#EAE6DD] flex flex-col font-sans relative">
       <AuthObserver />
+      <NotificationToastProvider />
       {/* Global Sync Loading Spinner Overlay */}
       <AnimatePresence>
         {lastSyncStatus === 'syncing' && (
@@ -136,9 +151,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <Loader2 className="w-12 h-12 text-brand-olive animate-spin" />
                 <CloudLightning className="w-5 h-5 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
               </div>
-              <div className="text-center">
-                <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight">Synchronizing</h3>
-                <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest mt-1">Cloud Database Update In Progress</p>
+              <div className="text-center max-w-xs">
+                <h3 className="font-serif font-black text-brand-dark uppercase tracking-tight text-lg mb-2">Did you know?</h3>
+                <p className="text-xs text-brand-olive font-bold leading-relaxed italic">
+                  "{currentFact}"
+                </p>
+                <p className="text-[8px] text-brand-muted font-black uppercase tracking-[0.3em] mt-4 opacity-40">Workshop Sync in Progress</p>
               </div>
             </div>
           </motion.div>
@@ -153,36 +171,65 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Main Content Wrapper (Full Screen) */}
       <div className="flex-1 flex flex-col relative z-10 w-full max-w-screen-2xl mx-auto md:px-8">
         
-        {/* Professional Centered Header */}
-        <header className="bg-white border-b border-brand-border/60 px-6 py-10 relative z-20 shadow-sm md:rounded-b-[40px]">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-brand-bg border border-brand-border p-2 flex items-center justify-center mb-4 shadow-sm group hover:scale-105 transition-transform">
-              <img src={logo} alt="Cordwainers Studio" className="max-w-full max-h-full object-contain" />
-            </div>
-            
-            <h1 className="font-serif text-2xl md:text-4xl font-black tracking-tight text-brand-dark uppercase">
-              Cordwainers Studio
-            </h1>
-            <p className="text-[10px] md:text-xs font-black text-brand-muted uppercase tracking-[0.4em] mt-2 opacity-60">
-              Artisan Footwear Management
-            </p>
-
-            <div className="flex items-center gap-4 mt-6">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-bg border border-brand-border">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">
-                  Logged in: {user.displayName || user.email?.split('@')[0]}
-                </span>
+        {/* Redesigned Header based on user image */}
+        <header className="bg-[#FBFAFC] px-6 pt-8 pb-4 relative z-20 flex flex-col items-center">
+          <div className="w-full max-w-7xl flex items-center justify-between">
+            {/* Left: Avatar with QR */}
+            <NavLink to="/profile" className="relative group">
+              <div className="w-14 h-14 rounded-full bg-white border border-brand-border/40 shadow-sm flex items-center justify-center text-lg font-black text-brand-dark tracking-tight hover:scale-105 transition-transform">
+                {(user.displayName || user.email?.split('@')[0] || 'AS').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-lg border border-brand-border/40 shadow-sm flex items-center justify-center">
+                <Globe className="w-3.5 h-3.5 text-brand-dark" />
+              </div>
+            </NavLink>
+
+            {/* Center: Pill Toggle */}
+            <div className="flex bg-[#F1F3F6] p-1.5 rounded-full shadow-inner border border-brand-border/20">
               <button 
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors"
+                onClick={() => navigate('/profile')}
+                className={clsx(
+                  "flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-xs font-black uppercase tracking-widest",
+                  location.pathname === '/profile' 
+                    ? "bg-[#FFE8D6] text-[#E87B35] shadow-sm ring-1 ring-[#E87B35]/20" 
+                    : "text-brand-muted hover:text-brand-dark"
+                )}
               >
-                <LogOut className="w-3 h-3" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+                <UserIcon className={clsx("w-4 h-4", location.pathname === '/profile' ? "text-[#E87B35]" : "text-brand-muted")} />
+                <span>Me</span>
+              </button>
+              <button 
+                onClick={() => navigate('/customers')}
+                className={clsx(
+                  "flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-xs font-black uppercase tracking-widest",
+                  location.pathname === '/customers' 
+                    ? "bg-[#D6F5E1] text-[#1E8A44] shadow-sm ring-1 ring-[#1E8A44]/20" 
+                    : "text-brand-muted hover:text-brand-dark"
+                )}
+              >
+                <Users className={clsx("w-4 h-4", location.pathname === '/customers' ? "text-[#1E8A44]" : "text-brand-muted")} />
               </button>
             </div>
+
+            {/* Right: Notification Bell */}
+            <div className="flex items-center">
+              <NotificationCenter />
+            </div>
           </div>
+
+          {/* Bottom Banner */}
+          <NavLink 
+            to="/offers" 
+            className="mt-6 flex items-center gap-3 px-6 py-3 rounded-full bg-white/50 border border-brand-border/20 hover:bg-white transition-all group shadow-sm"
+          >
+            <div className="w-6 h-6 rounded-full bg-[#FFD700] border border-[#E6C200] flex items-center justify-center shadow-sm">
+              <span className="text-[10px] font-black text-[#8B4513]">₹</span>
+            </div>
+            <p className="text-xs font-black text-brand-dark uppercase tracking-widest">
+              Workshop Efficiency at 98% <span className="text-brand-accent">⚡️</span>
+            </p>
+            <ChevronRight className="w-4 h-4 text-[#E87B35] group-hover:translate-x-1 transition-transform" />
+          </NavLink>
         </header>
 
         {/* Scrollable Viewport Context */}
@@ -315,7 +362,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       ) : (
                         <RefreshCw className="w-3.5 h-3.5" />
                       )}
-                      {isSyncing ? 'Syncing...' : `Sync ${pendingSyncCount > 0 ? `(${pendingSyncCount})` : ''}`}
+                      {isSyncing ? 'Aligning...' : `Sync ${pendingSyncCount > 0 ? `(${pendingSyncCount})` : ''}`}
                     </button>
                   </div>
                 </div>

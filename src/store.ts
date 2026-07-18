@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ShoeRepairRequest, Customer, InventoryItem, ShoeInsurance, Settings, VoiceNote } from './types';
+import { 
+  ShoeRepairRequest, 
+  Customer, 
+  InventoryItem, 
+  ShoeInsurance, 
+  Settings, 
+  VoiceNote,
+  AppNotification,
+  UserProfile
+} from './types';
 import { NotificationService } from './services/NotificationService';
 import { db, auth } from './services/firebase';
 import { User } from 'firebase/auth';
@@ -10,7 +19,8 @@ import {
   setDoc, 
   getDocs, 
   deleteDoc, 
-  getDocFromServer 
+  getDoc,
+  writeBatch
 } from 'firebase/firestore';
 
 interface AppState {
@@ -47,6 +57,8 @@ interface AppState {
   updateSettings: (settings: Partial<Settings>) => void;
   addVoiceNote: (repairId: string, voiceNote: Omit<VoiceNote, 'id'>) => void;
   deleteVoiceNote: (repairId: string, noteId: string) => void;
+  
+  addNotification: (notification: Omit<AppNotification, 'id' | 'read' | 'createdAt' | 'userId'>) => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -185,9 +197,14 @@ export const useAppStore = create<AppState>()(
           } else {
             set({ lastSyncStatus: 'success', lastSyncTime: new Date().toISOString() });
           }
-        } catch (error) {
-          console.error("Failed to fetch initial data from Firestore:", error);
-          set({ lastSyncStatus: 'error' });
+        } catch (error: any) {
+          if (error.message?.includes('client is offline')) {
+            console.warn("Firestore fetch deferred: client is offline. Using local cache.");
+            set({ lastSyncStatus: 'success' });
+          } else {
+            console.error("Failed to fetch initial data from Firestore:", error);
+            set({ lastSyncStatus: 'error' });
+          }
         }
       },
 
@@ -245,7 +262,14 @@ export const useAppStore = create<AppState>()(
         }
         
         // Trigger background sync to Google Sheets
-        setTimeout(() => {
+        setTimeout(async () => {
+          if (createdRepair) {
+            await get().addNotification({
+              title: 'New Repair Created',
+              message: `Ticket ${createdRepair.invoiceNumber} for ${createdRepair.customerName} has been recorded.`,
+              type: 'info'
+            });
+          }
           get().syncAllPending().catch(err => console.error("Auto sync failed:", err));
         }, 100);
 
@@ -286,7 +310,14 @@ export const useAppStore = create<AppState>()(
         }
 
         // Trigger background sync to Google Sheets
-        setTimeout(() => {
+        setTimeout(async () => {
+          if (updatedRepair) {
+            await get().addNotification({
+              title: 'Status Updated',
+              message: `Ticket ${(updatedRepair as ShoeRepairRequest).invoiceNumber} is now ${status}.`,
+              type: 'info'
+            });
+          }
           get().syncAllPending().catch(err => console.error("Auto sync failed:", err));
         }, 100);
       },
@@ -387,6 +418,12 @@ export const useAppStore = create<AppState>()(
               return r;
             })
           }));
+
+          await get().addNotification({
+            title: 'Sync Successful',
+            message: `Synchronized ${pending.length} repairs to Google Sheets.`,
+            type: 'success'
+          });
         } catch (error: any) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error("Failed to sync to Google Sheets:", errorMessage);
@@ -403,6 +440,12 @@ export const useAppStore = create<AppState>()(
               ...state.syncErrorLogs
             ].slice(0, 50) // Keep last 50 logs max
           }));
+          
+          await get().addNotification({
+            title: 'Sync Failed',
+            message: `Failed to synchronize repairs: ${errorMessage}`,
+            type: 'error'
+          });
           
           throw error;
         }
@@ -521,7 +564,32 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      setUser: (user) => set({ user }),
+      setUser: async (user) => {
+        set({ user });
+        if (user && db) {
+          try {
+            // Sync profile
+            const profileRef = doc(db, 'profiles', user.uid);
+            const profileSnap = await getDoc(profileRef);
+            if (!profileSnap.exists()) {
+              const initialProfile: UserProfile = {
+                uid: user.uid,
+                email: user.email || '',
+                displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
+                role: 'cobbler',
+                createdAt: new Date().toISOString()
+              };
+              await setDoc(profileRef, initialProfile);
+            }
+          } catch (error: any) {
+            if (error.message?.includes('client is offline')) {
+              console.warn("Profile sync deferred: client is offline.");
+            } else {
+              console.error("Profile sync failed:", error);
+            }
+          }
+        }
+      },
 
       addVoiceNote: (repairId, voiceNoteData) => {
         const id = generateId();
@@ -561,6 +629,26 @@ export const useAppStore = create<AppState>()(
 
         if (updatedRepair && db) {
           setDoc(doc(db, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
+        }
+      },
+
+      addNotification: async (notificationData) => {
+        const user = get().user;
+        if (!user || !db) return;
+
+        const id = generateId();
+        const notification: AppNotification = {
+          ...notificationData,
+          id,
+          userId: user.uid,
+          read: false,
+          createdAt: new Date().toISOString()
+        };
+
+        try {
+          await setDoc(doc(db, 'notifications', id), notification);
+        } catch (e) {
+          console.error("Failed to add notification:", e);
         }
       },
     }),

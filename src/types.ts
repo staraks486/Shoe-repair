@@ -1,6 +1,25 @@
 export type RepairStatus = 'Received' | 'In Progress' | 'Polishing' | 'Completed' | 'Delivered';
 export type PriorityLevel = 'Low' | 'Medium' | 'High';
 
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: 'admin' | 'cobbler' | 'guest';
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  createdAt: string;
+}
+
 export interface StatusHistory {
   timestamp: string;
   user: string;

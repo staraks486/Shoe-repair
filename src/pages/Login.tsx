@@ -5,38 +5,45 @@ import {
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { motion } from 'motion/react';
-import { LogIn, Phone, Loader2 } from 'lucide-react';
+import { LogIn, Phone, Loader2, UserCircle } from 'lucide-react';
+
+const GUEST_ID = 'guest@cordwainers.local';
+const ADMIN_ID = 'admin@cordwainers.local';
+const DEFAULT_PASSWORD = 'artisan_cobbler_pass';
 
 export default function Login() {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const DEFAULT_PASSWORD = 'artisan_cobbler_pass';
-
-  const handleSimpleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAuth = async (e?: React.FormEvent, customId?: string) => {
+    if (e) e.preventDefault();
     if (!auth) return;
     
-    // Simple normalization: convert phone to a mock email for Firebase Auth
-    const identifier = `${phone.replace(/\D/g, '')}@mobile.local`;
+    // Normalize input: if it looks like a phone number, convert to mock email
+    let finalId = customId || identifier;
+    if (!finalId.includes('@')) {
+      finalId = `${finalId.replace(/\D/g, '')}@mobile.local`;
+    }
     
     setLoading(true);
     setError('');
 
     try {
-      // Try to sign in first
-      await signInWithEmailAndPassword(auth, identifier, DEFAULT_PASSWORD);
+      // Attempt sign in
+      await signInWithEmailAndPassword(auth, finalId, DEFAULT_PASSWORD);
     } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        // Auto-create account for simple "mobile" login experience
+      // If user doesn't exist, try to create them (seamless onboarding)
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email' || err.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, identifier, DEFAULT_PASSWORD);
+          await createUserWithEmailAndPassword(auth, finalId, DEFAULT_PASSWORD);
         } catch (createErr: any) {
-          setError("Please enter a valid mobile number");
+          setError(customId === GUEST_ID ? "Guest access failed" : "Please enter a valid email or mobile number");
+          console.error("Auth Error:", createErr);
         }
       } else {
         setError(err.message);
+        console.error("Auth Error:", err);
       }
     } finally {
       setLoading(false);
@@ -68,17 +75,17 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSimpleAuth} className="space-y-6">
+          <form onSubmit={(e) => handleAuth(e)} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Mobile Number</label>
+              <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Email or Mobile</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
                 <input 
-                  type="tel" 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  type="text" 
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full bg-brand-bg border-brand-border rounded-2xl py-5 pl-12 pr-4 text-sm font-bold focus:ring-brand-accent focus:border-brand-accent placeholder:text-brand-muted/40"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="admin@cordwainers.local"
                   required
                 />
               </div>
@@ -86,7 +93,7 @@ export default function Login() {
 
             <button 
               type="submit" 
-              disabled={loading || !phone}
+              disabled={loading || !identifier}
               className="w-full bg-brand-dark text-white rounded-2xl py-5 font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-brand-olive transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
@@ -98,6 +105,27 @@ export default function Login() {
                 </>
               )}
             </button>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button 
+                type="button"
+                onClick={() => handleAuth(undefined, ADMIN_ID)}
+                disabled={loading}
+                className="bg-brand-bg border border-brand-border text-brand-dark rounded-xl py-3 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98]"
+              >
+                <LogIn className="w-3 h-3" />
+                Demo Login
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleAuth(undefined, GUEST_ID)}
+                disabled={loading}
+                className="bg-brand-bg border border-brand-border text-brand-dark rounded-xl py-3 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98]"
+              >
+                <UserCircle className="w-3 h-3" />
+                Guest Access
+              </button>
+            </div>
           </form>
 
           <div className="mt-12 pt-8 border-t border-brand-border/40 text-center">

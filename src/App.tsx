@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import CobblerDesk from './pages/CobblerDesk';
 import Offers from './pages/Offers';
 import SocialsPayments from './pages/SocialsPayments';
+import Profile from './pages/Profile';
 import { useAppStore } from './store';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/add-insurance" element={<Navigate to="/insurance?tab=add-cover" replace />} />
           <Route path="/offers" element={<Offers />} />
           <Route path="/socials-payments" element={<SocialsPayments />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>

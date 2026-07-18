@@ -55,38 +55,33 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8 flex flex-col pb-10">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 md:gap-6 bg-white p-5 md:p-8 border border-brand-border rounded-[24px] md:rounded-[32px] shadow-sm">
-        <div>
-          <span className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] mb-2 block">System Pulse</span>
-          <h2 className="font-serif text-3xl font-bold text-brand-dark mb-2 tracking-tight">Workshop Monitor</h2>
-          <span className="text-xs font-sans font-bold text-brand-olive bg-brand-olive/5 px-3 py-1 rounded-full border border-brand-olive/10 uppercase tracking-widest">{format(new Date(), 'EEEE, MMMM do yyyy')}</span>
+      <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 bg-white p-6 border border-brand-border rounded-[24px] shadow-sm">
+        <div className="space-y-1">
+          <h2 className="font-serif text-2xl font-bold text-brand-dark tracking-tight">Workshop Monitor</h2>
+          <p className="text-[10px] font-black text-brand-olive uppercase tracking-[0.2em] opacity-80">{format(new Date(), 'EEEE, MMMM do yyyy')}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="flex-1 sm:w-40">
-            <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest mb-1.5 block ml-1">Priority</label>
+          <div className="flex-1 sm:w-32">
             <select 
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="block w-full py-2.5 px-4 border border-brand-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all shadow-xs"
+              className="block w-full py-2 px-3 border border-brand-border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all"
             >
-              <option value="All">All Triage</option>
-              <option value="High">Emergency (High)</option>
-              <option value="Medium">Standard (Medium)</option>
-              <option value="Low">Low Priority</option>
+              <option value="All">All Priority</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
             </select>
           </div>
-          <div className="flex-1 md:w-80">
-            <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest mb-1.5 block ml-1">Search Tickets</label>
+          <div className="flex-1 md:w-64">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-brand-muted" />
-              </div>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-muted" />
               <input
                 type="text"
-                placeholder="Name, invoice, status..."
+                placeholder="Search tickets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-11 pr-4 py-2.5 border border-brand-border rounded-2xl text-sm placeholder-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all shadow-xs"
+                className="block w-full pl-9 pr-3 py-2 border border-brand-border rounded-xl text-xs font-bold placeholder-brand-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-olive/10 focus:border-brand-olive bg-brand-bg transition-all"
               />
             </div>
           </div>
