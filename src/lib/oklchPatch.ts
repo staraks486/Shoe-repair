@@ -116,12 +116,13 @@ export const patchGetComputedStyle = () => {
             return val;
           };
         }
-        const val = Reflect.get(target, prop, receiver);
-        if (typeof val === 'string' && val.includes('oklch')) {
-          return replaceOklchInString(val);
-        }
+        // Use target as the receiver to avoid "Illegal invocation" TypeError
+        const val = Reflect.get(target, prop, target);
         if (typeof val === 'function') {
           return val.bind(target);
+        }
+        if (typeof val === 'string' && val.includes('oklch')) {
+          return replaceOklchInString(val);
         }
         return val;
       }
