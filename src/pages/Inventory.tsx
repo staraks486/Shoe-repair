@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
+import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   PackagePlus, 
   AlertTriangle, 
@@ -17,6 +19,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import BarcodeScannerModal from '../components/BarcodeScannerModal';
+import SwipeToDelete from '../components/SwipeToDelete';
+import PageHeader from '../components/PageHeader';
 
 // Dynamic, visual barcode rendering component using SVGs and geometric rects
 function VisualBarcode({ value }: { value: string }) {
@@ -73,7 +77,7 @@ function VisualBarcode({ value }: { value: string }) {
 export default function Inventory() {
   const { inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem } = useAppStore();
   
-  const [activeTab, setActiveTab] = useState<'history' | 'add-item'>('history');
+  const [activeTab, setActiveTab] = useState<'current' | 'sold' | 'add-item'>('current');
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [copied, setCopied] = useState(false);
@@ -105,7 +109,7 @@ export default function Inventory() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addInventoryItem(formData);
-    setActiveTab('history');
+    setActiveTab('current');
     setFormData({ 
       name: '', 
       category: 'Soles', 
@@ -137,43 +141,60 @@ export default function Inventory() {
     (i.barcode && i.barcode.toLowerCase().includes(search.toLowerCase()))
   );
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-12 pb-24 animate-in fade-in duration-300">
-      
-      {/* HEADER: Matching Artisan style */}
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={() => setIsScannerOpen(true)}
-            className="px-8 py-2.5 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent transition-all shadow-lg active:scale-95 flex items-center gap-2"
-          >
-            <Camera className="w-3.5 h-3.5" />
-            Scan Barcode
-          </button>
-        </div>
-      </header>
+  const currentStock = filteredInventory.filter(i => i.quantity > 0);
+  const soldItems = filteredInventory.filter(i => i.quantity <= 0);
 
-      {/* Toggle View Segmented Control */}
-      <div className="flex justify-center">
-        <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium">
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemAnim = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-300">
+      <PageHeader 
+        title="Inventory" 
+        subtitle="Workshop Supplies & Stock" 
+      >
+        <div className="flex bg-white p-1 rounded-2xl border border-brand-border shadow-sm overflow-x-auto scrollbar-hide max-w-full">
           <button
             type="button"
-            onClick={() => setActiveTab('history')}
+            onClick={() => setActiveTab('current')}
             className={clsx(
-              "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
-              activeTab === 'history'
+              "px-4 sm:px-8 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap",
+              activeTab === 'current'
                 ? "bg-brand-dark text-white shadow-lg" 
                 : "text-brand-muted hover:text-brand-dark"
             )}
           >
-            History ({inventory.length})
+            Current Stock ({currentStock.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('sold')}
+            className={clsx(
+              "px-4 sm:px-8 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap",
+              activeTab === 'sold'
+                ? "bg-brand-dark text-white shadow-lg" 
+                : "text-brand-muted hover:text-brand-dark"
+            )}
+          >
+            Sold Items ({soldItems.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('add-item')}
             className={clsx(
-              "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
+              "px-4 sm:px-8 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap",
               activeTab === 'add-item'
                 ? "bg-brand-dark text-white shadow-lg" 
                 : "text-brand-muted hover:text-brand-dark"
@@ -182,30 +203,33 @@ export default function Inventory() {
             Add Supply
           </button>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Care History (Stock List) Tab */}
-      {activeTab === 'history' && (
-        <div className="premium-card overflow-hidden p-8 animate-in fade-in duration-300">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-brand-border pb-8">
-            <div className="space-y-1">
-              <h3 className="font-display text-2xl font-black text-brand-dark">Stock Archive</h3>
-              <p className="label-xs">Supply Lifecycle Management</p>
+      {/* Stock Views */}
+      {(activeTab === 'current' || activeTab === 'sold') && (
+        <div className="space-y-6">
+          <div className="premium-card p-6 sm:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-brand-border pb-6 mb-6">
+              <div className="space-y-1">
+                <h3 className="font-display text-2xl font-black text-brand-dark">
+                  {activeTab === 'current' ? 'Current Stock' : 'Sold Items Archive'}
+                </h3>
+                <p className="label-xs">Supply Management</p>
+              </div>
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
+                <input
+                  type="text"
+                  placeholder="Filter supplies..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-brand-bg border-none rounded-full text-xs font-bold shadow-inner focus:ring-0"
+                />
+              </div>
             </div>
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
-              <input
-                type="text"
-                placeholder="Filter supplies..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-brand-bg border-none rounded-full text-xs font-bold shadow-inner focus:ring-0"
-              />
-            </div>
-          </div>
 
-          {filteredInventory.length > 0 ? (
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-brand-border">
                 <thead>
                   <tr className="bg-brand-bg">
@@ -218,94 +242,172 @@ export default function Inventory() {
                     <th scope="col" className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-brand-border">
-                  {filteredInventory.map((item) => {
+                <motion.tbody 
+                  variants={container}
+                  initial="hidden"
+                  animate="show"
+                  className="bg-white divide-y divide-brand-border"
+                >
+                  <AnimatePresence>
+                    {(activeTab === 'current' ? currentStock : soldItems).map((item) => {
+                      const isLow = item.quantity <= item.minThreshold;
+                      const resolvedBarcode = getItemBarcode(item);
+                      return (
+                        <motion.tr 
+                          variants={itemAnim}
+                          layout
+                          exit={{ opacity: 0, x: -20 }}
+                          key={item.id} 
+                          className={clsx(
+                            "cursor-pointer transition-colors group",
+                            isLow ? "bg-red-50/30 hover:bg-red-50/60" : "hover:bg-brand-bg/40"
+                          )}
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-brand-dark group-hover:text-brand-olive transition-colors">
+                            <div className="flex items-center gap-2">
+                              <span>{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-muted font-medium">{item.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-brand-muted">
+                            <div className="flex items-center gap-1.5 text-xs text-brand-dark">
+                              <Barcode className="w-4 h-4 text-brand-muted" />
+                              <span>{resolvedBarcode}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="number" 
+                                value={item.quantity ?? 0} 
+                                onChange={(e) => updateInventoryItem(item.id, { quantity: Number(e.target.value) })}
+                                className="w-16 text-sm border border-brand-border rounded-md p-1 focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg text-center font-medium"
+                              /> 
+                              <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">{item.unit || 'pcs'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-brand-muted font-bold">₹</span>
+                              <input 
+                                type="number" 
+                                value={item.price ?? 0} 
+                                onChange={(e) => updateInventoryItem(item.id, { price: Number(e.target.value) })}
+                                className="w-20 text-sm border border-brand-border rounded-md p-1 focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg text-center font-medium"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {isLow ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border bg-red-50 text-red-700 border-red-200">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Low Stock
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border bg-green-50 text-green-700 border-green-200">
+                                Healthy
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm" onClick={e => e.stopPropagation()}>
+                            <DeleteConfirmationButton 
+                              onDelete={() => deleteInventoryItem(item.id)} 
+                              itemName={item.name}
+                              className="p-1"
+                            />
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                </motion.tbody>
+              </table>
+            </div>
+
+            {/* Mobile Swipeable List */}
+            <div className="lg:hidden space-y-4">
+              <div className="px-4 py-2 bg-brand-bg/30 rounded-xl border border-brand-border/40 mb-2">
+                <p className="text-[9px] font-black text-brand-muted uppercase tracking-[0.2em] text-center italic">
+                  Swipe left on a card to delete item
+                </p>
+              </div>
+              <motion.div
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="space-y-4"
+              >
+                <AnimatePresence>
+                  {(activeTab === 'current' ? currentStock : soldItems).map((item) => {
                     const isLow = item.quantity <= item.minThreshold;
                     const resolvedBarcode = getItemBarcode(item);
                     return (
-                      <tr 
-                        key={item.id} 
-                        className={clsx(
-                          "cursor-pointer transition-colors group",
-                          isLow ? "bg-red-50/30 hover:bg-red-50/60" : "hover:bg-brand-bg/40"
-                        )}
-                        onClick={() => setSelectedItem(item)}
+                      <motion.div
+                        key={item.id}
+                        variants={itemAnim}
+                        layout
+                        exit={{ opacity: 0, scale: 0.95 }}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-brand-dark group-hover:text-brand-olive transition-colors">
-                          <div className="flex items-center gap-2">
-                            <span>{item.name}</span>
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-brand-bg text-brand-muted text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">
-                              Details
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-muted font-medium">{item.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-brand-muted">
-                          <div className="flex items-center gap-1.5 text-xs text-brand-dark">
-                            <Barcode className="w-4 h-4 text-brand-muted" />
-                            <span>{resolvedBarcode}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="number" 
-                              value={item.quantity} 
-                              onChange={(e) => updateInventoryItem(item.id, { quantity: Number(e.target.value) })}
-                              className="w-16 text-sm border border-brand-border rounded-md p-1 focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg text-center font-medium"
-                            /> 
-                            <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">{item.unit || 'pcs'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-brand-muted font-bold">₹</span>
-                            <input 
-                              type="number" 
-                              value={item.price} 
-                              onChange={(e) => updateInventoryItem(item.id, { price: Number(e.target.value) })}
-                              className="w-20 text-sm border border-brand-border rounded-md p-1 focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg text-center font-medium"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {isLow ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border bg-red-50 text-red-700 border-red-200">
-                              <AlertTriangle className="w-3.5 h-3.5" /> Low Stock
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border bg-green-50 text-green-700 border-green-200">
-                              Healthy
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm" onClick={e => e.stopPropagation()}>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm(`Are you sure you want to delete ${item.name}?`)) {
-                                deleteInventoryItem(item.id);
-                              }
-                            }} 
-                            className="text-brand-muted hover:text-red-500 transition-colors p-1"
-                            title="Delete Item"
+                        <SwipeToDelete onDelete={() => deleteInventoryItem(item.id)}>
+                          <div 
+                            className={clsx(
+                              "p-5 border rounded-2xl bg-white shadow-sm space-y-4",
+                              isLow ? "border-red-200 bg-red-50/10" : "border-brand-border"
+                            )}
+                            onClick={() => setSelectedItem(item)}
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-olive font-display font-black text-sm">
+                                  {item.category.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold text-brand-dark font-display">{item.name}</div>
+                                  <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{item.category}</div>
+                                </div>
+                              </div>
+                              <div>
+                                {isLow ? (
+                                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                                ) : (
+                                  <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between gap-4 pt-4 border-t border-brand-border/60">
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">In Stock</p>
+                                <p className="text-xs font-bold text-brand-dark">
+                                  {item.quantity} <span className="text-[10px] font-medium text-brand-muted">{item.unit || 'pcs'}</span>
+                                </p>
+                              </div>
+                              <div className="space-y-1 text-right">
+                                <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Unit Price</p>
+                                <p className="text-xs font-bold text-brand-dark">₹{item.price || 0}</p>
+                              </div>
+                              <div className="space-y-1 text-right">
+                                <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Barcode</p>
+                                <p className="text-[10px] font-mono font-bold text-brand-muted">{resolvedBarcode.slice(-4)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </SwipeToDelete>
+                      </motion.div>
                     );
                   })}
-                </tbody>
-              </table>
+                </AnimatePresence>
+              </motion.div>
             </div>
-          ) : (
-            <div className="text-center py-12 border border-dashed border-brand-border rounded-xl bg-brand-bg/10">
-              <p className="text-sm text-brand-muted italic">
-                {search ? 'No supply records found matching your query.' : 'No supplies registered in inventory yet.'}
-              </p>
-            </div>
-          )}
+
+            {(activeTab === 'current' ? currentStock : soldItems).length === 0 && (
+              <div className="text-center py-12 border border-dashed border-brand-border rounded-xl bg-brand-bg/10">
+                <p className="text-sm text-brand-muted italic">
+                  {search ? 'No supply records found matching your query.' : 'No supplies found in this category.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -313,13 +415,13 @@ export default function Inventory() {
       {activeTab === 'add-item' && (
         <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
           <form onSubmit={handleSubmit} className="premium-card overflow-hidden">
-            <div className="p-10 md:p-16 space-y-10">
-              <div className="text-center space-y-2 mb-10">
-                <h3 className="font-display text-3xl font-black text-brand-dark">Register Supply</h3>
+            <div className="p-6 sm:p-10 md:p-16 space-y-8 sm:space-y-10">
+              <div className="text-center space-y-2 mb-6 sm:mb-10">
+                <h3 className="font-display text-2xl sm:text-3xl font-black text-brand-dark">Register Supply</h3>
                 <p className="label-xs">Resource Acquisition</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
                 <div className="md:col-span-2 space-y-2">
                   <label className="label-xs ml-1">Item Nomenclature</label>
                   <input 
@@ -327,7 +429,7 @@ export default function Inventory() {
                     type="text" 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-lg font-bold focus:ring-0" 
+                    className="w-full px-5 py-3 sm:px-6 sm:py-4 bg-brand-bg border-none rounded-[15px] sm:rounded-[20px] text-base sm:text-lg font-bold focus:ring-0" 
                     placeholder="Vibram Eton..." 
                   />
                 </div>
@@ -337,7 +439,7 @@ export default function Inventory() {
                   <select 
                     value={formData.category} 
                     onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0"
+                    className="w-full px-5 py-3 sm:px-6 sm:py-4 bg-brand-bg border-none rounded-[15px] sm:rounded-[20px] text-xs font-bold focus:ring-0"
                   >
                     <option>Soles</option>
                     <option>Heels</option>
@@ -407,10 +509,10 @@ export default function Inventory() {
               </div>
             </div>
 
-            <div className="bg-brand-bg p-8 md:p-12 flex items-center justify-end border-t border-brand-border">
+            <div className="bg-brand-bg p-6 sm:p-8 md:p-12 flex items-center justify-center sm:justify-end border-t border-brand-border">
               <button 
                 type="submit" 
-                className="px-12 py-4 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent transition-all shadow-lg active:scale-95"
+                className="w-full sm:w-auto px-12 py-4 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent transition-all shadow-lg active:scale-95"
               >
                 Commit Registry
               </button>
@@ -420,16 +522,27 @@ export default function Inventory() {
       )}
 
       {/* Selected Item Detail & Barcode Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white border border-brand-border rounded-xl p-8 shadow-2xl max-w-md w-full animate-in zoom-in-95 relative overflow-hidden">
-            {/* Close Button */}
-            <button 
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark p-1.5 rounded-full hover:bg-brand-bg transition-colors"
+      <AnimatePresence>
+        {selectedItem && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-brand-border rounded-xl p-8 shadow-2xl max-w-md w-full relative overflow-hidden"
             >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedItem(null)}
+                className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark p-1.5 rounded-full hover:bg-brand-bg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
             {/* Category */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-brand-border bg-brand-bg text-brand-olive mb-4">
@@ -514,23 +627,20 @@ export default function Inventory() {
                   Close View
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm(`Are you sure you want to permanently delete ${selectedItem.name}?`)) {
-                    deleteInventoryItem(selectedItem.id);
-                    setSelectedItem(null);
-                  }
+              <DeleteConfirmationButton 
+                onDelete={() => {
+                  deleteInventoryItem(selectedItem.id);
+                  setSelectedItem(null);
                 }}
+                itemName={selectedItem.name}
                 className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors mt-2 border border-red-200"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Item</span>
-              </button>
+                iconClassName="w-4 h-4"
+              />
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+    </AnimatePresence>
 
       <BarcodeScannerModal
         isOpen={isScannerOpen}

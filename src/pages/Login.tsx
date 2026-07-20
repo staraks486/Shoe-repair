@@ -168,6 +168,11 @@ export default function Login() {
             <p className="text-[9px] font-bold text-brand-muted/60 uppercase tracking-widest leading-loose">
               By entering, you agree to the<br/>artisan workshop protocols
             </p>
+            <div className="mt-4 pt-4 border-t border-brand-border/20">
+              <p className="text-[8px] font-black text-brand-accent uppercase tracking-[0.2em] leading-none">
+                App designed by Arvind Kumar Shukla
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

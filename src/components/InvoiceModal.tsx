@@ -9,24 +9,52 @@ interface InvoiceModalProps {
 }
 
 export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceModalProps) {
-  const { settings } = useAppStore();
+  const { settings, stores = [] } = useAppStore();
 
   if (!invoice) return null;
+
+  const invoiceStore = invoice.storeId ? stores.find(s => s.id === invoice.storeId) : null;
+  const storeName = invoiceStore?.storeName || settings.storeName;
+  const storeAddress = invoiceStore?.address || settings.address;
+  const storeHours = invoiceStore?.hours || settings.hours;
 
   const handlePrint = () => {
     window.print();
   };
 
+  const handleDownload = async () => {
+    const input = document.getElementById('printable-invoice');
+    if (input) {
+      const { generateRepairPDF } = await import('../lib/pdfUtils');
+      await generateRepairPDF(input as HTMLDivElement, `receipt-${invoice.invoiceNumber}`);
+    }
+  };
+
   const handleSendWhatsApp = () => {
     if (!invoice) return;
     
-    let message = settings.whatsappTemplate
-        .replace('{customerName}', invoice.customerName)
-        .replace('{repairType}', Array.isArray(invoice.repairType) ? invoice.repairType.join(', ') : invoice.repairType)
-        .replace('{status}', invoice.status)
-        .replace('{invoiceNumber}', invoice.invoiceNumber);
-        
-    window.open(`https://wa.me/${invoice.phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+    let template = '';
+    const status = invoice.status;
+    
+    if (status === 'Received') {
+      template = settings.whatsappIntakeTemplate || 'Hello {customerName}, your shoe repair ({repairType}) has been received successfully. Ticket: {invoiceNumber}';
+    } else if (status === 'Completed') {
+      template = settings.whatsappReadyTemplate || 'Great news {customerName}! Your {shoeModel} is ready for pickup. Balance due: ₹{balance}. Ticket: {invoiceNumber}';
+    } else {
+      template = settings.whatsappTemplate || 'Hello {customerName}, your repair status ({repairType}) is now: {status}. Ticket: {invoiceNumber}';
+    }
+
+    const message = template
+      .replace(/{customerName}/g, invoice.customerName)
+      .replace(/{repairType}/g, Array.isArray(invoice.repairType) ? invoice.repairType.join(', ') : invoice.repairType)
+      .replace(/{status}/g, status === 'Completed' ? 'Ready for Pickup' : status)
+      .replace(/{invoiceNumber}/g, invoice.invoiceNumber)
+      .replace(/{shoeModel}/g, invoice.shoeModel)
+      .replace(/{price}/g, invoice.price.toString())
+      .replace(/{balance}/g, (invoice.price - (invoice.advance || 0)).toString());
+
+    const url = `https://wa.me/${invoice.phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const hasInsurance = invoice.insurancePrice > 0;
@@ -41,9 +69,9 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden max-h-screen overflow-y-auto">
         <div id="printable-invoice" className="p-8 bg-white text-brand-dark">
           <div className="text-center mb-6 border-b border-brand-border-dark pb-6">
-            <h2 className="font-display text-3xl font-bold mb-1">{settings.storeName}</h2>
-            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{settings.address}</p>
-            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{settings.hours}</p>
+            <h2 className="font-display text-3xl font-bold mb-1">{storeName}</h2>
+            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{storeAddress}</p>
+            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{storeHours}</p>
           </div>
           
           <div className="mb-6 space-y-1">
@@ -148,6 +176,26 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
               </tfoot>
             </table>
           </div>
+
+          {((invoice.beforePhotos && invoice.beforePhotos.length > 0) || (invoice.afterPhotos && invoice.afterPhotos.length > 0)) && (
+            <div className="mb-8 border-t border-brand-border-dark pt-6 print:block">
+              <h3 className="text-[10px] font-bold text-brand-olive uppercase tracking-[0.2em] mb-4 text-center">Visual Restoration Documentation</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {invoice.beforePhotos?.slice(0, 2).map(p => (
+                  <div key={p.id} className="relative aspect-[4/3] group">
+                    <img src={p.url} alt="Condition Before" className="w-full h-full object-cover rounded-lg border border-brand-border-dark shadow-sm" referrerPolicy="no-referrer" />
+                    <span className="absolute top-2 left-2 bg-brand-dark/80 text-[7px] text-white font-black px-2 py-1 rounded uppercase tracking-widest backdrop-blur-sm">Before Restoration</span>
+                  </div>
+                ))}
+                {invoice.afterPhotos?.slice(0, 2).map(p => (
+                  <div key={p.id} className="relative aspect-[4/3] group">
+                    <img src={p.url} alt="Condition After" className="w-full h-full object-cover rounded-lg border border-brand-olive shadow-sm" referrerPolicy="no-referrer" />
+                    <span className="absolute top-2 left-2 bg-brand-olive/80 text-[7px] text-white font-black px-2 py-1 rounded uppercase tracking-widest backdrop-blur-sm">After Restoration</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="text-center text-xs text-brand-muted mt-8 italic">
             {randomFact && (
@@ -184,6 +232,9 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
         <div className="bg-brand-bg p-4 flex gap-2 justify-end border-t border-brand-border-dark print:hidden flex-wrap">
           <button onClick={handlePrint} className="px-3 py-1.5 border border-brand-border-dark bg-white rounded-md text-[10px] font-bold text-brand-dark uppercase tracking-widest hover:bg-brand-bg">
             Print
+          </button>
+          <button onClick={handleDownload} className="px-3 py-1.5 border border-brand-border-dark bg-white rounded-md text-[10px] font-bold text-brand-dark uppercase tracking-widest hover:bg-brand-bg">
+            Download PDF
           </button>
           <button onClick={handleSendWhatsApp} className="px-3 py-1.5 bg-green-600 text-white rounded-md text-[10px] font-bold uppercase tracking-widest hover:opacity-90">
             WhatsApp

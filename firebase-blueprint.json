@@ -109,6 +109,25 @@
         "createdAt": { "type": "string" }
       },
       "required": ["customerName", "email", "date", "time", "serviceType"]
+    },
+    "PushSubscription": {
+      "title": "PushSubscription",
+      "description": "Web push notification subscription details",
+      "type": "object",
+      "properties": {
+        "endpoint": { "type": "string" },
+        "expirationTime": { "type": "string", "format": "date-time" },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "p256dh": { "type": "string" },
+            "auth": { "type": "string" }
+          }
+        },
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -139,6 +158,10 @@
     "appointments": {
       "schema": "Appointment",
       "description": "Collection of scheduled appointments"
+    },
+    "push_subscriptions": {
+      "schema": "PushSubscription",
+      "description": "Collection of web push subscriptions"
     }
   }
 }

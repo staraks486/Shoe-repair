@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { UserProfile, ShoeRepairRequest } from '../types';
+import { UserProfile } from '../types';
 import { motion } from 'motion/react';
-import { User, Mail, Shield, Calendar, Settings as SettingsIcon, Save, Loader2, Camera, Award, Activity } from 'lucide-react';
+import { User, Calendar, Save, Loader2, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAppStore } from '../store';
+import ServiceHub from '../components/ServiceHub';
 
 export default function Profile() {
-  const user = auth?.currentUser;
+  const user = useAppStore((state) => state.user);
   const repairs = useAppStore((state) => state.repairs);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,14 +27,12 @@ export default function Profile() {
         if (docSnap.exists()) {
           const data = docSnap.data() as UserProfile;
           setProfile(data);
-          setDisplayName(data.displayName);
+          setDisplayName(data.displayName || '');
         } else {
-          // Create initial profile if it doesn't exist
           const initialProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
             displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
-            role: 'cobbler',
             createdAt: new Date().toISOString()
           };
           await setDoc(docRef, initialProfile);
@@ -41,26 +40,29 @@ export default function Profile() {
           setDisplayName(initialProfile.displayName);
         }
       } catch (error: any) {
-        if (error.message?.includes('client is offline')) {
-          console.warn("Profile fetch deferred: client is offline.");
-          // We can use dummy data or just wait
-          setProfile({
+        // Handle offline or error gracefully
+        if (error.message?.includes('offline') || error.code === 'unavailable') {
+          console.warn("Profile fetch deferred: client is offline. Using local fallback.");
+        } else {
+          console.error("Profile fetch failed:", error);
+        }
+        
+        if (!profile) {
+          const fallbackProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
             displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
-            role: 'cobbler',
             createdAt: new Date().toISOString()
-          });
-          setDisplayName(user.displayName || user.email?.split('@')[0] || 'Artisan');
-        } else {
-          console.error("Profile fetch failed:", error);
+          };
+          setProfile(fallbackProfile);
+          setDisplayName(fallbackProfile.displayName);
         }
       } finally {
         setLoading(false);
       }
     }
     fetchProfile();
-  }, [user]);
+  }, [user, db]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +77,7 @@ export default function Profile() {
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       console.error(err);
+      setMessage('Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -95,17 +98,16 @@ export default function Profile() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-6xl mx-auto space-y-12 pb-24 px-4 sm:px-6 md:px-8"
+      className="space-y-8 animate-in fade-in duration-300"
     >
-      {/* HEADER: Matching Artisan style */}
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="font-display text-3xl font-bold text-brand-dark tracking-tight">Artisan Profile</h2>
-          <p className="label-xs">Personal Identity & Performance</p>
+      <header className="flex flex-col items-center justify-center text-center gap-6">
+        <div className="space-y-1 text-center flex flex-col items-center justify-center">
+          <h2 className="font-display text-3xl font-bold text-brand-dark tracking-tight text-center">Artisan Profile</h2>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mt-3 text-center">Personal Identity & Performance</p>
         </div>
       </header>
 
-      <div className="bg-white rounded-[32px] border border-brand-border shadow-premium overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white rounded-[32px] border border-brand-border shadow-premium overflow-hidden">
         <div className="h-32 bg-brand-dark relative">
           <div className="absolute -bottom-12 left-8 p-1 bg-white rounded-[24px] border border-brand-border shadow-lg">
             <div className="w-24 h-24 rounded-[20px] bg-brand-bg flex items-center justify-center relative group">
@@ -127,9 +129,6 @@ export default function Profile() {
               {profile?.displayName}
             </h1>
             <div className="flex items-center gap-2 text-xs font-bold text-brand-muted uppercase tracking-widest">
-              <Shield className="w-3 h-3" />
-              <span>{profile?.role || 'Artisan'}</span>
-              <span className="opacity-30">•</span>
               <Calendar className="w-3 h-3" />
               <span>Joined {profile?.createdAt ? format(new Date(profile.createdAt), 'MMM yyyy') : 'Recently'}</span>
             </div>
@@ -168,7 +167,7 @@ export default function Profile() {
                   <label className="text-[9px] font-black text-brand-dark uppercase tracking-widest ml-1">Email</label>
                   <input 
                     type="email" 
-                    value={profile?.email}
+                    value={profile?.email || ''}
                     disabled
                     className="w-full bg-brand-bg/50 border-none rounded-[20px] p-5 text-sm font-bold opacity-60 cursor-not-allowed shadow-inner"
                   />
@@ -176,7 +175,13 @@ export default function Profile() {
               </div>
 
               <div className="flex items-center justify-between pt-4">
-                {message && <span className="text-[10px] font-black text-green-600 uppercase tracking-widest animate-pulse">{message}</span>}
+                {message && (
+                  <span className={`text-[10px] font-black uppercase tracking-widest animate-pulse ${
+                    message.includes('failed') ? "text-red-500" : "text-brand-dark"
+                  }`}>
+                    {message}
+                  </span>
+                )}
                 <button 
                   type="submit" 
                   disabled={saving}
@@ -212,6 +217,10 @@ export default function Profile() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="pt-12 border-t border-brand-border">
+        <ServiceHub />
       </div>
     </motion.div>
   );

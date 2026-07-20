@@ -20,6 +20,7 @@ import {
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
+import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
 
 export default function Insurance() {
   const navigate = useNavigate();
@@ -205,11 +206,13 @@ export default function Insurance() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 space-y-12 pb-24 animate-in fade-in duration-300">
-      
-      {/* HEADER: Matching Artisan style */}
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-        <div className="flex bg-white p-1 rounded-full border border-brand-border shadow-premium shrink-0">
+    <div className="space-y-8 animate-in fade-in duration-300">
+      <header className="flex flex-col items-center justify-center text-center gap-6">
+        <div className="space-y-1 flex flex-col items-center justify-center text-center">
+          <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Protection</h2>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3 text-center">Insurance & Care Policies</p>
+        </div>
+        <div className="flex bg-white p-1 rounded-2xl border border-brand-border shadow-sm shrink-0 overflow-x-auto scrollbar-hide max-w-full justify-center">
           {[
             { id: 'history', label: 'Archive' },
             { id: 'add-cover', label: 'Enroll' },
@@ -298,22 +301,17 @@ export default function Insurance() {
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this cover record?')) {
+                        <DeleteConfirmationButton 
+                          onDelete={() => {
                             if (policy.isStandalone) {
                               deleteInsurance(policy.id);
                             } else {
                               updateRepair(policy.id, { hasInsurance: false, insuranceType: '' });
                             }
-                          }
-                        }}
-                        className="p-2 text-brand-muted hover:text-red-500 transition-colors"
-                        title="Delete Record"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          }}
+                          itemName={policy.shoeModel}
+                          className="p-2"
+                        />
                     </div>
                   </div>
                 </div>
@@ -745,17 +743,11 @@ export default function Insurance() {
                       >
                         <Edit className="w-4 h-4" /> Modify
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to delete the "${plan.name}" plan?`)) {
-                            handleDeletePlan(plan.id);
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700 font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
+                      <DeleteConfirmationButton 
+                        onDelete={() => handleDeletePlan(plan.id)}
+                        itemName={plan.name}
+                        className="text-red-500 hover:text-red-700 font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-colors p-0"
+                      />
                     </div>
                   </div>
                 ))}
@@ -786,7 +778,7 @@ export default function Insurance() {
                     <input 
                       type="text" 
                       placeholder="e.g. Platinum Reserve"
-                      value={editingPlan.name} 
+                      value={editingPlan.name || ''} 
                       onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} 
                       className="w-full px-5 py-3.5 bg-brand-bg border-none rounded-[16px] text-sm font-bold focus:ring-0 placeholder-brand-muted/30" 
                     />
@@ -798,7 +790,7 @@ export default function Insurance() {
                       <input 
                         type="number" 
                         placeholder="e.g. 5500"
-                        value={editingPlan.price || ''} 
+                        value={editingPlan.price ?? 0} 
                         onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value) || 0})} 
                         className="w-full px-5 py-3.5 bg-brand-bg border-none rounded-[16px] text-sm font-mono font-bold focus:ring-0 placeholder-brand-muted/30" 
                       />
@@ -808,7 +800,7 @@ export default function Insurance() {
                       <input 
                         type="text" 
                         placeholder="e.g. 12 Months"
-                        value={editingPlan.timePeriod} 
+                        value={editingPlan.timePeriod || ''} 
                         onChange={e => setEditingPlan({...editingPlan, timePeriod: e.target.value})} 
                         className="w-full px-5 py-3.5 bg-brand-bg border-none rounded-[16px] text-sm font-bold focus:ring-0 placeholder-brand-muted/30" 
                       />
@@ -831,7 +823,7 @@ export default function Insurance() {
                     <textarea 
                       placeholder="Describe the preservation limits..."
                       rows={3}
-                      value={editingPlan.description} 
+                      value={editingPlan.description || ''} 
                       onChange={e => setEditingPlan({...editingPlan, description: e.target.value})} 
                       className="w-full px-5 py-3.5 bg-brand-bg border-none rounded-[16px] text-sm font-bold focus:ring-0 leading-relaxed resize-none placeholder-brand-muted/30" 
                     />

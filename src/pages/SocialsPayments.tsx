@@ -83,20 +83,20 @@ export default function SocialsPayments() {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-6 animate-in fade-in duration-300">
-      {/* Page Header */}
-      <header className="flex items-center gap-3 bg-white p-5 border border-brand-border rounded-2xl shadow-xs select-none">
+    <div className="space-y-8 animate-in fade-in duration-300">
+      {/* HEADER: Standardized Artisan style */}
+      <header className="flex flex-col items-center justify-center text-center gap-6 relative">
         <button 
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-brand-bg rounded-xl text-brand-dark transition-all border border-transparent hover:border-brand-border/40"
+          className="absolute left-0 top-1/2 -translate-y-1/2 p-2 hover:bg-brand-bg rounded-xl text-brand-dark transition-all border border-transparent hover:border-brand-border/40"
           title="Go back"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <div>
-          <h2 className="font-display text-lg font-extrabold text-brand-dark leading-tight">Socials & Payments</h2>
-          <p className="text-[10px] text-brand-muted font-bold tracking-widest uppercase mt-0.5">Configure artisan client touchpoints</p>
+        <div className="space-y-1 text-center flex flex-col items-center justify-center">
+          <h2 className="font-display text-4xl font-black text-brand-dark tracking-tight leading-none text-center">Artisan Link</h2>
+          <p className="text-[10px] text-brand-accent font-black tracking-[0.3em] uppercase mt-3 text-center">Socials & Payments</p>
         </div>
       </header>
 

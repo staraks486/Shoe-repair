@@ -21,10 +21,22 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  
   body {
-    @apply min-h-screen bg-brand-bg text-brand-dark antialiased selection:bg-brand-accent/20;
+    @apply min-h-screen min-h-[100dvh] bg-brand-bg text-brand-dark antialiased selection:bg-brand-accent/20;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.011em;
     -webkit-tap-highlight-color: transparent;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -58,6 +70,21 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-brand-border rounded-full hover:bg-brand-muted/20 transition-colors;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top);
   }
 }
 

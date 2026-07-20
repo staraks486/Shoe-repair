@@ -3,13 +3,17 @@ import { useAppStore } from '../store';
 import { RepairStatus, ShoeRepairRequest } from '../types';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
-import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles } from 'lucide-react';
+import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles, Check, X } from 'lucide-react';
 import clsx from 'clsx';
 import DashboardSummary from '../components/DashboardSummary';
 import AppointmentSummary from '../components/AppointmentSummary';
 import DashboardCalendar from '../components/DashboardCalendar';
 import StatusDistribution from '../components/StatusDistribution';
 import InvoiceModal from '../components/InvoiceModal';
+import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
+import PhotoManager from '../components/PhotoManager';
+import PageHeader from '../components/PageHeader';
+import IntroBanner from '../components/IntroBanner';
 
 const FALLBACK_COBBLERS = [
   { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt Recrafting' },
@@ -52,17 +56,20 @@ export default function Dashboard() {
     count: filteredRepairs.filter(r => r.status === col.status).length
   }));
 
-  const COLORS = ['#f59e0b', '#3b82f6', '#a855f7', '#22c55e', '#64748b'];
+  const COLORS = ['#1C1917', '#44403C', '#78716C', '#A8A29E', '#D6D3D1'];
 
   return (
-    <div className="space-y-12 flex flex-col pb-24 max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
-      {/* HEADER: Matching Artisan style */}
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8">
-      </header>
+    <div className="space-y-8 animate-in fade-in duration-300">
+      <PageHeader 
+        title="Workshop Hub" 
+        subtitle="Daily Operations & Analytics" 
+      />
 
-      {/* Metrics & Appointments Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="lg:col-span-2">
+      <IntroBanner />
+
+      {/* Analytics Visualization - High Visibility Grid */}
+      <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
           <DashboardSummary />
         </div>
         <div className="lg:col-span-1">
@@ -70,7 +77,6 @@ export default function Dashboard() {
         </div>
       </section>
       
-      {/* Analytics Visualization */}
       <section className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
         <StatusDistribution repairs={repairs} />
       </section>
@@ -193,20 +199,20 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-brand-dark mb-1 uppercase">Shoe Model</label>
-                <input type="text" value={editingRepair.shoeModel} onChange={e => setEditingRepair({...editingRepair, shoeModel: e.target.value})} className="w-full border border-brand-border rounded-md p-2 text-sm bg-brand-bg" />
+                <input type="text" value={editingRepair.shoeModel || ''} onChange={e => setEditingRepair({...editingRepair, shoeModel: e.target.value})} className="w-full border border-brand-border rounded-md p-2 text-sm bg-brand-bg" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-brand-dark mb-1 uppercase">Repair Type (comma separated)</label>
                 <input 
                   type="text" 
-                  value={editingRepair.repairType.join(', ')} 
+                  value={(editingRepair.repairType || []).join(', ')} 
                   onChange={e => setEditingRepair({...editingRepair, repairType: e.target.value.split(',').map(s => s.trim())})} 
                   className="w-full border border-brand-border rounded-md p-2 text-sm bg-brand-bg" 
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-brand-dark mb-1 uppercase">Price (₹)</label>
-                <input type="number" value={editingRepair.price} onChange={e => {
+                <input type="number" value={editingRepair.price || 0} onChange={e => {
                   const val = Number(e.target.value);
                   setEditingRepair({
                     ...editingRepair,
@@ -307,15 +313,15 @@ export default function Dashboard() {
                     {viewingRepair.priority && (
                       <span className={clsx(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                        viewingRepair.priority === 'High' ? 'bg-red-100 text-red-700' :
-                        viewingRepair.priority === 'Medium' ? 'bg-amber-100 text-amber-700' :
-                        'bg-green-100 text-green-700'
+                        viewingRepair.priority === 'High' ? 'bg-brand-dark text-white' :
+                        viewingRepair.priority === 'Medium' ? 'bg-brand-muted text-white' :
+                        'bg-brand-bg text-brand-dark'
                       )}>
                         {viewingRepair.priority}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-medium text-brand-muted">{viewingRepair.shoeModel}</p>
+                  <p className="text-sm font-medium text-brand-muted truncate max-w-[200px]">{viewingRepair.shoeModel}</p>
                 </div>
                 <button onClick={() => setViewingRepair(null)} className="p-2 text-brand-muted hover:text-brand-dark rounded-full hover:bg-brand-bg transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -327,7 +333,7 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-2 border-b border-brand-border pb-1">Customer Details</h3>
-                  <p className="text-sm font-medium text-brand-dark">{viewingRepair.customerName}</p>
+                  <p className="text-sm font-medium text-brand-dark truncate max-w-[200px]">{viewingRepair.customerName}</p>
                   <p className="text-xs text-brand-muted">{viewingRepair.phoneNumber}</p>
                   {viewingRepair.email && <p className="text-xs text-brand-muted">{viewingRepair.email}</p>}
                 </div>
@@ -431,6 +437,42 @@ export default function Dashboard() {
                 </div>
 
                 <div>
+                  <h3 className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-3 border-b border-brand-border pb-1">Visual Documentation</h3>
+                  <div className="space-y-6">
+                    <PhotoManager 
+                      label="Before (Intake Condition)"
+                      photos={viewingRepair.beforePhotos || []}
+                      onAdd={(p) => {
+                         const updatedPhotos = [...(viewingRepair.beforePhotos || []), p];
+                         updateRepair(viewingRepair.id, { beforePhotos: updatedPhotos });
+                         setViewingRepair({ ...viewingRepair, beforePhotos: updatedPhotos });
+                      }}
+                      onRemove={(id) => {
+                         const updatedPhotos = (viewingRepair.beforePhotos || []).filter(p => p.id !== id);
+                         updateRepair(viewingRepair.id, { beforePhotos: updatedPhotos });
+                         setViewingRepair({ ...viewingRepair, beforePhotos: updatedPhotos });
+                      }}
+                      maxPhotos={5}
+                    />
+                    <PhotoManager 
+                      label="After (Restoration Result)"
+                      photos={viewingRepair.afterPhotos || []}
+                      onAdd={(p) => {
+                         const updatedPhotos = [...(viewingRepair.afterPhotos || []), p];
+                         updateRepair(viewingRepair.id, { afterPhotos: updatedPhotos });
+                         setViewingRepair({ ...viewingRepair, afterPhotos: updatedPhotos });
+                      }}
+                      onRemove={(id) => {
+                         const updatedPhotos = (viewingRepair.afterPhotos || []).filter(p => p.id !== id);
+                         updateRepair(viewingRepair.id, { afterPhotos: updatedPhotos });
+                         setViewingRepair({ ...viewingRepair, afterPhotos: updatedPhotos });
+                      }}
+                      maxPhotos={5}
+                    />
+                  </div>
+                </div>
+
+                <div>
                   <h3 className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-2 border-b border-brand-border pb-1">Cost Breakdown</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -456,7 +498,7 @@ export default function Dashboard() {
                       </div>
                     )}
                     {viewingRepair.discountAmount > 0 && (
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-brand-muted italic">
                         <span>Discount ({viewingRepair.appliedOfferCode})</span>
                         <span className="font-medium">-₹{viewingRepair.discountAmount.toFixed(2)}</span>
                       </div>
@@ -483,16 +525,16 @@ export default function Dashboard() {
                         <span className="font-mono">{viewingRepair.transactionId}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-xs text-amber-600 font-bold">
+                    <div className="flex justify-between text-xs text-brand-dark font-black">
                       <span>Balance Due</span>
                       <span>₹{(viewingRepair.balance || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-brand-muted pt-1">
                       <span>Payment Status</span>
                       <span className={clsx(
-                        viewingRepair.paymentStatus === 'Fully Paid' ? 'text-green-600' :
-                        viewingRepair.paymentStatus === 'Partially Paid' ? 'text-amber-500' :
-                        'text-red-500'
+                        viewingRepair.paymentStatus === 'Fully Paid' ? 'text-brand-dark' :
+                        viewingRepair.paymentStatus === 'Partially Paid' ? 'text-brand-muted' :
+                        'text-brand-dark underline'
                       )}>
                         {viewingRepair.paymentStatus || 'Unpaid'}
                       </span>
@@ -565,12 +607,25 @@ function RepairCard({
   const [showTimeline, setShowTimeline] = useState(false);
 
   const triggerWhatsApp = (status: RepairStatus) => {
-    const template = settings.whatsappTemplate || 'Hello {customerName}, your shoe repair ({repairType}) is now {status}. Invoice: {invoiceNumber}';
+    let template = '';
+    
+    if (status === 'Received') {
+      template = settings.whatsappIntakeTemplate || 'Hello {customerName}, your shoe repair ({repairType}) has been received successfully. Ticket: {invoiceNumber}';
+    } else if (status === 'Completed') {
+      template = settings.whatsappReadyTemplate || 'Great news {customerName}! Your {shoeModel} is ready for pickup. Balance due: ₹{balance}. Ticket: {invoiceNumber}';
+    } else {
+      template = 'Hello {customerName}, your repair status ({repairType}) is now: {status}. Ticket: {invoiceNumber}';
+    }
+
     const message = template
-      .replace('{customerName}', repair.customerName)
-      .replace('{repairType}', Array.isArray(repair.repairType) ? repair.repairType.join(', ') : repair.repairType)
-      .replace('{status}', status)
-      .replace('{invoiceNumber}', repair.invoiceNumber);
+      .replace(/{customerName}/g, repair.customerName)
+      .replace(/{repairType}/g, Array.isArray(repair.repairType) ? repair.repairType.join(', ') : repair.repairType)
+      .replace(/{status}/g, status === 'Completed' ? 'Ready for Pickup' : status)
+      .replace(/{invoiceNumber}/g, repair.invoiceNumber)
+      .replace(/{shoeModel}/g, repair.shoeModel)
+      .replace(/{price}/g, repair.price.toString())
+      .replace(/{balance}/g, (repair.balance || (repair.price - (repair.advance || 0))).toString());
+
     const url = `https://wa.me/${repair.phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -591,40 +646,42 @@ function RepairCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={clsx(
-        "premium-card p-8 flex flex-col justify-between min-h-[280px] group",
-        repair.status === 'Completed' ? 'ring-2 ring-brand-accent/10' : ''
+        "premium-card p-5 sm:p-8 flex flex-col justify-between min-h-[260px] sm:min-h-[280px] group",
+        repair.status === 'Completed' ? 'ring-2 ring-brand-dark/10' : ''
       )}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex justify-between items-start">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 flex-1 min-w-0">
             <p className="label-xs">{repair.invoiceNumber}</p>
-            <h4 onClick={() => onView(repair)} className="text-xl font-display font-black text-brand-dark leading-tight tracking-tight group-hover:text-brand-accent transition-colors cursor-pointer">{repair.shoeModel}</h4>
+            <h4 onClick={() => onView(repair)} className="text-lg sm:text-xl font-display font-black text-brand-dark leading-tight tracking-tight hover:text-brand-muted transition-colors cursor-pointer truncate max-w-full">
+              {repair.shoeModel}
+            </h4>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onEdit(repair)} className="p-2 text-brand-muted hover:text-brand-dark transition-colors"><Edit className="w-4 h-4" /></button>
-            <button onClick={() => onDelete(repair.id)} className="p-2 text-brand-muted hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onEdit(repair)} className="p-3 text-brand-muted hover:text-brand-dark transition-colors" title="Edit Repair"><Edit className="w-5 h-5 sm:w-4 sm:h-4" /></button>
+            <DeleteConfirmationButton onDelete={() => onDelete(repair.id)} />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {Array.isArray(repair.repairType) ? repair.repairType.slice(0, 2).map((t, i) => (
-            <span key={i} className="px-3 py-1 bg-brand-bg rounded-full text-[9px] font-black text-brand-muted uppercase tracking-widest">{t}</span>
+            <span key={i} className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-brand-bg rounded-full text-[8px] sm:text-[9px] font-black text-brand-muted uppercase tracking-widest">{t}</span>
           )) : (
-            <span className="px-3 py-1 bg-brand-bg rounded-full text-[9px] font-black text-brand-muted uppercase tracking-widest">{repair.repairType}</span>
+            <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-brand-bg rounded-full text-[8px] sm:text-[9px] font-black text-brand-muted uppercase tracking-widest">{repair.repairType}</span>
           )}
         </div>
       </div>
 
-      <div className="space-y-6 pt-6 border-t border-brand-border/40">
-        <div className="flex justify-between items-end">
-          <div className="space-y-4 flex-1">
-            <div className="space-y-1.5">
-              <p className="label-xs text-brand-accent">{repair.customerName}</p>
+      <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 border-t border-brand-border/40 mt-4 sm:mt-6">
+        <div className="flex justify-between items-end gap-2">
+          <div className="space-y-3 sm:space-y-4 flex-1 min-w-0">
+            <div className="space-y-1.5 min-w-0">
+              <p className="label-xs text-brand-muted truncate max-w-full">{repair.customerName}</p>
               <select 
                 value={repair.status} 
                 onChange={handleStatusChange}
-                className="text-[10px] font-black uppercase tracking-widest bg-brand-bg border-none rounded-full px-4 py-2 cursor-pointer hover:bg-brand-border/40 transition-all"
+                className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest bg-brand-bg border-none rounded-full px-3 py-1.5 sm:px-4 sm:py-2 cursor-pointer hover:bg-brand-border/40 transition-all max-w-full"
               >
                 <option value="Received">Received</option>
                 <option value="In Progress">In Progress</option>
@@ -635,7 +692,7 @@ function RepairCard({
             </div>
             
             <div className="flex items-center gap-4">
-              <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-emerald-500 transition-colors">
+              <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-brand-dark transition-colors">
                 <Phone className="w-4 h-4" />
               </button>
               <button onClick={() => setShowTimeline(!showTimeline)} className="text-brand-muted hover:text-brand-dark transition-colors">

@@ -81,11 +81,11 @@ export default function NotificationCenter() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full hover:bg-brand-bg transition-colors group"
+        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white border border-brand-border shadow-sm flex items-center justify-center text-brand-dark hover:bg-brand-bg transition-colors group"
       >
-        <Bell className="w-5 h-5 text-brand-dark group-hover:scale-110 transition-transform" />
+        <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-brand-dark group-hover:scale-110 transition-transform" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
+          <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border border-white">
             {unreadCount}
           </span>
         )}

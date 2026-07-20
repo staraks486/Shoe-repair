@@ -2,11 +2,190 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#EAE6DD" />
     <title>Cordwainers Studio - Shoe Repair Management</title>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <style>
+      /* Zero-overhead instant loading screen */
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #EAE6DD;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      
+      .instant-preloader {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #EAE6DD;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        overflow: hidden;
+      }
+
+      /* Subtle cutting mat grid background mimicking leather craft bench */
+      .instant-preloader::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: 
+          linear-gradient(rgba(26, 26, 26, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(26, 26, 26, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+        background-position: center;
+        pointer-events: none;
+      }
+
+      .logo-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Rotating stitch trace representing premium Goodyear-welting */
+      .stitch-trace {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 2px dashed rgba(180, 83, 9, 0.4);
+        animation: rotateStitch 12s linear infinite;
+      }
+
+      /* Golden needle animation dipping in and out */
+      .needle-arm {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        animation: stitchDip 1.8s ease-in-out infinite;
+      }
+
+      /* Elegant central leathercraft seal logo */
+      .artisan-seal {
+        width: 64px;
+        height: 64px;
+        background: #1A1A1A;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 2;
+        animation: pulseSeal 2.2s ease-in-out infinite;
+      }
+
+      .artisan-letter {
+        font-family: "Outfit", sans-serif;
+        font-weight: 900;
+        font-size: 28px;
+        color: #EAE6DD;
+        letter-spacing: -1px;
+      }
+
+      .studio-title {
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: #1A1A1A;
+        letter-spacing: 0.3em;
+        margin-top: 8px;
+        text-align: center;
+        animation: fadeIn 1s ease-out;
+      }
+
+      .studio-subtitle {
+        font-size: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6B7280;
+        letter-spacing: 0.25em;
+        margin-top: 6px;
+        text-align: center;
+        opacity: 0.7;
+      }
+
+      .progress-line-track {
+        width: 140px;
+        height: 2px;
+        background: rgba(26, 26, 26, 0.08);
+        border-radius: 2px;
+        margin-top: 24px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-line-fill {
+        height: 100%;
+        background: #B45309; /* Warm golden amber */
+        width: 35%;
+        border-radius: 2px;
+        animation: progressSlide 2.5s infinite ease-in-out;
+      }
+
+      @keyframes rotateStitch {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes stitchDip {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(4px) rotate(8deg); }
+      }
+
+      @keyframes pulseSeal {
+        0%, 100% { transform: scale(1); box-shadow: 0 8px 20px -5px rgba(0,0,0,0.12); }
+        50% { transform: scale(1.03); box-shadow: 0 12px 30px -4px rgba(0,0,0,0.18); }
+      }
+
+      @keyframes progressSlide {
+        0% { left: -40%; width: 30%; }
+        50% { width: 50%; }
+        100% { left: 110%; width: 20%; }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant static placeholder replaces white screen flicker -->
+      <div class="instant-preloader">
+        <div class="logo-container">
+          <div class="stitch-trace"></div>
+          <svg class="needle-arm" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30 10 L10 30 M30 10 L33 7" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M30 10 C32 12, 34 16, 31 19 C28 22, 23 23, 21 21" stroke="#B45309" stroke-width="1" stroke-dasharray="2 2" stroke-linecap="round"/>
+          </svg>
+          <div class="artisan-seal">
+            <span class="artisan-letter">C</span>
+          </div>
+        </div>
+        <div class="studio-title">CORDWAINERS STUDIO</div>
+        <div class="studio-subtitle">Artisan Operations Suite</div>
+        <div class="progress-line-track">
+          <div class="progress-line-fill"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

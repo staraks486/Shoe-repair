@@ -19,8 +19,9 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
-  role: 'admin' | 'cobbler' | 'guest';
   createdAt: string;
+  role?: string;
+  isAdmin?: boolean;
 }
 
 export interface AppNotification {
@@ -39,15 +40,27 @@ export interface StatusHistory {
   status: RepairStatus;
 }
 
+export interface RepairPhoto {
+  id: string;
+  url: string;
+  timestamp: string;
+  notes?: string;
+}
+
 export interface ShoeRepairRequest {
   id: string;
+  storeId?: string;
   customerName: string;
   phoneNumber: string;
   email: string;
   shoeModel: string;
+  shoeColor?: string;
+  shoeSize?: string;
   repairType: string[];
   description: string;
   photoUrl: string;
+  beforePhotos?: RepairPhoto[];
+  afterPhotos?: RepairPhoto[];
   status: RepairStatus;
   priority?: PriorityLevel;
   shoeIcon: string;
@@ -186,6 +199,8 @@ export interface Settings {
   websiteLink?: string;
   isOfflineMode: boolean;
   whatsappTemplate: string;
+  whatsappIntakeTemplate?: string;
+  whatsappReadyTemplate?: string;
   insurancePlans: InsurancePlan[];
   offers: Offer[];
   shoeCarePackages?: ShoeCarePackage[];
@@ -195,4 +210,30 @@ export interface Settings {
   theme: 'light' | 'dark' | 'olive';
   termsAndConditions?: string;
   autoNotifyPickup?: boolean;
+  giftCards?: GiftCard[];
 }
+
+export interface GiftCard {
+  id: string;
+  code: string;
+  recipientName: string;
+  amount: number;
+  balance: number;
+  message?: string;
+  designTheme: 'gold' | 'classic' | 'modern' | 'artisan';
+  imageUrl?: string;
+  createdAt: string;
+}
+
+export interface StoreDetails {
+  id: string;
+  storeName: string;
+  address: string;
+  hours: string;
+  phone?: string;
+  logoUrl?: string;
+  paymentLink?: string;
+  qrCode?: string;
+  createdAt?: string;
+}
+

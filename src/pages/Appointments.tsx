@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { motion, AnimatePresence } from 'motion/react';
+import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
 import { 
   Calendar, 
   Clock, 
@@ -21,6 +22,7 @@ import {
 import clsx from 'clsx';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { Appointment } from '../types';
+import { sendPushNotification } from '../lib/notifications';
 
 export default function Appointments() {
   const { appointments, updateAppointment, deleteAppointment } = useAppStore();
@@ -47,23 +49,39 @@ export default function Appointments() {
     }
   };
 
-  const handleStatusChange = (id: string, status: Appointment['status']) => {
+  const handleStatusChange = async (id: string, status: Appointment['status']) => {
     updateAppointment(id, { status });
+    const appointment = appointments.find(a => a.id === id);
+    
     if (selectedAppointment?.id === id) {
       setSelectedAppointment(prev => prev ? { ...prev, status } : null);
+    }
+
+    // Trigger Push Notification for appointment status update
+    if (appointment) {
+      const title = `Appointment ${status}: ${appointment.serviceType}`;
+      const body = `Your appointment for ${appointment.date} at ${appointment.time} has been ${status.toLowerCase()}.`;
+      
+      await sendPushNotification({
+        title,
+        body,
+        email: appointment.email,
+        url: '/appointments'
+      });
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-6">
-        <div className="space-y-1">
-          <h1 className="font-display text-4xl font-black text-brand-dark tracking-tight">Studio Schedule</h1>
-          <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.3em]">Drop-offs & Consultations</p>
+    <div className="space-y-8 animate-in fade-in duration-300">
+      {/* HEADER: Standardized Artisan style */}
+      <header className="flex flex-col items-center justify-center text-center gap-6">
+        <div className="space-y-1 flex flex-col items-center justify-center text-center">
+          <h1 className="font-display text-4xl font-black text-brand-dark tracking-tight text-center">Studio Schedule</h1>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3 text-center">Drop-offs & Consultations</p>
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex items-center justify-center gap-3 w-full max-w-md">
+          <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
             <input 
               type="text" 
@@ -73,7 +91,7 @@ export default function Appointments() {
               className="w-full bg-white border border-brand-border rounded-full py-2.5 pl-11 pr-4 text-xs font-bold focus:ring-brand-accent focus:border-brand-accent shadow-premium"
             />
           </div>
-          <button className="bg-brand-dark text-white p-2.5 rounded-full shadow-lg hover:bg-brand-accent transition-all active:scale-95">
+          <button className="bg-brand-dark text-white p-2.5 rounded-full shadow-lg hover:bg-brand-accent transition-all active:scale-95 shrink-0">
             <Plus className="w-5 h-5" />
           </button>
         </div>
@@ -272,12 +290,12 @@ export default function Appointments() {
                         </button>
                       )}
                       {(selectedAppointment.status === 'Completed' || selectedAppointment.status === 'Cancelled') && (
-                        <button 
-                          onClick={() => deleteAppointment(selectedAppointment.id)}
+                        <DeleteConfirmationButton 
+                          onDelete={() => deleteAppointment(selectedAppointment.id)}
+                          itemName={`Appointment for ${selectedAppointment.customerName}`}
                           className="col-span-2 bg-white/5 text-white/60 p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-red-900/40 hover:text-red-200 transition-all"
-                        >
-                          Archive Record
-                        </button>
+                          iconClassName="w-4 h-4"
+                        />
                       )}
                     </div>
                   </div>

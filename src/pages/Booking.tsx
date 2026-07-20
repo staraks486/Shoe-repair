@@ -113,7 +113,7 @@ export default function Booking() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 space-y-12">
+    <div className="space-y-12 animate-in fade-in duration-300">
       <header className="text-center space-y-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -123,8 +123,8 @@ export default function Booking() {
           <Sparkles className="w-3 h-3 text-brand-accent" />
           <span className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">Cordwainer Consultations</span>
         </motion.div>
-        <h1 className="font-display text-5xl font-black text-brand-dark tracking-tighter uppercase leading-none">Book Your Artisan Slot</h1>
-        <p className="text-sm font-bold text-brand-muted max-w-lg mx-auto leading-relaxed">
+        <h1 className="font-display text-4xl md:text-5xl font-black text-brand-dark tracking-tighter uppercase leading-none">Book Your Artisan Slot</h1>
+        <p className="text-[11px] font-black text-brand-accent max-w-lg mx-auto leading-relaxed uppercase tracking-[0.2em] mt-3">
           Select your preferred service and time for a premium footwear restoration experience.
         </p>
       </header>

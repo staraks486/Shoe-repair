@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store';
-import { ShoeRepairRequest } from '../types';
+import PhotoManager from '../components/PhotoManager';
+import { ShoeRepairRequest, RepairPhoto } from '../types';
 import { 
   User, 
   Phone, 
@@ -27,10 +28,15 @@ import {
   FileCheck, 
   AlertTriangle,
   Camera,
-  Download
+  Download,
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import VoiceToText from '../components/VoiceToText';
 
 const PACKAGES = [
   {
@@ -99,7 +105,7 @@ function BarcodeSVG({ value }: { value: string }) {
   let currentX = 10;
   return (
     <div className="flex flex-col items-center">
-      <svg width="180" height="40" className="text-black overflow-visible">
+      <svg width="180" height="40" style={{ color: '#000000', overflow: 'visible' }}>
         <g fill="currentColor">
           <rect x={2} y={0} width={2} height={40} />
           <rect x={5} y={0} width={1} height={40} />
@@ -157,22 +163,21 @@ export default function NewRepair() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<{ id: string; name: string; price: number; description: string } | null>(null);
 
-  const activeCobblers = settings?.cobblers?.length > 0 ? settings.cobblers : FALLBACK_COBBLERS;
-  const [assignedCobblerId, setAssignedCobblerId] = useState<string>(activeCobblers[0].id);
   const [advanceAmount, setAdvanceAmount] = useState<number>(0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState<'Cash' | 'Card' | 'UPI' | 'Bank Transfer'>('Cash');
   const [transactionId, setTransactionId] = useState<string>('');
+  const [pickupCharge, setPickupCharge] = useState<number>(0);
 
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<'history' | 'new-repair' | 'manage-services'>(() => {
     const tab = queryParams.get('tab');
-    if (tab === 'new-repair' || queryParams.get('mode') === 'step') {
-      return 'new-repair';
+    if (tab === 'history') {
+      return 'history';
     }
     if (tab === 'manage-services') {
       return 'manage-services';
     }
-    return 'history';
+    return 'new-repair';
   });
 
   // State wizard
@@ -184,8 +189,9 @@ export default function NewRepair() {
 
   // Form Fields State
   const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
+  const [clientPhone, setClientPhone] = useState('+91 ');
   const [clientEmail, setClientEmail] = useState('');
+  const [shoeColor, setShoeColor] = useState('');
   
   const [salesperson, setSalesperson] = useState(SALESPERSONS[0]);
   const [customSalespersonName, setCustomSalespersonName] = useState('');
@@ -196,8 +202,11 @@ export default function NewRepair() {
 
   const [shoeModel, setShoeModel] = useState('');
   const [shoeSize, setShoeSize] = useState('');
-  const [leatherType, setLeatherType] = useState('Full-Grain');
+  const MENS_SIZES = ['UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8', 'UK 8.5', 'UK 9', 'UK 9.5', 'UK 10', 'UK 10.5', 'UK 11', 'UK 12'];
+  const LADIES_SIZES = ['UK 3', 'UK 3.5', 'UK 4', 'UK 4.5', 'UK 5', 'UK 5.5', 'UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8'];
   const [shoeImage, setShoeImage] = useState('');
+  const [beforePhotos, setBeforePhotos] = useState<RepairPhoto[]>([]);
+  const [afterPhotos, setAfterPhotos] = useState<RepairPhoto[]>([]);
   const [basePrice, setBasePrice] = useState(1500); // Base value/diagnostics fee of the footwear
 
   const [selectedPackage, setSelectedPackage] = useState(() => carePackages[0] || PACKAGES[0]);
@@ -239,7 +248,7 @@ export default function NewRepair() {
   };
 
   const getSubtotal = () => {
-    return basePrice + getPackageCost() + getPlusItemsTotal() + getInsuranceCost();
+    return basePrice + getPackageCost() + getPlusItemsTotal() + getInsuranceCost() + pickupCharge;
   };
 
   const getDiscountAmount = () => {
@@ -387,10 +396,14 @@ export default function NewRepair() {
       customerName: clientName,
       phoneNumber: clientPhone,
       email: clientEmail || 'no-email@cordwainers.com',
-      shoeModel: `${shoeModel} ${shoeSize ? `(Size: ${shoeSize})` : ''} - Material: ${leatherType}`,
+      shoeModel: `${shoeModel} ${shoeSize ? `(Size: ${shoeSize})` : ''}`,
+      shoeColor: shoeColor,
+      shoeSize: shoeSize,
       repairType: [getPackageName()],
       description: `Footwear Base Price: ₹${basePrice}\nSupplies: ${plusItems.map(i => `${i.name} x${i.quantity}`).join(', ') || 'None'}\nDiagnostics notes: ${notes}`,
       photoUrl: shoeImage || 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=300',
+      beforePhotos,
+      afterPhotos,
       status: 'Received' as const,
       shoeIcon: 'default',
       price: getGrandTotal(),
@@ -409,6 +422,7 @@ export default function NewRepair() {
       servicesIncluded: [getPackageName()],
       appliedOfferCode: selectedOffer.code !== 'NONE' ? selectedOffer.code : '',
       discountAmount: getDiscountAmount(),
+      pickupCharge: pickupCharge,
       salespersonId: salesperson.id,
       salespersonName: salespersonNameVal,
       basePrice: basePrice,
@@ -418,8 +432,6 @@ export default function NewRepair() {
       paymentMethod: (advanceAmount > 0 ? advancePaymentMethod : 'None') as 'Cash' | 'Card' | 'UPI' | 'Bank Transfer' | 'Net Banking' | 'None',
       paymentStatus: (advanceAmount === 0 ? 'Unpaid' : (advanceAmount >= getGrandTotal() ? 'Fully Paid' : 'Partially Paid')) as 'Unpaid' | 'Partially Paid' | 'Fully Paid',
       transactionId: transactionId || '',
-      assignedCobblerId: assignedCobblerId,
-      assignedCobblerName: activeCobblers.find(c => c.id === assignedCobblerId)?.name || 'Unassigned',
       receiveSmsUpdates: true,
       statusHistory: [],
     };
@@ -430,12 +442,68 @@ export default function NewRepair() {
 
   const getWhatsAppURL = (ticket: any) => {
     if (!ticket) return '#';
-    const text = `*CORDWAINERS CARE - OFFICIAL INTAKE CONFIRMATION*%0A%0AHello *${ticket.customerName}*, your footwear has been registered successfully for luxury restoration!%0A%0A*Ticket ID:* ${ticket.invoiceNumber}%0A*Footwear:* ${ticket.shoeModel}%0A*Salesperson:* ${ticket.receivedBy}%0A%0A*SERVICE SUMMARY:*%0A- Base Assessment Value: ₹${ticket.basePrice || 1500}%0A- Package: ${ticket.repairType?.join(', ')}%0A- Shoe Plus Add-ons: ₹${ticket.addonPrice || 0}%0A- Insurance Cover: ${ticket.insuranceType} (₹${ticket.insurancePrice || 0})%0A- Discount: -₹${ticket.discountAmount || 0}%0A%0A*TOTAL RESTORATION COST:* ₹${ticket.price}%0A%0AView Terms & Conditions: https://cordwainers.com/care-terms%0AThank you for trusting Cordwainers Studio!`;
-    return `https://api.whatsapp.com/send?phone=${ticket.phoneNumber.replace(/[^0-9]/g, '')}&text=${text}`;
+    
+    const template = settings.whatsappIntakeTemplate || '*CORDWAINERS CARE - OFFICIAL INTAKE CONFIRMATION*%0A%0AHello *{customerName}*, your footwear has been registered successfully for luxury restoration!%0A%0A*Ticket ID:* {invoiceNumber}%0A*Footwear:* {shoeModel}%0A%0A*TOTAL RESTORATION COST:* ₹{price}%0A%0AView Terms & Conditions: https://cordwainers.com/care-terms%0AThank you for trusting Cordwainers Studio!';
+    
+    const text = template
+      .replace(/{customerName}/g, ticket.customerName)
+      .replace(/{repairType}/g, Array.isArray(ticket.repairType) ? ticket.repairType.join(', ') : ticket.repairType)
+      .replace(/{status}/g, 'Received')
+      .replace(/{invoiceNumber}/g, ticket.invoiceNumber)
+      .replace(/{shoeModel}/g, ticket.shoeModel)
+      .replace(/{price}/g, ticket.price.toString())
+      .replace(/{balance}/g, (ticket.price - (ticket.advance || 0)).toString());
+
+    return `https://api.whatsapp.com/send?phone=${ticket.phoneNumber.replace(/\D/g, '')}&text=${encodeURIComponent(text.replace(/%0A/g, '\n'))}`;
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const downloadReceiptAsImage = async (ticket: any) => {
+    if (!receiptRef.current) return;
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `Receipt-${ticket.invoiceNumber}.png`;
+      link.click();
+    } catch (err) {
+      console.error("Failed to generate image receipt:", err);
+      alert("Failed to generate image receipt. Please try using the Print option.");
+    }
+  };
+
+  const downloadReceiptAsPDF = async (ticket: any) => {
+    if (!receiptRef.current) return;
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`Receipt-${ticket.invoiceNumber}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF receipt:", err);
+      alert("Failed to generate PDF receipt. Please try using the Print option.");
+    }
   };
 
   const downloadReceipt = (ticket: any) => {
@@ -460,6 +528,7 @@ RESTORATION ITEMS:
 ------------------
 Services: ${ticket.repairType?.join(', ') || 'None'}
 Add-on Price: ₹${ticket.addonPrice || 0}
+Pickup Charges: ₹${ticket.pickupCharge || 0}
 Insurance: ${ticket.insuranceType || 'No Insurance Protection'} (₹${ticket.insurancePrice || 0})
 
 TOTAL:
@@ -471,7 +540,6 @@ Remaining Balance: ₹${ticket.balance || 0}
 Payment Status: ${ticket.paymentStatus || 'Unpaid'}
 ${ticket.transactionId ? `Transaction Ref: ${ticket.transactionId}` : ''}
 
-Artisan Assigned: ${ticket.assignedCobblerName || 'Unassigned'}
 Staff Inspector: ${ticket.receivedBy}
 ----------------------------------------
 Thank you for trusting Cordwainers Studio!
@@ -483,6 +551,139 @@ Thank you for trusting Cordwainers Studio!
     link.download = `Receipt-${ticket.invoiceNumber}.txt`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const ReceiptDocument = ({ ticket }: { ticket: any }) => {
+    return (
+      <div ref={receiptRef} className="max-w-2xl mx-auto bg-white border rounded-none p-0 relative" style={{ backgroundColor: '#FFFFFF', color: '#1A1A1A', borderColor: '#E5E7EB' }}>
+        {/* Receipt Header */}
+        <div className="p-8 text-center space-y-2" style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
+          <h2 className="text-2xl font-black tracking-widest uppercase" style={{ fontFamily: 'Outfit, sans-serif' }}>Cordwainers Studio</h2>
+          <p className="text-[9px] font-bold tracking-[0.3em]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Luxury Footwear Restoration • Archive Registry</p>
+          <div className="pt-4 flex justify-center">
+            <BarcodeSVG value={ticket.invoiceNumber || "DRAFT-INTAKE-99"} />
+          </div>
+        </div>
+
+        <div className="p-8 space-y-8 text-left" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {/* Receipt Metadata */}
+          <div className="flex justify-between items-start border-b pb-6" style={{ borderColor: '#E5E7EB' }}>
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Customer</p>
+              <p className="text-sm font-black uppercase tracking-tight" style={{ color: '#1A1A1A' }}>{ticket.customerName}</p>
+              <p className="text-[10px] font-medium" style={{ color: '#6B7280' }}>{ticket.phoneNumber}</p>
+            </div>
+            <div className="text-right space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Date / Time</p>
+              <p className="text-[10px] font-bold uppercase" style={{ color: '#1A1A1A' }}>{format(new Date(ticket.createdAt || Date.now()), 'dd MMM yyyy • HH:mm')}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#3B82F6' }}>Inspector: {ticket.receivedBy}</p>
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 text-[9px] font-black uppercase tracking-widest border-b pb-2" style={{ color: '#6B7280', borderColor: '#E5E7EB' }}>
+              <div className="col-span-2">Description</div>
+              <div className="text-center">Rate</div>
+              <div className="text-right">Amount</div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-4 text-[11px] items-center" style={{ color: '#1A1A1A' }}>
+                <div className="col-span-2">
+                  <p className="font-black uppercase tracking-tight">{ticket.repairType?.[0]}</p>
+                  <p className="text-[9px] font-medium mt-0.5" style={{ color: '#6B7280' }}>
+                    {ticket.shoeModel} {ticket.shoeColor ? `| Color: ${ticket.shoeColor}` : ''}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>₹{(ticket.basePrice || 1500).toLocaleString()}</div>
+                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{(ticket.basePrice || 1500).toLocaleString()}</div>
+              </div>
+
+              {ticket.addons?.map((item: any) => (
+                <div key={item.id} className="grid grid-cols-4 text-[11px] items-center" style={{ color: '#1A1A1A' }}>
+                  <div className="col-span-2 italic" style={{ color: '#6B7280' }}>
+                    {item.name} (x{item.quantity})
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '10px' }}>₹{item.price}</div>
+                  <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{(item.price * item.quantity).toLocaleString()}</div>
+                </div>
+              ))}
+
+              {ticket.hasInsurance && (
+                <div className="grid grid-cols-4 text-[11px] items-center" style={{ color: '#1A1A1A' }}>
+                  <div className="col-span-2 italic" style={{ color: '#6B7280' }}>
+                    {ticket.insuranceType} Protection
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '10px' }}>₹{ticket.insurancePrice}</div>
+                  <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{(ticket.insurancePrice || 0).toLocaleString()}</div>
+                </div>
+              )}
+
+              {(ticket.pickupCharge || 0) > 0 && (
+                <div className="grid grid-cols-4 text-[11px] items-center" style={{ color: '#1A1A1A' }}>
+                  <div className="col-span-2 italic" style={{ color: '#6B7280' }}>
+                    Pickup & Handling Charges
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '10px' }}>₹{ticket.pickupCharge}</div>
+                  <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{(ticket.pickupCharge || 0).toLocaleString()}</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Totals Section */}
+          <div className="border-t-2 pt-4 space-y-2" style={{ borderTop: '2px solid #1A1A1A' }}>
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest" style={{ color: '#6B7280' }}>
+              <span>Subtotal Assessment</span>
+              <span style={{ fontFamily: 'monospace', color: '#1A1A1A' }}>₹{(ticket.price + (ticket.discountAmount || 0)).toLocaleString()}</span>
+            </div>
+            
+            {(ticket.discountAmount || 0) > 0 && (
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest" style={{ color: '#3B82F6' }}>
+                <span>Promotional Savings {ticket.appliedOfferCode ? `(${ticket.appliedOfferCode})` : ''}</span>
+                <span style={{ fontFamily: 'monospace' }}>-₹{(ticket.discountAmount || 0).toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-base font-black uppercase tracking-tight pt-2 border-t" style={{ color: '#1A1A1A', borderTop: '1px solid #E5E7EB' }}>
+              <span>Grand Total</span>
+              <span style={{ fontFamily: 'Outfit, sans-serif' }}>₹{ticket.price.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest pt-2" style={{ color: '#4B5563' }}>
+              <span>Advance Paid ({ticket.paymentMethod})</span>
+              <span style={{ fontFamily: 'monospace' }}>₹{(ticket.advance || 0).toLocaleString()}</span>
+            </div>
+
+            {ticket.transactionId && (
+              <div className="text-right">
+                <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Ref: {ticket.transactionId}</p>
+              </div>
+            )}
+
+            <div className="flex justify-between text-sm font-black uppercase tracking-tight pt-1" style={{ color: '#DC2626' }}>
+              <span>Balance Payable</span>
+              <span style={{ fontFamily: 'Outfit, sans-serif' }}>₹{(ticket.balance || 0).toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Footer Terms */}
+          <div className="pt-8 border-t text-center space-y-4" style={{ borderColor: '#E5E7EB' }}>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#1A1A1A' }}>Thank you for choosing Cordwainers Studio</p>
+              <p className="text-[8px] font-medium" style={{ color: '#6B7280' }}>We appreciate your trust in our artisanal restoration process.</p>
+            </div>
+            <p className="text-[8px] uppercase tracking-[0.2em] font-bold leading-relaxed" style={{ color: '#6B7280' }}>
+              This is a digital archival document. Terms & Conditions apply as per CW standard liability policy. Handcrafted restoration entails minor artisanal variations.
+            </p>
+          </div>
+        </div>
+        
+        {/* Decorative Receipt Edge */}
+        <div className="h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSI0IiB2aWV3Qm94PSIwIDAgMTYgNCI+PHBhdGggZD0iTTAgNEw0IDBMODQgTDEyIDBMMTYgNFoiIGZpbGw9IiNmOWY5ZjkiLz48L3N2Zz4=')] bg-repeat-x" style={{ opacity: 0.1 }} />
+      </div>
+    );
   };
 
   const handleSavePackage = () => {
@@ -534,8 +735,9 @@ Thank you for trusting Cordwainers Studio!
     setClientEmail('');
     setShoeModel('');
     setShoeSize('');
-    setLeatherType('Full-Grain');
     setShoeImage('');
+    setBeforePhotos([]);
+    setAfterPhotos([]);
     setBasePrice(1500);
     setPlusItems([]);
     setSelectedPackage(carePackages[0] || PACKAGES[0]);
@@ -546,9 +748,7 @@ Thank you for trusting Cordwainers Studio!
     setNotes('');
     setAdvanceAmount(0);
     setTransactionId('');
-    if (activeCobblers.length > 0) {
-      setAssignedCobblerId(activeCobblers[0].id);
-    }
+    setPickupCharge(0);
     setSubmittedInvoice(null);
     setCurrentStep(0);
   };
@@ -563,14 +763,18 @@ Thank you for trusting Cordwainers Studio!
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 print:bg-white print:p-0 print:space-y-0 print:pb-0 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-300 print:bg-white print:p-0 print:space-y-0 print:pb-0">
       
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
-        <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm shadow-premium shrink-0">
+      <header className="flex flex-col items-center justify-center text-center gap-6">
+        <div className="space-y-1">
+          <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Cordwainers Intake</h2>
+          <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3 text-center">Repair & Registry Management</p>
+        </div>
+        <div className="flex bg-white/50 p-1 rounded-2xl border border-brand-border backdrop-blur-sm shadow-sm shrink-0 overflow-x-auto scrollbar-hide max-w-full justify-center">
           {[
-            { id: 'history', label: 'History' },
+            { id: 'history', label: 'Records' },
             { id: 'new-repair', label: 'Intake' },
-            { id: 'manage-services', label: 'Catalog' }
+            { id: 'manage-services', label: 'Services' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -579,7 +783,7 @@ Thank you for trusting Cordwainers Studio!
                 if (tab.id !== 'new-repair') resetForm();
               }}
               className={clsx(
-                "px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all",
+                "px-4 sm:px-8 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap",
                 activeTab === tab.id
                   ? "bg-brand-dark text-white shadow-premium" 
                   : "text-brand-muted hover:text-brand-dark"
@@ -614,7 +818,7 @@ Thank you for trusting Cordwainers Studio!
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-brand-border max-w-xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-8 border-t border-brand-border max-w-2xl mx-auto">
             <a
               href={getWhatsAppURL(submittedInvoice)}
               target="_blank"
@@ -627,53 +831,78 @@ Thank you for trusting Cordwainers Studio!
 
             <button
               type="button"
-              onClick={() => downloadReceipt(submittedInvoice)}
+              onClick={() => downloadReceiptAsImage(submittedInvoice)}
               className="flex items-center justify-center gap-3 bg-brand-olive hover:bg-brand-olive/90 text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
             >
-              <Download className="w-4 h-4" />
-              Digital Receipt (.txt)
+              <ImageIcon className="w-4 h-4" />
+              Download Image (.png)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => downloadReceiptAsPDF(submittedInvoice)}
+              className="flex items-center justify-center gap-3 bg-brand-accent hover:bg-brand-accent/90 text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
+            >
+              <FileText className="w-4 h-4" />
+              Download Receipt (PDF)
             </button>
 
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center justify-center gap-3 bg-brand-dark hover:bg-brand-muted text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium sm:col-span-2"
+              className="flex items-center justify-center gap-3 bg-brand-dark hover:bg-brand-muted text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
             >
               <Printer className="w-4 h-4" />
-              Print Master Invoice (PDF)
+              Print Invoice
+            </button>
+
+            <button
+              type="button"
+              onClick={() => downloadReceipt(submittedInvoice)}
+              className="flex items-center justify-center gap-3 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Raw Data (.txt)
             </button>
 
             <button
               type="button"
               onClick={resetForm}
-              className="flex items-center justify-center gap-3 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all sm:col-span-2"
+              className="flex items-center justify-center gap-3 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all"
             >
-              Register New Intake
+              <Plus className="w-4 h-4" />
+              New Intake
             </button>
+          </div>
+
+          <div className="mt-12 pt-12 border-t border-brand-border">
+            <h4 className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] mb-6">Archive Document Preview</h4>
+            <ReceiptDocument ticket={submittedInvoice} />
           </div>
         </div>
       )}
 
       {/* INTAKE FORM LAYOUT */}
       {activeTab === 'new-repair' && !submittedInvoice && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="max-w-4xl mx-auto">
           
-          {/* LEFT SIDE: STEPPED FORMS (8 Columns) */}
-          <div className="lg:col-span-7 bg-white border border-brand-border rounded-[40px] shadow-premium overflow-hidden animate-in fade-in duration-300 print:hidden relative">
+          {/* STEPPED FORMS */}
+          <div className="bg-white border border-brand-border rounded-[40px] shadow-premium overflow-hidden animate-in fade-in duration-300 print:hidden relative">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-olive to-brand-accent opacity-20" />
             
             {/* Form Headers */}
             <div className="bg-brand-bg/30 border-b border-brand-border p-8 flex justify-between items-center">
               <div>
                 <h2 className="font-display text-2xl font-black text-brand-dark uppercase tracking-tight">Care Intake Wizard</h2>
-                <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mt-1">Step {currentStep + 1} of 4: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Summary & Discount'][currentStep]}</p>
+                <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mt-1">Step {currentStep + 1} of 5: {['Client & Expert', 'Footwear Details', 'Services & Add-ons', 'Allocation & Discounts', 'Final Review'][currentStep]}</p>
               </div>
               
               {/* Stepper Dots */}
               <div className="flex gap-2">
-                {[0, 1, 2, 3].map(step => (
+                {[0, 1, 2, 3, 4].map(step => (
                   <button
                     key={step}
+                    type="button"
                     onClick={() => {
                       if (step > currentStep) {
                         if (currentStep === 0 && (!clientName || !clientPhone)) return;
@@ -682,7 +911,7 @@ Thank you for trusting Cordwainers Studio!
                       setCurrentStep(step);
                     }}
                     className={clsx(
-                      "w-10 h-1.5 rounded-full transition-all duration-500",
+                      "w-8 h-1.5 rounded-full transition-all duration-500",
                       step === currentStep ? "bg-brand-dark" : "bg-brand-border hover:bg-brand-muted"
                     )}
                   />
@@ -729,9 +958,18 @@ Thank you for trusting Cordwainers Studio!
                           <input
                             required
                             type="tel"
-                            placeholder="e.g. +91 99000 88776"
+                            placeholder="+91 98765 43210"
                             value={clientPhone}
-                            onChange={e => setClientPhone(e.target.value)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val.startsWith('+91 ')) {
+                                setClientPhone(val);
+                              } else if (val === '+91' || val === '+9' || val === '+') {
+                                setClientPhone('+91 ');
+                              } else if (!val.startsWith('+')) {
+                                setClientPhone('+91 ' + val);
+                              }
+                            }}
                             className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                           />
                         </div>
@@ -818,7 +1056,7 @@ Thank you for trusting Cordwainers Studio!
                       Footwear Information
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
                         <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Shoe Model / Style *</label>
                         <input
@@ -832,30 +1070,51 @@ Thank you for trusting Cordwainers Studio!
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Size</label>
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Primary Color</label>
                         <input
                           type="text"
-                          placeholder="e.g. UK 9 / EU 43"
-                          value={shoeSize}
-                          onChange={e => setShoeSize(e.target.value)}
+                          placeholder="e.g. Oxblood"
+                          value={shoeColor}
+                          onChange={e => setShoeColor(e.target.value)}
                           className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Leather / Upper Material</label>
-                        <select
-                          value={leatherType}
-                          onChange={e => setLeatherType(e.target.value)}
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer"
-                        >
-                          <option value="Full-Grain">Full-Grain Leather</option>
-                          <option value="Calfskin">Premium Calfskin</option>
-                          <option value="Suede">Luxury Suede</option>
-                          <option value="Cordovan">Shell Cordovan</option>
-                          <option value="Exotic Suede">Exotic Hide</option>
-                        </select>
+                      <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Footwear Size Category</label>
+                          <select
+                            className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                            onChange={(e) => {
+                              // Just a category hint, the specific size dropdown has all optgroups
+                            }}
+                          >
+                            <option value="mens">Men's / Gentlemen</option>
+                            <option value="ladies">Ladies' / Women</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Specific Size (UK/India)</label>
+                          <select
+                            value={shoeSize}
+                            onChange={e => setShoeSize(e.target.value)}
+                            className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
+                          >
+                            <option value="">Select Size</option>
+                            <optgroup label="Men's Sizes">
+                              {MENS_SIZES.map(size => (
+                                <option key={`m-${size}`} value={size}>{size}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Ladies' Sizes">
+                              {LADIES_SIZES.map(size => (
+                                <option key={`l-${size}`} value={size}>{size}</option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
                       </div>
+                    </div>
 
                       <div>
                         <div className="flex justify-between items-center mb-1.5">
@@ -879,82 +1138,90 @@ Thank you for trusting Cordwainers Studio!
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Photo Upload & Camera Container */}
-                  <div className="space-y-3 pt-4 border-t border-brand-border/60">
-                    <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Photo *</label>
-                    
-                    {isCameraActive ? (
-                      <div className="border border-brand-border rounded-2xl p-4 bg-black text-center space-y-4">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          className="w-full max-h-60 rounded-xl object-cover bg-black mx-auto"
+                      {/* Photo Upload & Camera Container */}
+                      <div className="space-y-6 pt-4 border-t border-brand-border/60">
+                        <PhotoManager 
+                          label="Intake Diagnostics (Before Photos)"
+                          photos={beforePhotos}
+                          onAdd={(p) => setBeforePhotos([...beforePhotos, p])}
+                          onRemove={(id) => setBeforePhotos(beforePhotos.filter(p => p.id !== id))}
+                          maxPhotos={5}
                         />
-                        <div className="flex gap-3 justify-center">
-                          <button
-                            type="button"
-                            onClick={capturePhoto}
-                            className="bg-brand-olive text-white font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg hover:bg-brand-olive/90 transition-all flex items-center gap-1.5"
-                          >
-                            <Camera className="w-4 h-4" />
-                            Capture Photo
-                          </button>
-                          <button
-                            type="button"
-                            onClick={stopCamera}
-                            className="bg-brand-bg text-brand-dark font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg border border-brand-border hover:bg-white transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="border-2 border-dashed border-brand-border hover:border-brand-dark rounded-2xl p-6 text-center cursor-pointer transition-all bg-brand-bg/10 relative overflow-hidden group">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleShoeImageChange}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                          />
-                          {shoeImage ? (
-                            <div className="space-y-2">
-                              <img src={shoeImage} alt="Uploaded Shoe" className="mx-auto max-h-40 rounded-xl object-cover shadow-md" referrerPolicy="no-referrer" />
-                              <p className="text-[10px] text-red-500 font-semibold group-hover:underline">Click or drag to replace image</p>
+                        
+                        <div className="space-y-3">
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Primary Footwear Cover *</label>
+                          
+                          {isCameraActive ? (
+                            <div className="border border-brand-border rounded-2xl p-4 bg-black text-center space-y-4">
+                              <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                className="w-full max-h-60 rounded-xl object-cover bg-black mx-auto"
+                              />
+                              <div className="flex gap-3 justify-center">
+                                <button
+                                  type="button"
+                                  onClick={capturePhoto}
+                                  className="bg-brand-olive text-white font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg hover:bg-brand-olive/90 transition-all flex items-center gap-1.5"
+                                >
+                                  <Camera className="w-4 h-4" />
+                                  Capture Photo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={stopCamera}
+                                  className="bg-brand-bg text-brand-dark font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg border border-brand-border hover:bg-white transition-all"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
                           ) : (
-                            <div className="space-y-2">
-                              <div className="w-10 h-10 bg-white border border-brand-border rounded-full flex items-center justify-center mx-auto shadow-sm">
-                                <Upload className="w-4 h-4 text-brand-muted" />
+                            <div className="space-y-3">
+                              <div className="border-2 border-dashed border-brand-border hover:border-brand-dark rounded-2xl p-6 text-center cursor-pointer transition-all bg-brand-bg/10 relative overflow-hidden group">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleShoeImageChange}
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                                {shoeImage ? (
+                                  <div className="space-y-2">
+                                    <img src={shoeImage} alt="Uploaded Shoe" className="mx-auto max-h-40 rounded-xl object-cover shadow-md" referrerPolicy="no-referrer" />
+                                    <p className="text-[10px] text-red-500 font-semibold group-hover:underline">Click or drag to replace image</p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div className="w-10 h-10 bg-white border border-brand-border rounded-full flex items-center justify-center mx-auto shadow-sm">
+                                      <Upload className="w-4 h-4 text-brand-muted" />
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-bold text-brand-dark">Upload High-Res Footwear Diagnostics Photo</p>
+                                      <p className="text-[9px] text-brand-muted mt-1">Accepts PNG, JPG (Max 10MB)</p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div>
-                                <p className="text-xs font-bold text-brand-dark">Upload High-Res Footwear Diagnostics Photo</p>
-                                <p className="text-[9px] text-brand-muted mt-1">Accepts PNG, JPG (Max 10MB)</p>
-                              </div>
+
+                              {!shoeImage && (
+                                <button
+                                  type="button"
+                                  onClick={startCamera}
+                                  className="w-full flex items-center justify-center gap-2 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-xl transition-all shadow-sm"
+                                >
+                                  <Camera className="w-4 h-4" />
+                                  Use Device Camera
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
-
-                        {!shoeImage && (
-                          <button
-                            type="button"
-                            onClick={startCamera}
-                            className="w-full flex items-center justify-center gap-2 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-xl transition-all shadow-sm"
-                          >
-                            <Camera className="w-4 h-4" />
-                            Use Device Camera
-                          </button>
-                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-
-                </div>
-              )}
+                )}
 
               {/* STEP 3: SERVICES, ACCESSORIES & INSURANCE */}
               {currentStep === 2 && (
@@ -1045,21 +1312,9 @@ Thank you for trusting Cordwainers Studio!
                       Shoe Plus Accessories & Supplies
                     </h3>
                     
-                    {/* Add-on selector from real inventory */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-brand-muted" />
-                      <input
-                        type="text"
-                        placeholder="Search premium soles, laces, wood trees..."
-                        value={plusSearch}
-                        onChange={e => setPlusSearch(e.target.value)}
-                        className="w-full border border-brand-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/20"
-                      />
-                    </div>
-
                     {/* Stock listing filtered */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto border border-brand-border rounded-xl p-3 bg-brand-bg/10">
-                      {inventory.filter(i => i.name.toLowerCase().includes(plusSearch.toLowerCase())).map(item => (
+                      {inventory.map(item => (
                         <div key={item.id} className="bg-white border border-brand-border/60 p-2.5 rounded-lg flex justify-between items-center text-xs">
                           <div>
                             <p className="font-semibold text-brand-dark">{item.name}</p>
@@ -1183,27 +1438,26 @@ Thank you for trusting Cordwainers Studio!
                     </div>
                   </div>
 
-                  {/* Cobbler & Payment Details Section */}
+                  {/* Pickup & Payment Details Section */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
                     <h3 className="font-display text-lg font-bold text-brand-dark">
-                      Artisan & Payment Allocation
+                      Handling & Payment Allocation
                     </h3>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Cobbler Assignment */}
+                      {/* Pickup/Handling Charges */}
                       <div>
-                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Assign Master Cobbler</label>
-                        <select
-                          value={assignedCobblerId}
-                          onChange={e => setAssignedCobblerId(e.target.value)}
-                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 cursor-pointer font-sans"
-                        >
-                          {activeCobblers.map((c: any) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name} {c.specialty ? `— (${c.specialty})` : ''}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Pickup / Handling Charges (₹)</label>
+                          <span className="text-[10.5px] font-mono text-brand-olive font-black bg-brand-olive/10 px-2.5 py-0.5 rounded border border-brand-olive/20">₹{pickupCharge.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="number"
+                          placeholder="e.g. 250"
+                          value={pickupCharge || ''}
+                          onChange={e => setPickupCharge(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10 font-mono"
+                        />
                       </div>
 
                       {/* Advance Paid */}
@@ -1265,9 +1519,14 @@ Thank you for trusting Cordwainers Studio!
 
                   {/* Notes input */}
                   <div className="space-y-4 pt-4 border-t border-brand-border/60">
-                    <h3 className="font-display text-lg font-bold text-brand-dark">
-                      Studio Inspector Notes / Instructions
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-display text-lg font-bold text-brand-dark">
+                        Studio Inspector Notes / Instructions
+                      </h3>
+                      <VoiceToText 
+                        onTranscription={(text) => setNotes(prev => prev ? `${prev} ${text}` : text)}
+                      />
+                    </div>
                     <textarea
                       rows={3}
                       placeholder="e.g. Inspect heel counter stitching meticulously. Avoid excess cream on burnished toe caps."
@@ -1298,19 +1557,74 @@ Thank you for trusting Cordwainers Studio!
                 </div>
               )}
 
+              {/* STEP 5: FINAL REVIEW / ACTUAL CUSTOMER RECEIPT PREVIEW */}
+              {currentStep === 4 && (
+                <div className="space-y-10 animate-in fade-in zoom-in-95 duration-500">
+                  <div className="text-center space-y-4">
+                    <div className="inline-flex items-center gap-2 bg-brand-olive/10 text-brand-olive border border-brand-olive/20 px-4 py-1.5 rounded-full">
+                      <Barcode className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Customer Receipt Preview</span>
+                    </div>
+                    <h3 className="font-display text-3xl font-black text-brand-dark tracking-tight uppercase">Verify Archival Receipt</h3>
+                    <p className="text-xs text-brand-muted font-bold uppercase tracking-widest max-w-md mx-auto">Please review the actual customer receipt layout below. Once committed, this document will be generated for the client.</p>
+                  </div>
+
+                  <ReceiptDocument ticket={{
+                    customerName: clientName,
+                    phoneNumber: clientPhone,
+                    receivedBy: customSalespersonName || salesperson.name,
+                    shoeModel,
+                    shoeColor,
+                    shoeSize,
+                    repairType: [getPackageName()],
+                    basePrice,
+                    addons: plusItems,
+                    hasInsurance: insurancePlan.id !== 'none',
+                    insuranceType: insurancePlan.name,
+                    insurancePrice: insurancePlan.price,
+                    pickupCharge,
+                    price: getGrandTotal(),
+                    discountAmount: getDiscountAmount(),
+                    advance: advanceAmount,
+                    balance: getGrandTotal() - advanceAmount,
+                    paymentMethod: advancePaymentMethod,
+                    transactionId: transactionId
+                  }} />
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-white border border-brand-border text-brand-dark px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-bg transition-all"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Back to Allocation
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-[2] flex items-center justify-center gap-3 bg-brand-olive text-white px-10 py-5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] hover:bg-brand-dark transition-all shadow-premium"
+                    >
+                      <FileCheck className="w-5 h-5" /> Commit Archival Entry
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* NAVIGATION BUTTONS */}
-              <div className="flex justify-between items-center pt-10 border-t border-brand-border mt-10">
+              <div className={clsx(
+                "flex flex-col sm:flex-row justify-between items-center gap-4 pt-10 border-t border-brand-border mt-10",
+                currentStep === 4 && "hidden"
+              )}>
                 {currentStep > 0 ? (
                   <button
                     type="button"
                     onClick={() => setCurrentStep(currentStep - 1)}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-dark px-6 py-4 rounded-full border border-transparent hover:border-brand-border transition-all"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-dark px-6 py-4 rounded-full border border-transparent hover:border-brand-border transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" /> Previous Phase
                   </button>
-                ) : <div />}
+                ) : <div className="hidden sm:block" />}
 
-                {currentStep < 3 ? (
+                {currentStep < 4 ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1324,182 +1638,36 @@ Thank you for trusting Cordwainers Studio!
                       }
                       setCurrentStep(currentStep + 1);
                     }}
-                    className="flex items-center gap-2 bg-brand-dark text-white px-10 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive transition-all shadow-premium"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-dark text-white px-10 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive transition-all shadow-premium"
                   >
-                    Next Phase <ChevronRight className="w-4 h-4" />
+                    {currentStep === 3 ? 'Review Draft' : 'Next Phase'} <ChevronRight className="w-4 h-4" />
                   </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 bg-brand-olive text-white px-10 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-dark transition-all shadow-premium"
-                  >
-                    <FileCheck className="w-4 h-4" /> Commit & Generate
-                  </button>
-                )}
+                ) : null}
               </div>
 
             </form>
 
           </div>
 
-          {/* RIGHT SIDE: LIVE RECALCULATING INVOICE PREVIEW (5 Columns) */}
-          <div className="lg:col-span-5 bg-white border border-brand-border rounded-[32px] shadow-premium p-8 space-y-8 print:block print:border-none print:shadow-none print:p-0">
-            <h3 className="font-display text-xl font-bold text-brand-dark border-b border-brand-border pb-4 flex items-center justify-between print:hidden">
-              <span>Live Registry Archive</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-accent bg-brand-bg border border-brand-border px-3 py-1 rounded-full animate-pulse">Live Draft</span>
-            </h3>
+          <hr className="border-dashed border-gray-300 mt-12" />
 
-            {/* Skeuomorphic Printed-Paper Container */}
-            <div className="bg-[#FCFCFA] border border-brand-border/40 p-8 rounded-2xl space-y-8 font-mono text-xs text-brand-dark shadow-inner relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-brand-border opacity-20" />
-              
-              {/* Receipt Header */}
-              <div className="text-center space-y-2">
-                <h4 className="font-display text-lg font-black uppercase tracking-[0.1em] text-brand-dark">Cordwainers Studio</h4>
-                <div className="flex flex-col items-center opacity-60 text-[10px] font-bold uppercase tracking-widest">
-                  <span>Luxury Footwear Restoration</span>
-                  <span>Artisanal Cobblers • Bangalore</span>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-brand-border opacity-40" />
-
-              {/* Invoice Meta */}
-              <div className="grid grid-cols-2 gap-y-2 text-[10px] font-bold uppercase tracking-widest">
-                <span className="text-brand-muted">Client Archive:</span>
-                <span className="text-brand-dark text-right font-display lowercase italic">{clientName || 'Arvind K. Shukla'}</span>
-                
-                <span className="text-brand-muted">Contact:</span>
-                <span className="text-brand-dark text-right">{clientPhone || '+91 99000 88776'}</span>
-
-                <span className="text-brand-muted">Digital Node:</span>
-                <span className="text-brand-dark text-right truncate pl-4 lowercase">{clientEmail || 'no-email@cordwainers.com'}</span>
-              </div>
-
-              <div className="border-t border-dashed border-brand-border opacity-40" />
-
-              {/* Assigned Representative Profile */}
-              <div className="flex items-center gap-4 bg-white border border-brand-border p-4 rounded-2xl">
-                <div className="w-10 h-10 rounded-full bg-brand-bg flex items-center justify-center text-brand-olive border border-brand-border">
-                  <User className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-brand-muted font-black">Archive Representative</p>
-                  <p className="text-[11px] font-black text-brand-dark uppercase tracking-tight">{customSalespersonName || salesperson.name}</p>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-brand-border opacity-40" />
-
-              {/* Footwear Diagnostics */}
-              <div className="space-y-4">
-                <p className="font-black text-brand-dark text-[10px] uppercase tracking-[0.2em] opacity-80">Diagnosed Core:</p>
-                <div className="flex items-start gap-4">
-                  {shoeImage ? (
-                    <img
-                      src={shoeImage}
-                      alt="Diagnosed shoe"
-                      className="w-16 h-16 rounded-xl object-cover border border-brand-border shadow-sm"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-brand-bg rounded-xl border border-brand-border flex items-center justify-center text-brand-muted">
-                      <Camera className="w-6 h-6 opacity-20" />
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <p className="font-display font-black text-sm text-brand-dark leading-tight">{shoeModel || 'Bespoke Footwear Identity'}</p>
-                    <p className="text-[9px] font-bold text-brand-muted uppercase tracking-widest">Sizing: {shoeSize || 'UK 9'} • {leatherType}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-brand-border opacity-40" />
-
-              {/* Detailed itemized breakdown of repair cost */}
-              <div className="space-y-3 text-[10px] font-bold uppercase tracking-widest">
-                <p className="text-brand-muted mb-2">Itemized Assessment:</p>
-                
-                {/* Base Value */}
-                <div className="flex justify-between">
-                  <span>Diagnostics Fee</span>
-                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{basePrice}</span>
-                </div>
-
-                {/* Restoration package */}
-                <div className="flex justify-between">
-                  <span className="truncate max-w-[200px]">Program: {getPackageName()}</span>
-                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{getPackageCost()}</span>
-                </div>
-
-                {/* Shoe plus items */}
-                {plusItems.map(item => (
-                  <div key={item.id} className="flex justify-between pl-4 text-brand-muted">
-                    <span>+ {item.name} (x{item.quantity})</span>
-                    <span className="font-display lowercase italic">₹{item.price * item.quantity}</span>
-                  </div>
-                ))}
-
-                {/* Insurance plan */}
-                <div className="flex justify-between text-brand-olive">
-                  <span>Protection Policy: {insurancePlan.name}</span>
-                  <span className="font-display text-xs font-black lowercase tracking-tighter">₹{getInsuranceCost()}</span>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-brand-border opacity-40" />
-
-              {/* Total Calculation Area */}
-              <div className="space-y-3">
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-brand-muted">
-                  <span>Gross Assessment:</span>
-                  <span>₹{getSubtotal()}</span>
-                </div>
-
-                {getDiscountAmount() > 0 && (
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-brand-accent">
-                    <span>Campaign Discount:</span>
-                    <span className="font-display">-₹{getDiscountAmount()}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between font-display font-black text-brand-dark text-lg pt-4 border-t border-brand-border">
-                  <span className="uppercase tracking-tight">Net Total</span>
-                  <span className="tracking-tighter">₹{getGrandTotal()}</span>
-                </div>
-                <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] text-brand-muted opacity-40">
-                  <span>Inclusive of 18% GST</span>
-                  <span>Valid for 15 Days</span>
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-center">
-                 <div className="w-32 h-32 opacity-10 grayscale hover:grayscale-0 transition-all">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CW-REGISTRY-VERIFIED" alt="Registry QR" className="w-full h-full" referrerPolicy="no-referrer" />
-                 </div>
-              </div>
-            </div>
+          {/* Print Footer / Terms Clickable Link */}
+          <div className="text-center pt-8 space-y-3">
+            <BarcodeSVG value="INV-CARE-PENDING" />
+            <button
+              type="button"
+              onClick={() => setShowTermsModal(true)}
+              className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-dark hover:underline border-b border-brand-dark mt-2.5 print:hidden"
+            >
+              Intake Terms & Conditions Link
+            </button>
+            <p className="hidden print:block text-[8px] text-gray-400 text-center font-sans">
+              Official Terms Link: https://cordwainers.com/care-terms
+            </p>
           </div>
 
-          <hr className="border-dashed border-gray-300" />
-
-              {/* Print Footer / Terms Clickable Link */}
-              <div className="text-center pt-2 space-y-3">
-                <BarcodeSVG value="INV-CARE-PENDING" />
-                <button
-                  type="button"
-                  onClick={() => setShowTermsModal(true)}
-                  className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-dark hover:underline border-b border-brand-dark mt-2.5 print:hidden"
-                >
-                  Intake Terms & Conditions Link
-                </button>
-                <p className="hidden print:block text-[8px] text-gray-400 text-center font-sans">
-                  Official Terms Link: https://cordwainers.com/care-terms
-                </p>
-              </div>
-
-            </div>
-        )}
+        </div>
+      )}
 
       {/* MANAGE SERVICES TIER CATALOG */}
       {activeTab === 'manage-services' && (
@@ -1535,7 +1703,7 @@ Thank you for trusting Cordwainers Studio!
                     type="text"
                     required
                     placeholder="e.g. Exotic Polish & Conditioning"
-                    value={editingPackage.name}
+                    value={editingPackage.name || ''}
                     onChange={e => setEditingPackage({ ...editingPackage, name: e.target.value })}
                     className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
                   />
@@ -1546,7 +1714,7 @@ Thank you for trusting Cordwainers Studio!
                     type="number"
                     required
                     placeholder="e.g. 1500"
-                    value={editingPackage.price}
+                    value={editingPackage.price ?? 0}
                     onChange={e => setEditingPackage({ ...editingPackage, price: Math.max(0, parseInt(e.target.value) || 0) })}
                     className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
                   />
@@ -1556,7 +1724,7 @@ Thank you for trusting Cordwainers Studio!
                   <input
                     type="text"
                     placeholder="e.g. Saphir cream finish, minor scuff removal..."
-                    value={editingPackage.description}
+                    value={editingPackage.description || ''}
                     onChange={e => setEditingPackage({ ...editingPackage, description: e.target.value })}
                     className="w-full border border-brand-border rounded-lg p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
                   />
@@ -1649,19 +1817,6 @@ Thank you for trusting Cordwainers Studio!
       {/* CARE RECORDS HISTORY TABLE */}
       {activeTab === 'history' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="flex justify-between items-center bg-white p-4 rounded-[24px] border border-brand-border shadow-premium">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
-              <input
-                type="text"
-                placeholder="Search history..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 text-xs font-bold border-none bg-brand-bg rounded-full focus:ring-0"
-              />
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRepairs.map((repair) => (
               <div 
@@ -1705,7 +1860,7 @@ Thank you for trusting Cordwainers Studio!
                         deleteRepair(repair.id);
                       }
                     }}
-                    className="p-2 text-brand-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-brand-muted hover:text-red-500 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
