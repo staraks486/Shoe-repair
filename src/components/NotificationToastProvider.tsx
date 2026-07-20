@@ -5,7 +5,7 @@ import { AppNotification } from '../types';
 import Toast from './Toast';
 import { AnimatePresence } from 'motion/react';
 
-export default function NotificationToastProvider() {
+export default function NotificationToastProvider({ children }: { children?: React.ReactNode }) {
   const [activeToasts, setActiveToasts] = useState<AppNotification[]>([]);
   const user = auth?.currentUser;
 
@@ -45,16 +45,19 @@ export default function NotificationToastProvider() {
   };
 
   return (
-    <div className="fixed top-6 right-6 z-[200] flex flex-col gap-4 pointer-events-none">
-      <AnimatePresence mode="popLayout">
-        {activeToasts.map((toast) => (
-          <Toast 
-            key={toast.id} 
-            notification={toast} 
-            onClose={removeToast} 
-          />
-        ))}
-      </AnimatePresence>
-    </div>
+    <>
+      {children}
+      <div className="fixed top-6 right-6 z-[200] flex flex-col gap-4 pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          {activeToasts.map((toast) => (
+            <Toast 
+              key={toast.id} 
+              notification={toast} 
+              onClose={removeToast} 
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }

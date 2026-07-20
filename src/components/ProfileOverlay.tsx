@@ -13,10 +13,15 @@ interface ProfileOverlayProps {
 }
 
 export default function ProfileOverlay({ isOpen, onClose }: ProfileOverlayProps) {
-  const user = useAppStore((state) => state.user);
+  const { user, userProfile } = useAppStore();
   const navigate = useNavigate();
 
   if (!user) return null;
+
+  const isAdmin = user.email === 'star.aks486@gmail.com' || 
+                  user.email === 'admin@cordwainers.local' || 
+                  userProfile?.role === 'Admin' || 
+                  userProfile?.isAdmin;
 
   return (
     <AnimatePresence>
@@ -92,20 +97,22 @@ export default function ProfileOverlay({ isOpen, onClose }: ProfileOverlayProps)
 
               {/* Account Quick Links */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button 
-                  onClick={() => {
-                    navigate('/settings');
-                    onClose();
-                  }}
-                  className="p-5 rounded-2xl border border-brand-border bg-white hover:border-brand-accent hover:shadow-premium transition-all text-left flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-brand-bg flex items-center justify-center text-brand-olive group-hover:bg-brand-olive group-hover:text-white transition-all">
-                      <Save className="w-5 h-5" />
+                {isAdmin && (
+                  <button 
+                    onClick={() => {
+                      navigate('/settings');
+                      onClose();
+                    }}
+                    className="p-5 rounded-2xl border border-brand-border bg-white hover:border-brand-accent hover:shadow-premium transition-all text-left flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-brand-bg flex items-center justify-center text-brand-olive group-hover:bg-brand-olive group-hover:text-white transition-all">
+                        <Save className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">Studio Preferences</span>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">Studio Preferences</span>
-                  </div>
-                </button>
+                  </button>
+                )}
                 <button 
                   onClick={() => auth.signOut()}
                   className="p-5 rounded-2xl border border-brand-border bg-white hover:border-red-200 hover:bg-red-50/30 transition-all text-left flex items-center justify-between group"

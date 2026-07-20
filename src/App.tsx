@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Layout from './components/Layout';
 import { useAppStore } from './store';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Lazy load pages for performance optimization
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -41,7 +42,7 @@ const PageLoader = () => (
 
 export default function App() {
   const fetchFromFirestore = useAppStore((state) => state.fetchFromFirestore);
-
+  
   useEffect(() => {
     fetchFromFirestore();
   }, [fetchFromFirestore]);
@@ -56,19 +57,19 @@ export default function App() {
                 <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
                 <Route path="/book" element={<PageWrapper><Booking /></PageWrapper>} />
                 
-                <Route path="/" element={<PageWrapper><Dashboard /></PageWrapper>} />
-                <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-                <Route path="/new-repair" element={<PageWrapper><NewRepair /></PageWrapper>} />
-                <Route path="/inventory" element={<PageWrapper><Inventory /></PageWrapper>} />
-                <Route path="/customers" element={<PageWrapper><Customers /></PageWrapper>} />
-                <Route path="/insurance" element={<PageWrapper><Insurance /></PageWrapper>} />
-                <Route path="/cobbler-desk" element={<PageWrapper><CobblerDesk /></PageWrapper>} />
+                <Route path="/" element={<ProtectedRoute><PageWrapper><Dashboard /></PageWrapper></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><PageWrapper><Dashboard /></PageWrapper></ProtectedRoute>} />
+                <Route path="/new-repair" element={<ProtectedRoute><PageWrapper><NewRepair /></PageWrapper></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute requireAdmin><PageWrapper><Inventory /></PageWrapper></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute><PageWrapper><Customers /></PageWrapper></ProtectedRoute>} />
+                <Route path="/insurance" element={<ProtectedRoute><PageWrapper><Insurance /></PageWrapper></ProtectedRoute>} />
+                <Route path="/cobbler-desk" element={<ProtectedRoute><PageWrapper><CobblerDesk /></PageWrapper></ProtectedRoute>} />
                 <Route path="/add-insurance" element={<Navigate to="/insurance?tab=add-cover" replace />} />
-                <Route path="/offers" element={<PageWrapper><Offers /></PageWrapper>} />
-                <Route path="/socials-payments" element={<PageWrapper><SocialsPayments /></PageWrapper>} />
-                <Route path="/appointments" element={<PageWrapper><Appointments /></PageWrapper>} />
-                <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
-                <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
+                <Route path="/offers" element={<ProtectedRoute><PageWrapper><Offers /></PageWrapper></ProtectedRoute>} />
+                <Route path="/socials-payments" element={<ProtectedRoute><PageWrapper><SocialsPayments /></PageWrapper></ProtectedRoute>} />
+                <Route path="/appointments" element={<ProtectedRoute><PageWrapper><Appointments /></PageWrapper></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><PageWrapper><Profile /></PageWrapper></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute requireAdmin><PageWrapper><Settings /></PageWrapper></ProtectedRoute>} />
                 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

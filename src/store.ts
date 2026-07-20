@@ -790,7 +790,7 @@ export const useAppStore = create<AppState>()(
       
       updateSettings: (newSettings) => {
         const profile = get().userProfile;
-        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
           console.warn("[SECURITY] Blocked updateSettings from guest/demo user profile:", profile.email);
           return;
         }
@@ -952,7 +952,7 @@ export const useAppStore = create<AppState>()(
 
       addStore: async (storeData) => {
         const profile = get().userProfile;
-        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
           console.warn("[SECURITY] Blocked addStore from guest/demo user profile");
           return;
         }
@@ -983,7 +983,7 @@ export const useAppStore = create<AppState>()(
 
       updateStore: async (id, storeData) => {
         const profile = get().userProfile;
-        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
           console.warn("[SECURITY] Blocked updateStore from guest/demo user profile");
           return;
         }
@@ -1012,7 +1012,7 @@ export const useAppStore = create<AppState>()(
 
       deleteStore: async (id) => {
         const profile = get().userProfile;
-        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
           console.warn("[SECURITY] Blocked deleteStore from guest/demo user profile");
           return;
         }
@@ -1218,7 +1218,7 @@ export const useAppStore = create<AppState>()(
 
       importBackup: async (backupData) => {
         const profile = get().userProfile;
-        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
           console.warn("[SECURITY] Blocked importBackup from guest/demo user profile");
           throw new Error("Permission Denied: Only administrators can restore database configuration.");
         }

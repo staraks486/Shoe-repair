@@ -10,7 +10,18 @@ export default function AuthObserver() {
     if (!auth) return;
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+      // Don't overwrite local mock user with a null from Firebase
+      const currentUserProfile = useAppStore.getState().userProfile;
+      if (!user && currentUserProfile?.uid?.startsWith('mock-')) {
+        return;
+      }
+      
+      // If we got here, it's a real user or we're clearing a real user
+      if (!user && !currentUserProfile?.uid?.startsWith('mock-')) {
+          setUser(user);
+      } else if (user) {
+          setUser(user);
+      }
     });
 
     return () => unsubscribe();
