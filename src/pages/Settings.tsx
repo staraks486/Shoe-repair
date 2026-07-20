@@ -398,11 +398,23 @@ export default function Settings() {
         </div>
       </header>
 
+      {!isAdmin && (
+        <div className="bg-amber-50/60 backdrop-blur-sm border border-amber-200/50 rounded-[28px] p-6 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="space-y-1 flex-1">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800">Guest / Demo Mode Active</h4>
+            <p className="text-xs font-semibold leading-relaxed text-amber-900/80">You are logged in under a guest or staff preview profile. Read-only permissions are enforced across all studio configurations, staff tables, integrations, and backup modules.</p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-[40px] border border-brand-border p-8 md:p-12 shadow-premium relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-olive to-brand-accent opacity-20" />
         
         {activeTab === 'Stores' && (
-          <div className="space-y-12 animate-in fade-in duration-300">
+          <fieldset disabled={!isAdmin} className="space-y-12 animate-in fade-in duration-300 w-full block border-none p-0 m-0">
             <div className="flex items-center justify-between border-b border-brand-border pb-6 flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
@@ -597,11 +609,11 @@ export default function Settings() {
                 </SwipeToDelete>
               ))}
             </div>
-          </div>
+          </fieldset>
         )}
 
         {activeTab === 'Store' && (
-          <div className="space-y-12">
+          <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             {/* Store Details */}
             <div className="space-y-8">
               <div className="flex items-center gap-3 border-b border-brand-border pb-4">
@@ -779,11 +791,11 @@ export default function Settings() {
                 ))}
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
 
         {activeTab === 'Staff' && (
-          <div className="space-y-12">
+          <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             {/* Employees */}
             <div className="space-y-8">
               <div className="flex items-center justify-between border-b border-brand-border pb-4">
@@ -951,11 +963,11 @@ export default function Settings() {
                 ))}
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
 
         {activeTab === 'Integrations' && (
-          <div className="space-y-12">
+          <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             {/* Legal Foundations */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 border-b border-brand-border pb-4">
@@ -1105,11 +1117,11 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
 
         {activeTab === 'Notifications' && (
-          <div className="space-y-12">
+          <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             <div className="space-y-6">
               <div className="flex items-center gap-3 border-b border-brand-border pb-4">
                 <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
@@ -1166,11 +1178,11 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
 
         {activeTab === 'Backup' && (
-          <div className="space-y-12 animate-in fade-in duration-300">
+          <fieldset disabled={!isAdmin} className="space-y-12 animate-in fade-in duration-300 w-full block border-none p-0 m-0">
             {/* Header Description */}
             <div className="space-y-3">
               <div className="flex items-center gap-3 border-b border-brand-border pb-4">
@@ -1363,7 +1375,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
 
         {/* Custom Backup Suggestion & Delete Confirmation Modal */}

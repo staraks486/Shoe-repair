@@ -785,6 +785,12 @@ export const useAppStore = create<AppState>()(
       },
       
       updateSettings: (newSettings) => {
+        const profile = get().userProfile;
+        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked updateSettings from guest/demo user profile:", profile.email);
+          return;
+        }
+
         set((state) => {
           const updatedSettings = { ...state.settings, ...newSettings };
           if (db) {
@@ -936,6 +942,11 @@ export const useAppStore = create<AppState>()(
       },
 
       addStore: async (storeData) => {
+        const profile = get().userProfile;
+        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked addStore from guest/demo user profile");
+          return;
+        }
         if (!db) return;
         const id = generateId();
         const newStore: StoreDetails = {
@@ -962,6 +973,11 @@ export const useAppStore = create<AppState>()(
       },
 
       updateStore: async (id, storeData) => {
+        const profile = get().userProfile;
+        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked updateStore from guest/demo user profile");
+          return;
+        }
         if (!db) return;
         const existingStore = get().stores.find(s => s.id === id);
         if (!existingStore) return;
@@ -986,6 +1002,11 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteStore: async (id) => {
+        const profile = get().userProfile;
+        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked deleteStore from guest/demo user profile");
+          return;
+        }
         if (!db) return;
         if (get().stores.length <= 1) {
           alert("Cannot delete the only registered store location.");
@@ -1187,6 +1208,11 @@ export const useAppStore = create<AppState>()(
       },
 
       importBackup: async (backupData) => {
+        const profile = get().userProfile;
+        if (profile && profile.role !== 'Admin' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked importBackup from guest/demo user profile");
+          throw new Error("Permission Denied: Only administrators can restore database configuration.");
+        }
         if (!db) return;
         try {
           if (!backupData || (backupData.backupType !== 'full_app' && !backupData.storeDetails)) {

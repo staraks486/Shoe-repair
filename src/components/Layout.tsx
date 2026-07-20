@@ -414,7 +414,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               App designed by Arvind Kumar Shukla
             </p>
             <p className="text-[7px] font-bold uppercase tracking-widest text-brand-muted">
-              © 2026 Cordwainers Studio • Artisan Framework
+              © 2026 Cordwainers Studio • Artisan Framework • Vers: 2.4.0
             </p>
           </footer>
         </div>
