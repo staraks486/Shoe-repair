@@ -797,24 +797,30 @@ export const useAppStore = create<AppState>()(
 
       setUser: async (user) => {
         set({ user });
-        if (user && db) {
+        if (user) {
+          const isAdminEmail = user.email === 'star.aks486@gmail.com' || user.email === 'admin@cordwainers.local';
+          const defaultProfile: UserProfile = {
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
+            createdAt: new Date().toISOString(),
+            role: isAdminEmail ? 'Admin' : 'Staff',
+            isAdmin: isAdminEmail
+          };
+
+          if (user.uid.startsWith('mock-') || !db) {
+            set({ userProfile: defaultProfile });
+            return;
+          }
+
           try {
             // Sync profile
             const profileRef = doc(db, 'profiles', user.uid);
             const profileSnap = await getDoc(profileRef);
             let profile: UserProfile;
 
-            const isAdminEmail = user.email === 'star.aks486@gmail.com';
-
             if (!profileSnap.exists()) {
-              profile = {
-                uid: user.uid,
-                email: user.email || '',
-                displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
-                createdAt: new Date().toISOString(),
-                role: isAdminEmail ? 'Admin' : 'Staff',
-                isAdmin: isAdminEmail
-              };
+              profile = defaultProfile;
               await safeSetDoc(profileRef, profile);
             } else {
               profile = profileSnap.data() as UserProfile;
@@ -836,8 +842,12 @@ export const useAppStore = create<AppState>()(
             } else {
               console.error("Profile sync failed:", error);
             }
+            // Always set fallback profile so application keeps working
+            if (!get().userProfile) {
+              set({ userProfile: defaultProfile });
+            }
           }
-        } else if (!user) {
+        } else {
           set({ userProfile: null });
         }
       },

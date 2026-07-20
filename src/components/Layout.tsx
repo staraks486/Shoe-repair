@@ -39,7 +39,7 @@ import { IndianRupee, Clock, Calendar, CheckCircle2, ArrowRight } from 'lucide-r
 import ProfileOverlay from './ProfileOverlay';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, stores = [], currentStoreId, setCurrentStoreId, addStore } = useAppStore();
+  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, stores = [], currentStoreId, setCurrentStoreId, addStore, setUser } = useAppStore();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
@@ -79,11 +79,14 @@ export default function Layout({ children }: { children: ReactNode }) {
   const isPublicRoute = location.pathname === '/book';
 
   const handleLogout = async () => {
-    if (!auth) return;
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (err) {
       console.error("Logout failed", err);
+    } finally {
+      setUser(null);
     }
   };
 
