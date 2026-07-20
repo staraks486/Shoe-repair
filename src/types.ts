@@ -180,6 +180,13 @@ export interface ShoeCarePackage {
   price: number;
 }
 
+export interface UserCredential {
+  email: string;
+  password?: string;
+  role: 'Admin' | 'Staff';
+  displayName?: string;
+}
+
 export interface Settings {
   storeName: string;
   address: string;
@@ -211,6 +218,7 @@ export interface Settings {
   termsAndConditions?: string;
   autoNotifyPickup?: boolean;
   giftCards?: GiftCard[];
+  userCredentials?: UserCredential[];
 }
 
 export interface GiftCard {

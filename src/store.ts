@@ -225,6 +225,10 @@ export const useAppStore = create<AppState>()(
             imageUrl: 'https://images.unsplash.com/photo-1520639888713-7851133b1ed0?q=80&w=600&auto=format&fit=crop',
             createdAt: '2026-07-18T10:30:00Z'
           }
+        ],
+        userCredentials: [
+          { email: 'admin@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Admin', displayName: 'Admin Studio' },
+          { email: 'guest@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'Guest Staff' }
         ]
       },
       syncErrorLogs: [],
@@ -804,11 +808,16 @@ export const useAppStore = create<AppState>()(
       setUser: async (user) => {
         set({ user });
         if (user) {
-          const isAdminEmail = user.email === 'star.aks486@gmail.com' || user.email === 'admin@cordwainers.local';
+          const credentials = get().settings?.userCredentials || [];
+          const matchedCred = credentials.find(c => c.email.toLowerCase() === user.email?.toLowerCase());
+          const isAdminEmail = user.email === 'star.aks486@gmail.com' || 
+                               user.email === 'admin@cordwainers.local' || 
+                               matchedCred?.role === 'Admin';
+          
           const defaultProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
-            displayName: user.displayName || user.email?.split('@')[0] || 'Artisan',
+            displayName: matchedCred?.displayName || user.displayName || user.email?.split('@')[0] || 'Artisan',
             createdAt: new Date().toISOString(),
             role: isAdminEmail ? 'Admin' : 'Staff',
             isAdmin: isAdminEmail

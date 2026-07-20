@@ -963,6 +963,99 @@ export default function Settings() {
                 ))}
               </div>
             </div>
+
+            {/* Studio Access Accounts & Credentials */}
+            <div className="space-y-8 mt-12">
+              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <Database className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Studio Access Accounts</h3>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const credentials = settings.userCredentials || [];
+                    updateSettings({
+                      userCredentials: [...credentials, { email: `staff-${Math.floor(1000 + Math.random() * 9000)}@cordwainers.local`, password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'New Assistant' }]
+                    });
+                  }} 
+                  className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all flex items-center gap-2"
+                >
+                  Create New Account
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {(settings.userCredentials || []).map((cred, index) => (
+                  <SwipeToDelete
+                    key={cred.email}
+                    itemName={cred.displayName || cred.email}
+                    onDelete={() => {
+                      const newCredentials = (settings.userCredentials || []).filter((_, i) => i !== index);
+                      updateSettings({ userCredentials: newCredentials });
+                    }}
+                    confirmMessage={`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`}
+                  >
+                    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`)) {
+                            const newCredentials = (settings.userCredentials || []).filter((_, i) => i !== index);
+                            updateSettings({ userCredentials: newCredentials });
+                          }
+                        }}
+                        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
+                        title="Delete account access"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Display Name</label>
+                        <input type="text" value={cred.displayName || ''} onChange={(e) => {
+                          const newCreds = [...(settings.userCredentials || [])];
+                          newCreds[index].displayName = e.target.value;
+                          updateSettings({ userCredentials: newCreds });
+                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Account Role</label>
+                        <select 
+                          value={cred.role} 
+                          onChange={(e) => {
+                            const newCreds = [...(settings.userCredentials || [])];
+                            newCreds[index].role = e.target.value as 'Admin' | 'Staff';
+                            updateSettings({ userCredentials: newCreds });
+                          }} 
+                          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold"
+                        >
+                          <option value="Admin">Admin (Full Access)</option>
+                          <option value="Staff">Staff (Read-Only/Limited)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email / Login ID</label>
+                        <input type="email" value={cred.email} onChange={(e) => {
+                          const newCreds = [...(settings.userCredentials || [])];
+                          newCreds[index].email = e.target.value;
+                          updateSettings({ userCredentials: newCreds });
+                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Access Password</label>
+                        <input type="text" value={cred.password || ''} onChange={(e) => {
+                          const newCreds = [...(settings.userCredentials || [])];
+                          newCreds[index].password = e.target.value;
+                          updateSettings({ userCredentials: newCreds });
+                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold" placeholder="Password" />
+                      </div>
+                    </div>
+                  </SwipeToDelete>
+                ))}
+              </div>
+            </div>
           </fieldset>
         )}
 

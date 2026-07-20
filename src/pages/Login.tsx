@@ -7,15 +7,17 @@ import {
 import { auth, googleProvider } from '../services/firebase';
 import { useAppStore } from '../store';
 import { motion } from 'motion/react';
-import { LogIn, Phone, Loader2, UserCircle } from 'lucide-react';
+import { LogIn, Phone, Loader2, UserCircle, Lock, Eye, EyeOff } from 'lucide-react';
 
 const GUEST_ID = 'guest@cordwainers.local';
 const ADMIN_ID = 'admin@cordwainers.local';
 const DEFAULT_PASSWORD = 'artisan_cobbler_pass';
 
 export default function Login() {
-  const { setUser } = useAppStore();
+  const { setUser, settings } = useAppStore();
   const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,11 +35,13 @@ export default function Login() {
     }
   };
 
-  const handleAuth = async (e?: React.FormEvent, customId?: string) => {
+  const handleAuth = async (e?: React.FormEvent, customId?: string, customPass?: string) => {
     if (e) e.preventDefault();
     
     // Normalize input: if it looks like a phone number, convert to mock email
     let finalId = customId || identifier;
+    let finalPass = customPass !== undefined ? customPass : password;
+
     if (!finalId.trim()) {
       setError("Please enter a valid email or mobile number");
       return;
@@ -47,15 +51,43 @@ export default function Login() {
       finalId = `${finalId.replace(/\D/g, '')}@mobile.local`;
     }
     
+    if (!finalPass.trim()) {
+      setError("Please enter your account password");
+      return;
+    }
+
     setLoading(true);
     setError('');
+
+    // Let's check custom credentials first!
+    const customCreds = settings?.userCredentials || [];
+    const matchedCred = customCreds.find(c => c.email.toLowerCase() === finalId.toLowerCase());
+
+    if (matchedCred) {
+      if (finalPass !== matchedCred.password) {
+        setError("Invalid credentials or password. Please verify.");
+        setLoading(false);
+        return;
+      }
+    } else {
+      // For default demo accounts or unregistered users:
+      const isDefaultAdmin = finalId === ADMIN_ID;
+      const isDefaultGuest = finalId === GUEST_ID;
+      const expectedPass = (isDefaultAdmin || isDefaultGuest) ? DEFAULT_PASSWORD : null;
+      
+      if (expectedPass && finalPass !== expectedPass) {
+        setError("Invalid credentials or password.");
+        setLoading(false);
+        return;
+      }
+    }
 
     const loginLocally = () => {
       console.log("[AUTH FALLBACK] Signing in locally as:", finalId);
       const mockUser = {
         uid: 'mock-' + finalId.replace(/[^a-zA-Z0-9]/g, '-'),
         email: finalId,
-        displayName: finalId.split('@')[0],
+        displayName: matchedCred?.displayName || finalId.split('@')[0],
         emailVerified: true,
         isAnonymous: false,
         phoneNumber: null,
@@ -81,8 +113,8 @@ export default function Login() {
     }
 
     try {
-      // Attempt sign in
-      await signInWithEmailAndPassword(auth, finalId, DEFAULT_PASSWORD);
+      // Attempt sign in with the verified/entered password
+      await signInWithEmailAndPassword(auth, finalId, finalPass);
     } catch (err: any) {
       console.warn("Firebase sign-in failed, checking for local fallback:", err);
       
@@ -98,13 +130,15 @@ export default function Login() {
       // If user doesn't exist, try to create them (seamless onboarding)
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email' || err.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, finalId, DEFAULT_PASSWORD);
+          await createUserWithEmailAndPassword(auth, finalId, finalPass);
         } catch (createErr: any) {
           if (createErr.code === 'auth/operation-not-allowed' || createErr.code === 'auth/configuration-not-allowed') {
             loginLocally();
+          } else if (createErr.code === 'auth/email-already-in-use') {
+            setError("Incorrect password for this account. Please check and try again.");
           } else {
             // If it's a standard validation failure, we can still fall back to guest/demo local login
-            if (customId === ADMIN_ID || customId === GUEST_ID) {
+            if (matchedCred || customId === ADMIN_ID || customId === GUEST_ID) {
               loginLocally();
             } else {
               setError("Please enter a valid email or mobile number");
@@ -162,9 +196,31 @@ export default function Login() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-brand-bg border-brand-border rounded-2xl py-5 pl-12 pr-12 text-sm font-bold focus:ring-brand-accent focus:border-brand-accent placeholder:text-brand-muted/40"
+                  placeholder="••••••••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-brand-muted hover:text-brand-dark transition-all"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
             <button 
               type="submit" 
-              disabled={loading || !identifier}
+              disabled={loading || !identifier || !password}
               className="w-full bg-brand-dark text-white rounded-2xl py-5 font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-brand-olive transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
@@ -195,7 +251,7 @@ export default function Login() {
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button 
                 type="button"
-                onClick={() => handleAuth(undefined, ADMIN_ID)}
+                onClick={() => handleAuth(undefined, ADMIN_ID, DEFAULT_PASSWORD)}
                 disabled={loading}
                 className="bg-brand-bg border border-brand-border text-brand-dark rounded-xl py-3 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98]"
               >
@@ -204,7 +260,7 @@ export default function Login() {
               </button>
               <button 
                 type="button"
-                onClick={() => handleAuth(undefined, GUEST_ID)}
+                onClick={() => handleAuth(undefined, GUEST_ID, DEFAULT_PASSWORD)}
                 disabled={loading}
                 className="bg-brand-bg border border-brand-border text-brand-dark rounded-xl py-3 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98]"
               >
@@ -235,4 +291,3 @@ export default function Login() {
     </div>
   );
 }
-
