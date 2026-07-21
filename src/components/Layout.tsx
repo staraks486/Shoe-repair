@@ -157,7 +157,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const primaryNavItems = [
     { to: '/new-repair', icon: PlusCircle, label: 'CW Care' },
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/cobbler-desk', icon: Package, label: 'Cobbler Desk' },
     { to: '/inventory', icon: Boxes, label: 'Inventory', adminOnly: true },
     { to: '/insurance', icon: Shield, label: 'CW Assure' },
