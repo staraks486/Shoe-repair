@@ -14,6 +14,7 @@ import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
 import PhotoManager from '../components/PhotoManager';
 import PageHeader from '../components/PageHeader';
 import IntroBanner from '../components/IntroBanner';
+import DailyShoeCareTip from '../components/DailyShoeCareTip';
 
 const FALLBACK_COBBLERS = [
   { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt Recrafting' },
@@ -59,17 +60,19 @@ export default function Dashboard() {
   const COLORS = ['#1C1917', '#44403C', '#78716C', '#A8A29E', '#D6D3D1'];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       <PageHeader 
         title="Workshop Hub" 
         subtitle="Daily Operations & Analytics" 
-      />
+      >
+        <DailyShoeCareTip />
+      </PageHeader>
 
       <IntroBanner />
 
       {/* Analytics Visualization - High Visibility Grid */}
-      <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <DashboardSummary />
         </div>
         <div className="lg:col-span-1">
@@ -87,48 +90,50 @@ export default function Dashboard() {
       </section>
       
       {/* Interactive Status Pills Navigation Bar */}
-      <section className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-          <div className="flex gap-8 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => setSelectedStatus('All')}
-              className={clsx(
-                "px-1 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all whitespace-nowrap border-b-2 shrink-0",
-                selectedStatus === 'All'
-                  ? "border-brand-dark text-brand-dark"
-                  : "border-transparent text-brand-muted hover:text-brand-dark"
-              )}
-            >
-              All Queue
-            </button>
+      <section className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-2 bg-[#F5F3EC]/70 p-1 rounded-2xl border border-[#E8E6DF]/80 w-max max-w-full">
+              <button
+                onClick={() => setSelectedStatus('All')}
+                className={clsx(
+                  "px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap rounded-xl shrink-0 cursor-pointer",
+                  selectedStatus === 'All'
+                    ? "bg-brand-dark text-white shadow-md"
+                    : "text-brand-muted hover:text-brand-dark hover:bg-white/40"
+                )}
+              >
+                All Queue
+              </button>
 
-            {columns.map((col) => {
-              const isSelected = selectedStatus === col.status;
-              return (
-                <button
-                  key={col.status}
-                  onClick={() => setSelectedStatus(col.status)}
-                  className={clsx(
-                    "px-1 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all whitespace-nowrap border-b-2 shrink-0",
-                    isSelected
-                      ? "border-brand-dark text-brand-dark"
-                      : "border-transparent text-brand-muted hover:text-brand-dark"
-                  )}
-                >
-                  {col.title}
-                </button>
-              );
-            })}
+              {columns.map((col) => {
+                const isSelected = selectedStatus === col.status;
+                return (
+                  <button
+                    key={col.status}
+                    onClick={() => setSelectedStatus(col.status)}
+                    className={clsx(
+                      "px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap rounded-xl shrink-0 cursor-pointer",
+                      isSelected
+                        ? "bg-brand-dark text-white shadow-md"
+                        : "text-brand-muted hover:text-brand-dark hover:bg-white/40"
+                    )}
+                  >
+                    {col.title}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-muted" />
             <input
               type="text"
               placeholder="Search active jobs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border-none rounded-full text-xs font-bold shadow-premium focus:ring-0"
+              className="w-full pl-11 pr-4 py-3 bg-white border-none rounded-full text-xs font-bold shadow-premium focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/40"
             />
           </div>
         </div>

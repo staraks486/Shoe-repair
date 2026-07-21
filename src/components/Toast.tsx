@@ -22,7 +22,7 @@ export default function Toast({ notification, onClose }: ToastProps) {
       case 'success': return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-500" />;
       case 'error': return <XCircle className="w-5 h-5 text-red-500" />;
-      default: return <Info className="w-5 h-5 text-blue-500" />;
+      default: return <Info className="w-5 h-5 text-[#B89C72]" />;
     }
   };
 

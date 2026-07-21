@@ -160,7 +160,7 @@ export default function Inventory() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       <PageHeader 
         title="Inventory" 
         subtitle="Workshop Supplies & Stock" 

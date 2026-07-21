@@ -188,9 +188,9 @@ export const useAppStore = create<AppState>()(
           { id: '3', name: 'The Master Restoration', description: 'A complete strip-down and rebuilding of the shoe, full re-sole, interior lining repair, and a complete hand-dyed patina restoration.', price: 14999 }
         ],
         employees: [
-          { id: 'SP-001', name: 'Arvind Shukla', role: 'Store Lead', mobile: '', email: '' },
-          { id: 'SP-002', name: 'Pooja Sharma', role: 'Specialist', mobile: '', email: '' },
-          { id: 'SP-003', name: 'Rahul Deshmukh', role: 'Senior Artisan', mobile: '', email: '' }
+          { id: 'SP-001', name: 'Arvind Shukla', role: 'Store Lead', mobile: '', email: '', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' },
+          { id: 'SP-002', name: 'Pooja Sharma', role: 'Specialist', mobile: '', email: '', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop' },
+          { id: 'SP-003', name: 'Rahul Deshmukh', role: 'Senior Artisan', mobile: '', email: '', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }
         ],
         cobblers: [
           { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt', mobile: '', email: '' },
@@ -227,8 +227,8 @@ export const useAppStore = create<AppState>()(
           }
         ],
         userCredentials: [
-          { email: 'admin@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Admin', displayName: 'Admin Studio' },
-          { email: 'guest@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'Guest Staff' }
+          { email: 'admin@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Admin', displayName: 'Admin Studio', username: 'admin', mobile: '9999999999' },
+          { email: 'guest@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'Guest Staff', username: 'guest', mobile: '8888888888' }
         ]
       },
       syncErrorLogs: [],

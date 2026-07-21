@@ -162,7 +162,7 @@ export interface InsurancePlan {
   copay?: string;
 }
 
-export interface Employee { id: string; name: string; role: string; mobile: string; email: string; }
+export interface Employee { id: string; name: string; role: string; mobile: string; email: string; avatarUrl?: string; }
 export interface Cobbler { id: string; name: string; specialty: string; mobile: string; email: string; }
 export interface RepairCharge { id: string; service: string; price: number; }
 
@@ -185,6 +185,8 @@ export interface UserCredential {
   password?: string;
   role: 'Admin' | 'Staff';
   displayName?: string;
+  mobile?: string;
+  username?: string;
 }
 
 export interface Settings {

@@ -83,7 +83,7 @@ export default function SocialsPayments() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       {/* HEADER: Standardized Artisan style */}
       <header className="flex flex-col items-center justify-center text-center gap-6 relative">
         <button 

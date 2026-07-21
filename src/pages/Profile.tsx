@@ -98,7 +98,7 @@ export default function Profile() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-8 animate-in fade-in duration-300"
+      className="space-y-4 md:space-y-8 animate-in fade-in duration-300"
     >
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1 text-center flex flex-col items-center justify-center">

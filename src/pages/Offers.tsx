@@ -298,7 +298,7 @@ export default function Offers() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1 text-center flex flex-col items-center justify-center">
           <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Catalog</h2>
@@ -650,7 +650,7 @@ export default function Offers() {
                   <div className={`absolute inset-0 z-0 transition-all duration-500 ${
                     gcTheme === 'gold' ? 'bg-gradient-to-br from-amber-900 via-amber-700 to-amber-950' :
                     gcTheme === 'classic' ? 'bg-gradient-to-br from-stone-800 via-stone-900 to-stone-950' :
-                    gcTheme === 'modern' ? 'bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900' :
+                    gcTheme === 'modern' ? 'bg-gradient-to-br from-[#8C6239] via-[#A67C52] to-[#5C3A21]' :
                     'bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950'
                   }`} />
                 )}
@@ -799,7 +799,7 @@ export default function Offers() {
                           <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
                             card.designTheme === 'gold' ? 'bg-amber-100 text-amber-800' :
                             card.designTheme === 'classic' ? 'bg-stone-200 text-stone-800' :
-                            card.designTheme === 'modern' ? 'bg-blue-100 text-blue-800' :
+                            card.designTheme === 'modern' ? 'bg-[#F4EBE1] text-[#8C6239]' :
                             'bg-emerald-100 text-emerald-800'
                           }`}>
                             {card.designTheme} Voucher

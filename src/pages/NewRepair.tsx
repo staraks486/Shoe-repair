@@ -76,22 +76,26 @@ const SALESPERSONS = [
   {
     id: 'SP-001',
     name: 'Arvind Kumar Shukla',
-    role: 'Store Lead & Chief Inspector'
+    role: 'Store Lead & Chief Inspector',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop'
   },
   {
     id: 'SP-002',
     name: 'Pooja Sharma',
-    role: 'Boutique Specialist'
+    role: 'Boutique Specialist',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop'
   },
   {
     id: 'SP-003',
     name: 'Rahul Deshmukh',
-    role: 'Senior Artisan & Cordwainer'
+    role: 'Senior Artisan & Cordwainer',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'
   },
   {
     id: 'SP-004',
     name: 'Amit Patel',
-    role: 'Associate Intake Specialist'
+    role: 'Associate Intake Specialist',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop'
   }
 ];
 
@@ -135,18 +139,13 @@ const FALLBACK_COBBLERS = [
 export default function NewRepair() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { repairs, addRepair, deleteRepair, inventory, settings, updateSettings } = useAppStore();
+  const { repairs, addRepair, deleteRepair, inventory, settings, updateSettings, customers } = useAppStore();
 
   const carePackages = settings?.shoeCarePackages && settings.shoeCarePackages.length > 0
     ? settings.shoeCarePackages
     : PACKAGES;
 
-  const salespersons = settings?.employees?.length > 0 ? settings.employees : [
-    { id: 'SP-001', name: 'Arvind Kumar Shukla', role: 'Store Lead & Chief Inspector' },
-    { id: 'SP-002', name: 'Pooja Sharma', role: 'Boutique Specialist' },
-    { id: 'SP-003', name: 'Rahul Deshmukh', role: 'Senior Artisan & Cordwainer' },
-    { id: 'SP-004', name: 'Amit Patel', role: 'Associate Intake Specialist' }
-  ];
+  const salespersons = settings?.employees?.length > 0 ? settings.employees : SALESPERSONS;
 
   const insurancePlans = settings?.insurancePlans?.length > 0 ? settings.insurancePlans : [
     { id: 'basic', name: 'Basic Care Cover', price: 499, description: '1 Year accidental scuff cover & minor stitching repairs' },
@@ -190,10 +189,14 @@ export default function NewRepair() {
   // Form Fields State
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('+91 ');
+  const [showDropdown, setShowDropdown] = useState(true);
   const [clientEmail, setClientEmail] = useState('');
   const [shoeColor, setShoeColor] = useState('');
   
-  const [salesperson, setSalesperson] = useState(SALESPERSONS[0]);
+  const [salesperson, setSalesperson] = useState(() => {
+    const list = settings?.employees?.length > 0 ? settings.employees : SALESPERSONS;
+    return list[0];
+  });
   const [customSalespersonName, setCustomSalespersonName] = useState('');
 
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -229,6 +232,12 @@ export default function NewRepair() {
   // Terms and notes
   const [notes, setNotes] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(true);
+
+  // Expected Delivery Date (Default 10 days from now in YYYY-MM-DD)
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(() => {
+    const defaultDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    return defaultDate.toISOString().split('T')[0];
+  });
 
   // Live Calculations
   const getPackageCost = () => {
@@ -407,7 +416,7 @@ export default function NewRepair() {
       status: 'Received' as const,
       shoeIcon: 'default',
       price: getGrandTotal(),
-      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      dueDate: new Date(expectedDeliveryDate).toISOString(),
       receivedBy: salespersonNameVal,
       addonType: plusItems.length > 0 ? 'Shoe Plus Bundle' : '',
       addonPrice: getPlusItemsTotal(),
@@ -572,6 +581,14 @@ Thank you for trusting Cordwainers Studio!
               <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Customer</p>
               <p className="text-sm font-black uppercase tracking-tight" style={{ color: '#1A1A1A' }}>{ticket.customerName}</p>
               <p className="text-[10px] font-medium" style={{ color: '#6B7280' }}>{ticket.phoneNumber}</p>
+              {ticket.dueDate && (
+                <div className="pt-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Expected Delivery</p>
+                  <p className="text-[11px] font-black text-amber-600 uppercase tracking-wide">
+                    {format(new Date(ticket.dueDate), 'dd MMM yyyy')}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="text-right space-y-1">
               <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Date / Time</p>
@@ -666,6 +683,25 @@ Thank you for trusting Cordwainers Studio!
               <span>Balance Payable</span>
               <span style={{ fontFamily: 'Outfit, sans-serif' }}>₹{(ticket.balance || 0).toLocaleString()}</span>
             </div>
+          </div>
+
+          {/* Shoe Care Tip Section */}
+          <div className="p-4 rounded-xl border border-dashed text-left space-y-1" style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' }}>
+            <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: '#92400E' }}>✦ Meticulous Care Recommendation</p>
+            <p className="text-[10px] font-medium leading-relaxed" style={{ color: '#4B5563' }}>
+              {(() => {
+                const tips = [
+                  "Store your luxury leather footwear in soft cotton shoe bags to protect them from dust and moisture.",
+                  "Never dry wet leather shoes near a direct heat source or radiator, as this can cause the leather to stiffen and crack.",
+                  "Use cedar shoe trees after every wear to absorb ambient moisture, maintain original shape, and reduce creasing.",
+                  "Apply premium wax polish once every two weeks to establish a safe, water-resistant outer barrier.",
+                  "For suede footwear, always use a specialized crepe brush to gently lift and restore the nap of the material.",
+                  "Allow your handcrafted footwear to rest for at least 24 hours between wears to let the natural moisture evaporate."
+                ];
+                const index = ticket.invoiceNumber ? (ticket.invoiceNumber.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % tips.length) : 0;
+                return tips[index];
+              })()}
+            </p>
           </div>
 
           {/* Footer Terms */}
@@ -763,7 +799,7 @@ Thank you for trusting Cordwainers Studio!
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 print:bg-white print:p-0 print:space-y-0 print:pb-0">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300 print:bg-white print:p-0 print:space-y-0 print:pb-0">
       
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1">
@@ -936,6 +972,91 @@ Thank you for trusting Cordwainers Studio!
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="sm:col-span-2 relative">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Mobile Hub *</label>
+                        <div className="relative group">
+                          <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Phone className="w-4 h-4" /></span>
+                          <input
+                            required
+                            type="tel"
+                            placeholder="+91 98765 43210"
+                            value={clientPhone}
+                            onChange={e => {
+                              const val = e.target.value;
+                              let updatedVal = val;
+                              if (val.startsWith('+91 ')) {
+                                updatedVal = val;
+                              } else if (val === '+91' || val === '+9' || val === '+') {
+                                updatedVal = '+91 ';
+                              } else if (!val.startsWith('+')) {
+                                updatedVal = '+91 ' + val;
+                              }
+                              setClientPhone(updatedVal);
+                              setShowDropdown(true);
+
+                              // Search and auto-populate if there is an exact match (last 10 digits)
+                              const cleanVal = updatedVal.replace(/\D/g, '');
+                              const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                              if (searchDigits.length >= 10) {
+                                const exactMatch = customers.find(c => {
+                                  const cleanC = c.phoneNumber.replace(/\D/g, '');
+                                  const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                                  return matchDigits.endsWith(searchDigits) || searchDigits.endsWith(matchDigits);
+                                });
+                                if (exactMatch) {
+                                  setClientName(exactMatch.name);
+                                  if (exactMatch.email) setClientEmail(exactMatch.email);
+                                }
+                              }
+                            }}
+                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
+                          />
+                        </div>
+                        {/* Auto-suggest dropdown of matching customers from the directory */}
+                        {(() => {
+                          const cleanVal = clientPhone.replace(/\D/g, '');
+                          const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                          if (searchDigits.length >= 3) {
+                            const matches = customers.filter(c => {
+                              const cleanC = c.phoneNumber.replace(/\D/g, '');
+                              const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                              return matchDigits.includes(searchDigits);
+                            });
+                            if (showDropdown && matches.length > 0) {
+                              return (
+                                <div className="absolute z-50 left-0 right-0 mt-2 bg-[#F5F3EC] border border-brand-border rounded-2xl shadow-xl max-h-48 overflow-y-auto divide-y divide-brand-border/40 p-1">
+                                  <div className="px-4 py-1.5 text-[9px] font-black text-brand-muted uppercase tracking-widest bg-brand-bg/30 rounded-t-xl">
+                                    Existing Customer Profiles Found
+                                  </div>
+                                  {matches.map(c => (
+                                    <button
+                                      key={c.phoneNumber}
+                                      type="button"
+                                      onClick={() => {
+                                        setClientPhone(c.phoneNumber);
+                                        setClientName(c.name);
+                                        if (c.email) setClientEmail(c.email);
+                                        setShowDropdown(false);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-brand-bg/60 transition-colors flex items-center justify-between group"
+                                    >
+                                      <div>
+                                        <p className="text-xs font-black text-brand-dark group-hover:text-brand-accent transition-colors">{c.name}</p>
+                                        <p className="text-[10px] text-brand-muted font-bold font-mono">{c.phoneNumber}</p>
+                                      </div>
+                                      <span className="text-[9px] font-black uppercase tracking-wider text-brand-accent bg-brand-accent/10 px-2 py-0.5 rounded-full">
+                                        Select
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            }
+                          }
+                          return null;
+                        })()}
+                      </div>
+
                       <div className="sm:col-span-2">
                         <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Full Name (Handwritten Registry) *</label>
                         <div className="relative group">
@@ -951,31 +1072,7 @@ Thank you for trusting Cordwainers Studio!
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Mobile Hub *</label>
-                        <div className="relative group">
-                          <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Phone className="w-4 h-4" /></span>
-                          <input
-                            required
-                            type="tel"
-                            placeholder="+91 98765 43210"
-                            value={clientPhone}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val.startsWith('+91 ')) {
-                                setClientPhone(val);
-                              } else if (val === '+91' || val === '+9' || val === '+') {
-                                setClientPhone('+91 ');
-                              } else if (!val.startsWith('+')) {
-                                setClientPhone('+91 ' + val);
-                              }
-                            }}
-                            className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Email Archive</label>
                         <div className="relative group">
                           <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Mail className="w-4 h-4" /></span>
@@ -997,52 +1094,55 @@ Thank you for trusting Cordwainers Studio!
                       Store Representative (Salesperson)
                     </h3>
                     
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {salespersons.map(sp => {
-                        const isSelected = salesperson.id === sp.id && !customSalespersonName;
-                        return (
-                          <button
-                            key={sp.id}
-                            type="button"
-                            onClick={() => {
-                              setSalesperson(sp);
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors">
+                        <User className="w-4 h-4" />
+                      </span>
+                      <select
+                        value={customSalespersonName ? "CUSTOM" : salesperson.id}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "CUSTOM") {
+                            setCustomSalespersonName("New Representative");
+                          } else {
+                            const selected = salespersons.find(sp => sp.id === val);
+                            if (selected) {
+                              setSalesperson(selected);
                               setCustomSalespersonName('');
-                            }}
-                            className={clsx(
-                              "flex flex-col items-center p-3.5 rounded-xl border transition-all text-center space-y-2",
-                              isSelected 
-                                ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.02] font-bold"
-                                : "border-brand-border bg-white hover:bg-brand-bg/30 text-brand-muted"
-                            )}
-                          >
-                            <div className={clsx(
-                              "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
-                              isSelected ? "bg-white/10 border-white/20" : "bg-brand-bg/50 border-brand-border/40"
-                            )}>
-                              <User className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className={clsx("text-[11px] leading-tight font-semibold", isSelected ? "text-white" : "text-brand-dark")}>{sp.name.split(' ')[0]}</p>
-                              <p className={clsx("text-[9px] tracking-tight mt-0.5", isSelected ? "text-white/60" : "text-brand-muted")}>{sp.role.split(' ')[0]}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                            }
+                          }
+                        }}
+                        className="w-full bg-white border border-brand-border rounded-full pl-14 pr-10 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark appearance-none"
+                      >
+                        {salespersons.map(sp => (
+                          <option key={sp.id} value={sp.id}>
+                            {sp.name} — {sp.role}
+                          </option>
+                        ))}
+                        <option value="CUSTOM">Other Representative (Custom Name)...</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-6 text-brand-muted">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                        </svg>
+                      </div>
                     </div>
 
                     {/* Custom Representative option */}
-                    <div className="bg-brand-bg/20 p-4 border border-brand-border rounded-xl space-y-3">
-                      <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Or Register Custom Salesperson</label>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <input
-                          type="text"
-                          placeholder="Representative Name"
-                          value={customSalespersonName}
-                          onChange={e => setCustomSalespersonName(e.target.value)}
-                          className="flex-1 border border-brand-border rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand-dark focus:outline-none bg-white"
-                        />
+                    {customSalespersonName !== '' && (
+                      <div className="bg-brand-bg/20 p-4 border border-brand-border rounded-xl space-y-3">
+                        <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Representative Name</label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <input
+                            type="text"
+                            placeholder="Representative Name"
+                            value={customSalespersonName === "New Representative" ? "" : customSalespersonName}
+                            onChange={e => setCustomSalespersonName(e.target.value)}
+                            className="flex-1 border border-brand-border rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand-dark focus:outline-none bg-white font-bold text-brand-dark"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                 </div>
@@ -1219,6 +1319,61 @@ Thank you for trusting Cordwainers Studio!
                           )}
                         </div>
                       </div>
+
+                      {/* Expected Delivery Date selection */}
+                      <div className="pt-6 border-t border-brand-border/60 space-y-4">
+                        <div>
+                          <h4 className="font-display text-md font-bold text-brand-dark">
+                            Expected Delivery Date
+                          </h4>
+                          <p className="text-[10px] text-brand-muted uppercase tracking-wider font-semibold">Define when the footwear is expected to be ready for collection</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Quick Presets */}
+                          <div className="md:col-span-2 space-y-2">
+                            <label className="block text-[9px] font-black text-brand-muted uppercase tracking-widest ml-1">Speed Presets</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { label: 'Overnight (1d)', days: 1 },
+                                { label: 'Express (3d)', days: 3 },
+                                { label: 'Standard (10d)', days: 10 },
+                              ].map((preset) => {
+                                const calculatedDate = new Date(Date.now() + preset.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                                const isPresetSelected = expectedDeliveryDate === calculatedDate;
+                                return (
+                                  <button
+                                    key={preset.days}
+                                    type="button"
+                                    onClick={() => setExpectedDeliveryDate(calculatedDate)}
+                                    className={clsx(
+                                      "py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center",
+                                      isPresetSelected
+                                        ? "bg-brand-dark border-brand-dark text-white shadow-sm"
+                                        : "bg-white border-brand-border hover:bg-brand-bg/30 text-brand-dark"
+                                    )}
+                                  >
+                                    {preset.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Date Picker */}
+                          <div className="space-y-2">
+                            <label className="block text-[9px] font-black text-brand-muted uppercase tracking-widest ml-1">Custom Delivery Date</label>
+                            <input
+                              type="date"
+                              value={expectedDeliveryDate}
+                              onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="w-full border border-brand-border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-dark bg-white font-bold text-brand-dark"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 )}

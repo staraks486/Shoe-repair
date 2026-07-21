@@ -32,7 +32,8 @@ import {
   Upload,
   Archive,
   X,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import { checkNotificationPermission, requestNotificationPermission } from '../lib/notifications';
 
@@ -126,6 +127,74 @@ export default function Settings() {
     deleteBackupRecord
   } = useAppStore();
   const [activeTab, setActiveTab] = useState('Store');
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    displayName: '',
+    username: '',
+    email: '',
+    mobile: '',
+    password: '',
+    role: 'Staff' as 'Admin' | 'Staff'
+  });
+  const [addUserError, setAddUserError] = useState<string | null>(null);
+
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddUserError(null);
+
+    const displayName = newUserForm.displayName.trim();
+    const username = newUserForm.username.trim().toLowerCase().replace(/\s+/g, '');
+    const email = newUserForm.email.trim().toLowerCase();
+    const mobile = newUserForm.mobile.trim();
+    const password = newUserForm.password;
+    const role = newUserForm.role;
+
+    if (!displayName || !username || !email || !password) {
+      setAddUserError('Display Name, Username, Email, and Password are required.');
+      return;
+    }
+
+    const currentCreds = settings.userCredentials || [];
+    
+    // Check duplicate username
+    if (currentCreds.some(c => c.username?.toLowerCase() === username)) {
+      setAddUserError('An account with this username already exists.');
+      return;
+    }
+
+    // Check duplicate email
+    if (currentCreds.some(c => c.email.toLowerCase() === email)) {
+      setAddUserError('An account with this email address already exists.');
+      return;
+    }
+
+    // Add new credential
+    const updatedCreds = [
+      ...currentCreds,
+      {
+        displayName,
+        username,
+        email,
+        mobile,
+        password,
+        role
+      }
+    ];
+
+    updateSettings({ userCredentials: updatedCreds });
+    
+    // Reset form and close
+    setNewUserForm({
+      displayName: '',
+      username: '',
+      email: '',
+      mobile: '',
+      password: '',
+      role: 'Staff'
+    });
+    setShowAddUserModal(false);
+  };
+
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
@@ -374,7 +443,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="flex flex-col items-center justify-center text-center">
           <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Settings</h2>
@@ -842,6 +911,54 @@ export default function Settings() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      
+                      {/* Avatar preview and URL input */}
+                      <div className="md:col-span-2 flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-brand-border/40">
+                        <div className="w-20 h-20 rounded-full border border-brand-border overflow-hidden bg-brand-bg flex-shrink-0 flex items-center justify-center shadow-inner">
+                          {emp.avatarUrl ? (
+                            <img src={emp.avatarUrl} alt={emp.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <User className="w-8 h-8 text-brand-muted" />
+                          )}
+                        </div>
+                        <div className="flex-1 w-full space-y-2">
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Profile Photo / Avatar URL</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={emp.avatarUrl || ''} 
+                              placeholder="https://images.unsplash.com/... or paste any image URL" 
+                              onChange={(e) => {
+                                const newItems = [...settings.employees];
+                                newItems[index].avatarUrl = e.target.value;
+                                updateSettings({ employees: newItems });
+                              }} 
+                              className="flex-1 bg-white border border-brand-border rounded-full px-6 py-2.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const defaultAvatars = [
+                                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
+                                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
+                                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop",
+                                  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
+                                  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop",
+                                  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"
+                                ];
+                                const avatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
+                                const newItems = [...settings.employees];
+                                newItems[index].avatarUrl = avatar;
+                                updateSettings({ employees: newItems });
+                              }}
+                              className="px-4 py-2 bg-brand-bg hover:bg-brand-dark hover:text-white text-brand-dark border border-brand-border rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
+                            >
+                              Auto Photo
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name</label>
                         <input type="text" value={emp.name || ''} onChange={(e) => {
@@ -977,16 +1094,178 @@ export default function Settings() {
                   <button 
                     type="button"
                     onClick={() => {
-                      const credentials = settings.userCredentials || [];
-                      updateSettings({
-                        userCredentials: [...credentials, { email: `staff-${Math.floor(1000 + Math.random() * 9000)}@cordwainers.local`, password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'New Assistant' }]
-                      });
+                      setAddUserError(null);
+                      setShowAddUserModal(true);
                     }} 
-                    className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all flex items-center gap-2"
+                    className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all flex items-center gap-2 cursor-pointer"
                   >
                     Create New Account
                   </button>
                 </div>
+
+                {/* Add User Modal Dialog */}
+                <AnimatePresence>
+                  {showAddUserModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: "spring", duration: 0.5 }}
+                        className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-brand-border p-8 md:p-10 relative overflow-hidden"
+                      >
+                        {/* Decorative Background */}
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-[#F5F3EC] rounded-full filter blur-3xl opacity-50 -z-10" />
+                        
+                        <div className="flex items-center justify-between border-b border-brand-border pb-5 mb-6">
+                          <div>
+                            <h4 className="text-base font-black text-brand-dark tracking-tight">Create Staff Account</h4>
+                            <p className="text-xs text-brand-muted font-medium mt-1">Register a new studio artisan or administrator</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddUserModal(false)}
+                            className="p-2.5 hover:bg-brand-bg rounded-full border border-transparent hover:border-brand-border transition-all cursor-pointer"
+                          >
+                            <X className="w-5 h-5 text-brand-dark" />
+                          </button>
+                        </div>
+
+                        {addUserError && (
+                          <div className="mb-5 p-4 bg-red-50 border border-red-100 rounded-2xl text-xs font-bold text-red-800 flex items-start gap-2.5">
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                            <p>{addUserError}</p>
+                          </div>
+                        )}
+
+                        <form onSubmit={handleAddUser} className="space-y-5">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            {/* Full Name */}
+                            <div className="space-y-1.5">
+                              <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                Full Name
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Liam Cobbler"
+                                value={newUserForm.displayName}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, displayName: e.target.value })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all placeholder:text-brand-muted/40"
+                              />
+                            </div>
+
+                            {/* Login Username */}
+                            <div className="space-y-1.5">
+                              <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                Login Username
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. liam123"
+                                value={newUserForm.username}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all placeholder:text-brand-muted/40 font-mono"
+                              />
+                            </div>
+
+                            {/* Email Address */}
+                            <div className="space-y-1.5">
+                              <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                Email Address
+                              </label>
+                              <input
+                                type="email"
+                                required
+                                placeholder="e.g. liam@cordwainers.com"
+                                value={newUserForm.email}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all placeholder:text-brand-muted/40"
+                              />
+                            </div>
+
+                            {/* Mobile Number */}
+                            <div className="space-y-1.5">
+                              <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                Mobile Number
+                              </label>
+                              <input
+                                type="tel"
+                                placeholder="e.g. +91 9876543210"
+                                value={newUserForm.mobile}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, mobile: e.target.value })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all placeholder:text-brand-muted/40"
+                              />
+                            </div>
+
+                            {/* Password */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between pr-2">
+                                <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                  Password
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+                                    let randPassword = "";
+                                    for (let i = 0; i < 12; i++) {
+                                      randPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+                                    }
+                                    setNewUserForm({ ...newUserForm, password: randPassword });
+                                  }}
+                                  className="text-[9px] font-black text-brand-accent uppercase tracking-wider cursor-pointer hover:underline"
+                                >
+                                  Generate
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                required
+                                placeholder="Min 6 characters"
+                                value={newUserForm.password}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-bold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all placeholder:text-brand-muted/40 font-mono text-brand-accent"
+                              />
+                            </div>
+
+                            {/* Role */}
+                            <div className="space-y-1.5">
+                              <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest ml-3">
+                                Account Role
+                              </label>
+                              <select
+                                value={newUserForm.role}
+                                onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as 'Admin' | 'Staff' })}
+                                className="w-full bg-[#F5F3EC]/70 border border-brand-border rounded-2xl px-5 py-3.5 text-xs text-brand-dark font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all cursor-pointer"
+                              >
+                                <option value="Staff">Staff (Read-Only/Limited)</option>
+                                <option value="Admin">Admin (Full Access)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-brand-border mt-6">
+                            <button
+                              type="button"
+                              onClick={() => setShowAddUserModal(false)}
+                              className="px-6 py-3.5 bg-brand-bg hover:bg-brand-border/30 border border-brand-border text-brand-dark rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="px-8 py-3.5 bg-brand-dark hover:bg-brand-olive text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer hover:shadow-lg active:scale-[0.98]"
+                            >
+                              Add Staff Account
+                            </button>
+                          </div>
+                        </form>
+                      </motion.div>
+                    </div>
+                  )}
+                </AnimatePresence>
 
                 <div className="grid grid-cols-1 gap-6">
                   {(settings.userCredentials || []).map((cred, index) => (
@@ -999,7 +1278,7 @@ export default function Settings() {
                       }}
                       confirmMessage={`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`}
                     >
-                      <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
+                      <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full rounded-3xl border border-brand-border/40 shadow-sm hover:shadow-md transition-all">
                         <button 
                           type="button"
                           onClick={() => {
@@ -1013,14 +1292,52 @@ export default function Settings() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                        
                         <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Display Name (Username)</label>
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name (Display Name)</label>
                           <input type="text" value={cred.displayName || ''} onChange={(e) => {
                             const newCreds = [...(settings.userCredentials || [])];
                             newCreds[index].displayName = e.target.value;
                             updateSettings({ userCredentials: newCreds });
-                          }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. jsmith" />
+                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. John Doe" />
                         </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Login Username (Unique)</label>
+                          <input type="text" value={cred.username || ''} onChange={(e) => {
+                            const newCreds = [...(settings.userCredentials || [])];
+                            newCreds[index].username = e.target.value.toLowerCase().replace(/\s+/g, '');
+                            updateSettings({ userCredentials: newCreds });
+                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold font-mono" placeholder="e.g. johndoe" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+                          <input type="email" value={cred.email} onChange={(e) => {
+                            const newCreds = [...(settings.userCredentials || [])];
+                            newCreds[index].email = e.target.value;
+                            updateSettings({ userCredentials: newCreds });
+                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. john@cordwainers.com" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Mobile Number</label>
+                          <input type="tel" value={cred.mobile || ''} onChange={(e) => {
+                            const newCreds = [...(settings.userCredentials || [])];
+                            newCreds[index].mobile = e.target.value;
+                            updateSettings({ userCredentials: newCreds });
+                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. +91 9876543210" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Change Password</label>
+                          <input type="text" value={cred.password || ''} onChange={(e) => {
+                            const newCreds = [...(settings.userCredentials || [])];
+                            newCreds[index].password = e.target.value;
+                            updateSettings({ userCredentials: newCreds });
+                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold" placeholder="Change Password" />
+                        </div>
+
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Account Role</label>
                           <select 
@@ -1030,27 +1347,11 @@ export default function Settings() {
                               newCreds[index].role = e.target.value as 'Admin' | 'Staff';
                               updateSettings({ userCredentials: newCreds });
                             }} 
-                            className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold"
+                            className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold"
                           >
                             <option value="Admin">Admin (Full Access)</option>
                             <option value="Staff">Staff (Read-Only/Limited)</option>
                           </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email</label>
-                          <input type="email" value={cred.email} onChange={(e) => {
-                            const newCreds = [...(settings.userCredentials || [])];
-                            newCreds[index].email = e.target.value;
-                            updateSettings({ userCredentials: newCreds });
-                          }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Access Password</label>
-                          <input type="text" value={cred.password || ''} onChange={(e) => {
-                            const newCreds = [...(settings.userCredentials || [])];
-                            newCreds[index].password = e.target.value;
-                            updateSettings({ userCredentials: newCreds });
-                          }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold" placeholder="Password" />
                         </div>
                       </div>
                     </SwipeToDelete>

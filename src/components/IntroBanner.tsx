@@ -159,7 +159,7 @@ export default function IntroBanner() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-brand-dark text-white p-8 md:p-10 rounded-[2.5rem] mb-10 shadow-xl relative overflow-hidden group"
+      className="bg-brand-dark text-white p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] mb-10 shadow-xl relative overflow-hidden group"
     >
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/10 rounded-full blur-[80px] -mr-32 -mt-32 group-hover:bg-brand-accent/20 transition-all duration-700" />

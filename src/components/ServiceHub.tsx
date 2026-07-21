@@ -1,8 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
-  ChevronRight, 
   CloudLightning, 
   Wifi, 
   WifiOff, 
@@ -11,17 +9,8 @@ import {
   Instagram, 
   Facebook, 
   Linkedin, 
-  Globe,
-  Package,
-  Users,
-  ShieldCheck,
-  Zap,
-  Gift,
-  CreditCard,
-  Calendar,
-  Settings
+  Globe
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useAppStore } from '../store';
 import clsx from 'clsx';
 import ArtisanSoundscape from './ArtisanSoundscape';
@@ -31,7 +20,6 @@ interface ServiceHubProps {
 }
 
 export default function ServiceHub({ onItemClick }: ServiceHubProps = {}) {
-  const navigate = useNavigate();
   const { 
     settings, 
     updateSettings, 
@@ -49,17 +37,6 @@ export default function ServiceHub({ onItemClick }: ServiceHubProps = {}) {
     }
   };
 
-  const moreHubItems = [
-    { to: '/inventory', icon: Package, label: 'Inventory', desc: 'Manage artisan stock & materials' },
-    { to: '/customers', icon: Users, label: 'Customers', desc: 'Artisan client archive & CRM' },
-    { to: '/insurance', icon: ShieldCheck, label: 'Insurance', desc: 'Protection plans & coverage' },
-    { to: '/cobbler-desk', icon: Zap, label: 'Cobbler Desk', desc: 'Real-time production management' },
-    { to: '/offers', icon: Gift, label: 'Offers', desc: 'Loyalty programs & seasonal deals' },
-    { to: '/socials-payments', icon: CreditCard, label: 'Payments', desc: 'Financial tracking & social links' },
-    { to: '/appointments', icon: Calendar, label: 'Appointments', desc: 'Visit scheduling & availability' },
-    { to: '/settings', icon: Settings, label: 'Settings', desc: 'Configure store, staff, & parameters' }
-  ];
-
   return (
     <div className="space-y-8">
       {/* Service Hub Section Header */}
@@ -69,32 +46,8 @@ export default function ServiceHub({ onItemClick }: ServiceHubProps = {}) {
         </div>
         <div>
           <h3 className="font-display font-black text-xl text-brand-dark uppercase tracking-tight">Service Hub</h3>
-          <p className="text-[10px] text-brand-muted uppercase tracking-widest font-bold">Extended Management Portal</p>
+          <p className="text-[10px] text-brand-muted uppercase tracking-widest font-bold">Connectivity & Focus Utilities</p>
         </div>
-      </div>
-
-      {/* Quick Hub Grid Menu Links */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {moreHubItems.map((item, idx) => (
-          <button
-            key={item.to}
-            type="button"
-            onClick={() => {
-              navigate(item.to);
-              onItemClick?.();
-            }}
-            className="group w-full text-left p-4 rounded-[20px] bg-white border border-brand-border hover:border-brand-accent hover:shadow-premium transition-all flex items-center gap-4 active:scale-[0.98]"
-          >
-            <div className="w-10 h-10 rounded-xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-olive group-hover:bg-brand-olive group-hover:text-white transition-all shadow-sm">
-              <item.icon className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-[10px] font-black text-brand-dark uppercase tracking-tight leading-tight">{item.label}</h4>
-              <p className="text-[9px] text-brand-muted mt-0.5 font-bold uppercase tracking-tighter opacity-60 truncate">{item.desc}</p>
-            </div>
-            <ChevronRight className="w-3 h-3 text-brand-muted group-hover:translate-x-1 transition-transform opacity-30" />
-          </button>
-        ))}
       </div>
 
       {/* Artisan Soundscapes Focus Generator */}

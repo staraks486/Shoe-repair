@@ -12,7 +12,7 @@ export default function StatusDistribution({ repairs }: StatusDistributionProps)
 
   const distribution = [
     { label: 'Pending', status: 'Received', color: 'bg-amber-400' },
-    { label: 'In Progress', status: 'In Progress', color: 'bg-blue-500' },
+    { label: 'In Progress', status: 'In Progress', color: 'bg-[#B89C72]' },
     { label: 'Polishing', status: 'Polishing', color: 'bg-purple-500' },
     { label: 'Ready', status: 'Completed', color: 'bg-green-500' },
     { label: 'Delivered', status: 'Delivered', color: 'bg-slate-400' },

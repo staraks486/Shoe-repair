@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Calendar, Save, LogOut, Camera, Sparkles } from 'lucide-react';
+import { X, User, Calendar, Sliders, LogOut, Camera, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +89,14 @@ export default function ProfileOverlay({ isOpen, onClose }: ProfileOverlayProps)
                   <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl backdrop-blur-sm">
                     <Calendar className="w-3.5 h-3.5 text-brand-accent" />
                     <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/80">
-                      Partner since {format(new Date(user.metadata.creationTime || Date.now()), 'MMMM yyyy')}
+                      Partner since {(() => {
+                        const dateStr = user.metadata?.creationTime || userProfile?.createdAt || new Date().toISOString();
+                        try {
+                          return format(new Date(dateStr), 'MMMM yyyy');
+                        } catch (e) {
+                          return format(new Date(), 'MMMM yyyy');
+                        }
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -107,14 +114,25 @@ export default function ProfileOverlay({ isOpen, onClose }: ProfileOverlayProps)
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-brand-bg flex items-center justify-center text-brand-olive group-hover:bg-brand-olive group-hover:text-white transition-all">
-                        <Save className="w-5 h-5" />
+                        <Sliders className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">Studio Preferences</span>
                     </div>
                   </button>
                 )}
                 <button 
-                  onClick={() => auth.signOut()}
+                  onClick={async () => {
+                    try {
+                      if (auth) {
+                        await auth.signOut();
+                      }
+                    } catch (err) {
+                      console.error("Logout failed", err);
+                    } finally {
+                      useAppStore.getState().setUser(null);
+                      onClose();
+                    }
+                  }}
                   className="p-5 rounded-2xl border border-brand-border bg-white hover:border-red-200 hover:bg-red-50/30 transition-all text-left flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-4">

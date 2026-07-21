@@ -116,7 +116,7 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
   const getStatusColor = (status: RepairStatus) => {
     switch (status) {
       case 'Received': return 'bg-amber-500';
-      case 'In Progress': return 'bg-blue-500';
+      case 'In Progress': return 'bg-[#B89C72]';
       case 'Polishing': return 'bg-purple-500';
       case 'Completed': return 'bg-green-500';
       case 'Delivered': return 'bg-slate-500';

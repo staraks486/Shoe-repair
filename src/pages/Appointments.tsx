@@ -43,7 +43,7 @@ export default function Appointments() {
     switch (status) {
       case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'Confirmed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Completed': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Completed': return 'bg-[#F4EBE1] text-[#8C6239] border-[#E3D3C1]';
       case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
@@ -72,7 +72,7 @@ export default function Appointments() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       {/* HEADER: Standardized Artisan style */}
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1 flex flex-col items-center justify-center text-center">
@@ -240,8 +240,8 @@ export default function Appointments() {
                     </div>
 
                     <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                      <div className="p-2 bg-blue-500/20 rounded-xl">
-                        <Phone className="w-5 h-5 text-blue-400" />
+                      <div className="p-2 bg-[#B89C72]/20 rounded-xl">
+                        <Phone className="w-5 h-5 text-[#B89C72]" />
                       </div>
                       <div>
                         <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Phone</p>

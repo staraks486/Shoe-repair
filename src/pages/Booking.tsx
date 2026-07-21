@@ -35,7 +35,7 @@ const SERVICE_TYPES = [
 ] as const;
 
 export default function Booking() {
-  const { addAppointment } = useAppStore();
+  const { addAppointment, customers } = useAppStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -344,52 +344,119 @@ export default function Booking() {
                   <p className="text-xs font-bold text-brand-muted">Provide your contact details to receive the artisan ticket.</p>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Full Name</label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          type="text"
-                          required
-                          value={formData.customerName}
-                          onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                          className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
-                          placeholder="John Artisan"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Mobile Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          type="tel"
-                          required
-                          value={formData.phone}
-                          onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
-                          placeholder="+91 98765 43210"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                 <div className="space-y-5">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="sm:col-span-2 space-y-2 relative">
+                       <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Mobile Number *</label>
+                       <div className="relative group">
+                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                         <input
+                           type="tel"
+                           required
+                           value={formData.phone}
+                           onChange={e => {
+                             const val = e.target.value;
+                             setFormData(prev => ({ ...prev, phone: val }));
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
-                        placeholder="artisan@cordwainers.com"
-                      />
-                    </div>
-                  </div>
+                             // Check if exact match exists in customer directory
+                             const cleanVal = val.replace(/\D/g, '');
+                             const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                             if (searchDigits.length >= 10) {
+                               const exactMatch = customers.find(c => {
+                                 const cleanC = c.phoneNumber.replace(/\D/g, '');
+                                 const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                                 return matchDigits.endsWith(searchDigits) || searchDigits.endsWith(matchDigits);
+                               });
+                               if (exactMatch) {
+                                 setFormData(prev => ({
+                                   ...prev,
+                                   customerName: exactMatch.name,
+                                   email: exactMatch.email || prev.email
+                                 }));
+                               }
+                             }
+                           }}
+                           className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
+                           placeholder="+91 98765 43210"
+                         />
+                       </div>
+                       {/* Dropdown list for matching customers */}
+                       {(() => {
+                         const cleanVal = formData.phone.replace(/\D/g, '');
+                         const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                         if (searchDigits.length >= 3) {
+                           const matches = customers.filter(c => {
+                             const cleanC = c.phoneNumber.replace(/\D/g, '');
+                             const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                             return matchDigits.includes(searchDigits);
+                           });
+                           if (matches.length > 0) {
+                             return (
+                               <div className="absolute z-50 left-0 right-0 mt-2 bg-[#F5F3EC] border border-brand-border rounded-2xl shadow-xl max-h-48 overflow-y-auto divide-y divide-brand-border/40 p-1">
+                                 <div className="px-4 py-1.5 text-[9px] font-black text-brand-muted uppercase tracking-widest bg-brand-bg/30 rounded-t-xl">
+                                   Existing Customer Profiles Found
+                                 </div>
+                                 {matches.map(c => (
+                                   <button
+                                     key={c.phoneNumber}
+                                     type="button"
+                                     onClick={() => {
+                                       setFormData(prev => ({
+                                         ...prev,
+                                         phone: c.phoneNumber,
+                                         customerName: c.name,
+                                         email: c.email || prev.email
+                                       }));
+                                     }}
+                                     className="w-full text-left px-4 py-2.5 hover:bg-brand-bg/60 transition-colors flex flex-row items-center justify-between group"
+                                   >
+                                     <div>
+                                       <p className="text-xs font-black text-brand-dark group-hover:text-brand-accent transition-colors">{c.name}</p>
+                                       <p className="text-[10px] text-brand-muted font-bold font-mono">{c.phoneNumber}</p>
+                                     </div>
+                                     <span className="text-[9px] font-black uppercase tracking-wider text-brand-accent bg-brand-accent/10 px-2 py-0.5 rounded-full">
+                                       Select
+                                     </span>
+                                   </button>
+                                 ))}
+                                </div>
+                             );
+                           }
+                         }
+                         return null;
+                       })()}
+                     </div>
+
+                     <div className="sm:col-span-2 space-y-2">
+                       <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Full Name *</label>
+                       <div className="relative">
+                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                         <input
+                           type="text"
+                           required
+                           value={formData.customerName}
+                           onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                           className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
+                           placeholder="John Artisan"
+                         />
+                       </div>
+                     </div>
+                   </div>
+
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Email Address</label>
+                     <div className="relative">
+                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                       <input
+                         type="email"
+                         required
+                         value={formData.email}
+                         onChange={e => setFormData({ ...formData, email: e.target.value })}
+                         className="w-full bg-brand-bg border-brand-border rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-brand-accent"
+                         placeholder="artisan@cordwainers.com"
+                       />
+                     </div>
+                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-brand-dark uppercase tracking-widest ml-1">Footwear Notes (Optional)</label>

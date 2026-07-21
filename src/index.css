@@ -10,7 +10,7 @@
   --color-brand-surface: #FFFFFF;
   --color-brand-dark: #1A1A1A;
   --color-brand-dark-surface: #2D2D2D;
-  --color-brand-accent: #3B82F6;
+  --color-brand-accent: #B89C72;
   --color-brand-olive: #4B5563;
   --color-brand-muted: #6B7280;
   --color-brand-border: #E5E7EB;
@@ -70,6 +70,14 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-brand-border rounded-full hover:bg-brand-muted/20 transition-colors;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 

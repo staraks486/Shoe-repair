@@ -91,6 +91,12 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
               <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Phone:</span>
               <span>{invoice.phoneNumber}</span>
             </div>
+            {invoice.dueDate && (
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-amber-700 uppercase tracking-widest text-xs">Expected Delivery:</span>
+                <span className="font-bold text-amber-700">{new Date(invoice.dueDate).toLocaleDateString()}</span>
+              </div>
+            )}
             {invoice.receivedBy && (
               <div className="flex justify-between text-sm">
                 <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Received By:</span>
@@ -220,11 +226,30 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
                 <img src={settings.qrCode} alt="Payment QR" className="mx-auto h-32 w-32" />
               </div>
             )}
+            {/* Shoe Care Tip */}
+            <div className="my-6 p-4 rounded-xl border border-dashed text-left space-y-1" style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' }}>
+              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-amber-800">✦ Meticulous Care Recommendation</p>
+              <p className="text-[10px] font-medium leading-relaxed text-gray-600">
+                {(() => {
+                  const tips = [
+                    "Store your luxury leather footwear in soft cotton shoe bags to protect them from dust and moisture.",
+                    "Never dry wet leather shoes near a direct heat source or radiator, as this can cause the leather to stiffen and crack.",
+                    "Use cedar shoe trees after every wear to absorb ambient moisture, maintain original shape, and reduce creasing.",
+                    "Apply premium wax polish once every two weeks to establish a safe, water-resistant outer barrier.",
+                    "For suede footwear, always use a specialized crepe brush to gently lift and restore the nap of the material.",
+                    "Allow your handcrafted footwear to rest for at least 24 hours between wears to let the natural moisture evaporate."
+                  ];
+                  const index = invoice.invoiceNumber ? (invoice.invoiceNumber.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % tips.length) : 0;
+                  return tips[index];
+                })()}
+              </p>
+            </div>
+
             <div className="text-center font-bold text-brand-dark mt-4 border-t border-brand-border-dark pt-2">
               Thank you for your business!
             </div>
-            <div className="text-center text-xs text-brand-muted mt-2">
-              Due Date: {new Date(invoice.dueDate).toLocaleDateString()}
+            <div className="text-center text-xs text-brand-muted mt-2 font-bold text-amber-700">
+              Expected Delivery Date: {new Date(invoice.dueDate).toLocaleDateString()}
             </div>
           </div>
         </div>

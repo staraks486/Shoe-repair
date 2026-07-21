@@ -242,6 +242,137 @@ async function startServer() {
     }
   });
 
+  // Daily Shoe Care Tip Endpoint powered by Gemini
+  app.get("/api/shoecare/daily-tip", async (req, res) => {
+    const FALLBACK_TIPS = [
+      {
+        title: "Suede Restoration",
+        category: "Suede",
+        tip: "Never use water or standard shoe cream on suede. Instead, use a crepe brush in a single direction to raise the nap, and treat with a hydrophobic protector spray.",
+        fact: "Suede is made from the underside of the animal hide, making it softer but more delicate than full-grain leather."
+      },
+      {
+        title: "Cedar Shoe Trees",
+        category: "Storage",
+        tip: "Insert raw cedar shoe trees immediately after taking your shoes off. The natural cedar absorbs moisture, retains the shoe's shape, and deodorizes.",
+        fact: "Leather expands when damp from perspiration. Without shoe trees, it can shrink and crack as it dries."
+      },
+      {
+        title: "De-salting Winter Leather",
+        category: "Leather",
+        tip: "Mix equal parts white vinegar and water. Wipe down salt stains gently with a soft cloth, then dry naturally and apply a rich leather conditioner.",
+        fact: "Salt can dehydrate leather and create white, bubbly stains that permanently damage the leather's collagen fibers."
+      },
+      {
+        title: "The 24-Hour Rest Rule",
+        category: "General",
+        tip: "Avoid wearing the same leather shoes two days in a row. Give them at least 24 hours to air out and release absorbed perspiration.",
+        fact: "An average pair of feet produces about a cup of perspiration daily, which leather fibers absorb."
+      },
+      {
+        title: "Conditioning Welts",
+        category: "Leather",
+        tip: "When conditioning Goodyear welted shoes, pay extra attention to the welt stitching. Keeping the welt leather supple prevents it from cracking during future resole operations.",
+        fact: "A Goodyear welt is a strip of leather stitched around the lower edge of a shoe, allowing it to be resoled multiple times."
+      }
+    ];
+
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        console.warn("[GEMINI TIP] GEMINI_API_KEY is not defined. Using daily curated fallback.");
+        const dayIndex = new Date().getDate() % FALLBACK_TIPS.length;
+        return res.json({
+          success: true,
+          fallback: true,
+          tip: FALLBACK_TIPS[dayIndex],
+          message: "Secrets not yet configured. Showing a handcrafted artisan care tip!"
+        });
+      }
+
+      const { GoogleGenAI, Type } = await import("@google/genai");
+      const ai = new GoogleGenAI({
+        apiKey: apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build'
+          }
+        }
+      });
+
+      console.log("[GEMINI TIP] Retreiving daily shoe care wisdom...");
+      
+      const modelsToTry = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.5-flash"];
+      let response = null;
+      let lastError = null;
+
+      for (const modelName of modelsToTry) {
+        try {
+          console.log(`[GEMINI TIP] Querying model: ${modelName}...`);
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: "Generate a professional, highly informative, and practical shoe care tip. The tip should be actionable and focused on materials like premium leather, suede, nubuck, canvas, shell cordovan, or proper shoe storage. Keep the tip to 1-2 elegant, concise and clear sentences. Also include an interesting historical shoe fact or material science fact related to the tip.",
+            config: {
+              systemInstruction: "You are an elite Cordwainer (master shoemaker) and historic shoemaker from the guild. Your tone is refined, knowledgeable, and elegant.",
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING, description: "A catchy, elegant, and short title for the tip (3-5 words max)" },
+                  category: { type: Type.STRING, description: "One of Suede, Leather, Canvas, Storage, or General" },
+                  tip: { type: Type.STRING, description: "The actionable, professional shoe care tip (1-2 sentences)" },
+                  fact: { type: Type.STRING, description: "An interesting shoe history, etymology, or material science fact related to the tip" }
+                },
+                required: ["title", "category", "tip", "fact"]
+              }
+            }
+          });
+
+          if (response?.text) {
+            console.log(`[GEMINI TIP] Successfully completed with model: ${modelName}`);
+            break; // Success!
+          }
+        } catch (err: any) {
+          console.log(`[GEMINI TIP] Model ${modelName} returned busy status`);
+          lastError = err;
+        }
+      }
+
+      if (!response || !response.text) {
+        throw lastError || new Error("All tried models busy");
+      }
+
+      const cleanJsonText = (rawText: string): string => {
+        let cleaned = rawText.trim();
+        if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```(?:json)?\n?/i, "");
+          cleaned = cleaned.replace(/\n?```$/, "");
+        }
+        return cleaned.trim();
+      };
+
+      const text = cleanJsonText(response.text);
+      const parsedTip = JSON.parse(text);
+      console.log("[GEMINI TIP] Successfully parsed tip:", parsedTip.title);
+
+      return res.json({
+        success: true,
+        fallback: false,
+        tip: parsedTip
+      });
+
+    } catch (error: any) {
+      console.log("[GEMINI TIP] Applying premium artisan tip fallback.");
+      const dayIndex = new Date().getDate() % FALLBACK_TIPS.length;
+      return res.json({
+        success: true,
+        fallback: true,
+        tip: FALLBACK_TIPS[dayIndex],
+        message: "Applied premium artisan tip fallback."
+      });
+    }
+  });
+
   // API Routes
   app.post("/api/notify/email", async (req, res) => {
     try {

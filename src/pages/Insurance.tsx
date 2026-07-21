@@ -25,7 +25,7 @@ import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
 export default function Insurance() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { repairs, insurance, addInsurance, updateRepair, deleteInsurance, updateInsurance, settings, updateSettings } = useAppStore();
+  const { repairs, insurance, addInsurance, updateRepair, deleteInsurance, updateInsurance, settings, updateSettings, customers } = useAppStore();
   
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<'history' | 'add-cover' | 'manage-plans'>(() => {
@@ -206,7 +206,7 @@ export default function Insurance() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1 flex flex-col items-center justify-center text-center">
           <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Protection</h2>
@@ -409,17 +409,90 @@ export default function Insurance() {
                   <p className="label-xs">Bespoke Registry Admission</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="md:col-span-2 space-y-2 relative">
+                    <label className="label-xs ml-1">Secure Contact *</label>
+                    <input 
+                      required 
+                      type="tel" 
+                      name="customerPhone" 
+                      value={formData.customerPhone} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, customerPhone: val }));
+
+                        // Check if 10-digit exact match
+                        const cleanVal = val.replace(/\D/g, '');
+                        const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                        if (searchDigits.length >= 10) {
+                          const exactMatch = customers.find(c => {
+                            const cleanC = c.phoneNumber.replace(/\D/g, '');
+                            const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                            return matchDigits.endsWith(searchDigits) || searchDigits.endsWith(matchDigits);
+                          });
+                          if (exactMatch) {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              customerName: exactMatch.name, 
+                              customerEmail: exactMatch.email || prev.customerEmail 
+                            }));
+                          }
+                        }
+                      }}
+                      className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0 placeholder-brand-muted/30" 
+                      placeholder="+91 98765 43210" 
+                    />
+                    {/* Autocomplete dropdown for matching customers */}
+                    {(() => {
+                      const cleanVal = formData.customerPhone.replace(/\D/g, '');
+                      const searchDigits = cleanVal.startsWith('91') && cleanVal.length > 2 ? cleanVal.slice(2) : cleanVal;
+                      if (searchDigits.length >= 3) {
+                        const matches = customers.filter(c => {
+                          const cleanC = c.phoneNumber.replace(/\D/g, '');
+                          const matchDigits = cleanC.startsWith('91') && cleanC.length > 2 ? cleanC.slice(2) : cleanC;
+                          return matchDigits.includes(searchDigits);
+                        });
+                        if (matches.length > 0) {
+                          return (
+                            <div className="absolute z-50 left-0 right-0 mt-2 bg-[#F5F3EC] border border-brand-border rounded-2xl shadow-xl max-h-48 overflow-y-auto divide-y divide-brand-border/40 p-1">
+                              <div className="px-4 py-1.5 text-[9px] font-black text-brand-muted uppercase tracking-widest bg-brand-bg/30 rounded-t-xl">
+                                Existing Customer Profiles Found
+                              </div>
+                              {matches.map(c => (
+                                <button
+                                  key={c.phoneNumber}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      customerPhone: c.phoneNumber,
+                                      customerName: c.name,
+                                      customerEmail: c.email || prev.customerEmail
+                                    }));
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-brand-bg/60 transition-colors flex items-center justify-between group"
+                                >
+                                  <div>
+                                    <p className="text-xs font-black text-brand-dark group-hover:text-brand-accent transition-colors">{c.name}</p>
+                                    <p className="text-[10px] text-brand-muted font-bold font-mono">{c.phoneNumber}</p>
+                                  </div>
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-brand-accent bg-brand-accent/10 px-2 py-0.5 rounded-full">
+                                    Select
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                  </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="label-xs ml-1">Full Legal Name</label>
                     <input required type="text" name="customerName" value={formData.customerName} onChange={handleChange}
                       className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-lg font-bold focus:ring-0 placeholder-brand-muted/30" placeholder="Alistair Sterling" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="label-xs ml-1">Secure Contact</label>
-                    <input required type="tel" name="customerPhone" value={formData.customerPhone} onChange={handleChange}
-                      className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0 placeholder-brand-muted/30" placeholder="+1 (555) 000-0000" />
-                  </div>
-                  <div className="space-y-2">
+                  <div className="md:col-span-2 space-y-2">
                     <label className="label-xs ml-1">Digital Address</label>
                     <input type="email" name="customerEmail" value={formData.customerEmail} onChange={handleChange}
                       className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-0 placeholder-brand-muted/30" placeholder="client@estate.com" />

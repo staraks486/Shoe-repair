@@ -73,7 +73,7 @@ export default function NotificationCenter() {
       case 'success': return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'warning': return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       case 'error': return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <Info className="w-4 h-4 text-blue-500" />;
+      default: return <Info className="w-4 h-4 text-[#B89C72]" />;
     }
   };
 
