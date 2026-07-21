@@ -346,7 +346,11 @@ export const useAppStore = create<AppState>()(
             inventory: inventoryList.length > 0 ? inventoryList : state.inventory,
             insurance: insuranceList,
             appointments: appointmentsList,
-            settings: settingsObj ? { ...state.settings, ...settingsObj } : state.settings,
+            settings: settingsObj ? { 
+              ...state.settings, 
+              ...settingsObj,
+              userCredentials: settingsObj.userCredentials || state.settings.userCredentials
+            } : state.settings,
             lastSyncStatus: 'success',
             lastSyncTime: new Date().toISOString()
           }));

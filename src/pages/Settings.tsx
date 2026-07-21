@@ -1324,9 +1324,9 @@ export default function Settings() {
 
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Change Password</label>
-                          <input type="text" value={cred.password || ''} onChange={(e) => {
+                          <input type="text" value={cred.password || ''} disabled={userProfile?.role !== 'Admin'} onChange={(e) => {
                             updateUserCredential(cred.email, { password: e.target.value });
-                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold" placeholder="Change Password" />
+                          }} className={clsx("w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold", userProfile?.role !== 'Admin' && "opacity-50 cursor-not-allowed")} placeholder="Change Password" />
                         </div>
 
                         <div className="space-y-2">
