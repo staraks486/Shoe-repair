@@ -10,7 +10,8 @@ import {
   AppNotification,
   UserProfile,
   Appointment,
-  StoreDetails
+  StoreDetails,
+  UserCredential
 } from './types';
 import { NotificationService } from './services/NotificationService';
 import { db, auth } from './services/firebase';
@@ -76,6 +77,10 @@ interface AppState {
   addStore: (store: Omit<StoreDetails, 'id'>) => Promise<void>;
   updateStore: (id: string, store: Partial<StoreDetails>) => Promise<void>;
   deleteStore: (id: string) => Promise<void>;
+  
+  addUserCredential: (credential: UserCredential) => void;
+  deleteUserCredential: (email: string) => void;
+  updateUserCredential: (email: string, data: Partial<UserCredential>) => void;
   
   backups: Array<{ id: string; name: string; type: 'store' | 'app'; timestamp: string; data: any }>;
   createStoreBackup: (storeId: string) => Promise<any>;
@@ -802,6 +807,32 @@ export const useAppStore = create<AppState>()(
             safeSetDoc(doc(db, 'stores', storeId, 'settings', 'global_settings'), updatedSettings).catch(e => console.error("Firestore settings update failed", e));
           }
           return { settings: updatedSettings };
+        });
+      },
+
+      addUserCredential: (credential) => {
+        const profile = get().userProfile;
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        
+        const currentCreds = get().settings.userCredentials || [];
+        get().updateSettings({ userCredentials: [...currentCreds, credential] });
+      },
+
+      deleteUserCredential: (email) => {
+        const profile = get().userProfile;
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        
+        const currentCreds = get().settings.userCredentials || [];
+        get().updateSettings({ userCredentials: currentCreds.filter(c => c.email !== email) });
+      },
+
+      updateUserCredential: (email, data) => {
+        const profile = get().userProfile;
+        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        
+        const currentCreds = get().settings.userCredentials || [];
+        get().updateSettings({ 
+          userCredentials: currentCreds.map(c => c.email === email ? { ...c, ...data } : c) 
         });
       },
 

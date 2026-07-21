@@ -48,6 +48,7 @@ export default function Offers() {
   const [gcCode, setGcCode] = useState(() => 'GC-' + Math.floor(100000 + Math.random() * 900000));
   const [gcTheme, setGcTheme] = useState<'gold' | 'classic' | 'modern' | 'artisan'>('gold');
   const [gcMessage, setGcMessage] = useState('');
+  const [gcExpiry, setGcExpiry] = useState('');
   const [gcCustomPrompt, setGcCustomPrompt] = useState('luxurious gold embossed leather textures, vintage cordwainer logo');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
@@ -126,7 +127,8 @@ export default function Offers() {
       message: gcMessage.trim(),
       designTheme: gcTheme,
       imageUrl: generatedImageUrl || undefined,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      expiryDate: gcExpiry.trim() || undefined
     };
 
     updateSettings({
@@ -139,6 +141,7 @@ export default function Offers() {
     setGcCode('GC-' + Math.floor(100000 + Math.random() * 900000));
     setGcTheme('gold');
     setGcMessage('');
+    setGcExpiry('');
     setGeneratedImageUrl('');
     setGcError('');
     setGcSuccessMessage('Gift Card created and issued successfully!');
@@ -554,6 +557,16 @@ export default function Offers() {
                     className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-1 focus:ring-brand-accent/40"
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <label className="label-xs ml-1">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={gcExpiry}
+                    onChange={(e) => setGcExpiry(e.target.value)}
+                    className="w-full px-6 py-4 bg-brand-bg border-none rounded-[20px] text-xs font-bold focus:ring-1 focus:ring-brand-accent/40"
+                  />
+                </div>
 
                 {/* AI BACKGROUND IMAGE GENERATION */}
                 <div className="bg-brand-bg rounded-3xl p-6 border border-brand-border/40 space-y-4">
@@ -810,6 +823,11 @@ export default function Offers() {
                           <p className="font-mono text-[10px] font-black text-brand-muted tracking-widest mt-1">
                             {card.code}
                           </p>
+                          {card.expiryDate && (
+                            <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest mt-1">
+                              Expires: {new Date(card.expiryDate).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
 
                         <div className="text-right">

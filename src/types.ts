@@ -233,6 +233,7 @@ export interface GiftCard {
   designTheme: 'gold' | 'classic' | 'modern' | 'artisan';
   imageUrl?: string;
   createdAt: string;
+  expiryDate?: string;
 }
 
 export interface StoreDetails {
