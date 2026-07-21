@@ -88,7 +88,7 @@ export default function Dashboard() {
       
       {/* Calendar Deadlines & Pick-ups Track */}
       <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-        <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} />
+        <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} onViewAppointment={setViewingAppointment} />
       </section>
       
       {/* Interactive Status Pills Navigation Bar */}

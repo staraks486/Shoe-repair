@@ -25,14 +25,17 @@ import {
   Info
 } from 'lucide-react';
 import clsx from 'clsx';
-import { ShoeRepairRequest, RepairStatus } from '../types';
+import { ShoeRepairRequest, RepairStatus, Appointment } from '../types';
+import { useAppStore } from '../store';
 
 interface DashboardCalendarProps {
   repairs: ShoeRepairRequest[];
   onViewRepair: (repair: ShoeRepairRequest) => void;
+  onViewAppointment?: (appointment: Appointment) => void;
 }
 
-export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCalendarProps) {
+export default function DashboardCalendar({ repairs, onViewRepair, onViewAppointment }: DashboardCalendarProps) {
+  const { appointments } = useAppStore();
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -78,6 +81,14 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
     })).filter(r => r.parsedDueDate !== null) as (ShoeRepairRequest & { parsedDueDate: Date })[];
   }, [repairs]);
 
+  // Map appointments by date for high performance lookups
+  const appointmentsWithParsedDates = useMemo(() => {
+    return appointments.map(a => ({
+      ...a,
+      parsedDate: parseRepairDate(a.date)
+    })).filter(a => a.parsedDate !== null) as (Appointment & { parsedDate: Date })[];
+  }, [appointments]);
+
   // Filtered repairs due on selected date
   const selectedDateRepairs = useMemo(() => {
     return repairsWithParsedDates.filter(r => {
@@ -90,6 +101,13 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
       return r.status === filterStatus;
     });
   }, [repairsWithParsedDates, selectedDate, filterStatus]);
+
+  // Filtered appointments on selected date
+  const selectedDateAppointments = useMemo(() => {
+    return appointmentsWithParsedDates.filter(a => {
+      return isSameDay(a.parsedDate, selectedDate) && a.status !== 'Cancelled';
+    });
+  }, [appointmentsWithParsedDates, selectedDate]);
 
   // Aggregate stats of selected month for a quick visual overview
   const monthStats = useMemo(() => {
@@ -111,6 +129,11 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
   // Check if a day has repairs due
   const getRepairsForDay = (day: Date) => {
     return repairsWithParsedDates.filter(r => isSameDay(r.parsedDueDate, day));
+  };
+
+  // Check if a day has bookings
+  const getAppointmentsForDay = (day: Date) => {
+    return appointmentsWithParsedDates.filter(a => isSameDay(a.parsedDate, day) && a.status !== 'Cancelled');
   };
 
   const getStatusColor = (status: RepairStatus) => {
@@ -171,8 +194,11 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
           {calendarDays.map((day, idx) => {
             const isCurrentMonthDay = day.getMonth() === currentMonth.getMonth();
             const dayRepairs = getRepairsForDay(day);
+            const dayAppointments = getAppointmentsForDay(day);
             const isSelected = isSameDay(day, selectedDate);
             const isTodayDay = isToday(day);
+            const hasItems = dayRepairs.length > 0 || dayAppointments.length > 0;
+            const isFirstTwoRows = Math.floor(idx / 7) < 2;
 
             return (
               <button
@@ -192,19 +218,78 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
                   {format(day, 'd')}
                 </span>
 
-                {dayRepairs.length > 0 && (
-                  <div className="flex gap-0.5 mt-1.5">
-                    {dayRepairs.slice(0, 3).map((rep, rIdx) => (
+                {(dayRepairs.length > 0 || dayAppointments.length > 0) && (
+                  <div className="flex gap-0.5 mt-1.5 flex-wrap justify-center max-w-full">
+                    {/* Repair dots */}
+                    {dayRepairs.slice(0, 2).map((rep, rIdx) => (
                       <span
-                        key={rIdx}
+                        key={`rep-${rIdx}`}
                         className={clsx(
-                          "w-1 h-1 rounded-full",
-                          isSelected ? "bg-white/40" : getStatusColor(rep.status)
+                          "w-1.5 h-1.5 rounded-full",
+                          isSelected ? "bg-white/60" : getStatusColor(rep.status)
+                        )}
+                      />
+                    ))}
+                    {/* Booking dots */}
+                    {dayAppointments.slice(0, 2).map((apt, aIdx) => (
+                      <span
+                        key={`apt-${aIdx}`}
+                        className={clsx(
+                          "w-1.5 h-1.5 rounded-full",
+                          isSelected ? "bg-white/60" : "bg-indigo-500"
                         )}
                       />
                     ))}
                   </div>
                 )}
+
+                {/* Hover Tooltip Popup */}
+                <div 
+                  className={clsx(
+                    "absolute hidden group-hover:flex flex-col bg-slate-900 text-white text-[10px] rounded-xl p-3 shadow-2xl z-50 w-52 pointer-events-none transition-all duration-200 text-left leading-normal font-sans normal-case",
+                    isFirstTwoRows ? "top-full mt-2" : "bottom-full mb-2",
+                    "left-1/2 -translate-x-1/2"
+                  )}
+                >
+                  <div className="font-bold border-b border-white/15 pb-1 mb-1.5 flex justify-between items-center text-[10.5px]">
+                    <span>{format(day, 'MMM d, yyyy')}</span>
+                    {isTodayDay && <span className="text-[7.5px] bg-brand-accent text-white px-1.5 py-0.5 rounded font-black">TODAY</span>}
+                  </div>
+                  
+                  {dayAppointments.length > 0 && (
+                    <div className="mb-2">
+                      <p className="font-extrabold text-indigo-400 uppercase tracking-wider text-[8px] mb-1">
+                        Bookings ({dayAppointments.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {dayAppointments.map(apt => (
+                          <li key={apt.id} className="truncate text-white/90">
+                            &bull; <span className="font-semibold">{apt.time}</span> {apt.customerName}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {dayRepairs.length > 0 && (
+                    <div>
+                      <p className="font-extrabold text-amber-400 uppercase tracking-wider text-[8px] mb-1">
+                        Repair Deadlines ({dayRepairs.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {dayRepairs.map(rep => (
+                          <li key={rep.id} className="truncate text-white/90">
+                            &bull; <span className="font-semibold">{rep.invoiceNumber}</span>: {rep.shoeModel}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {!hasItems && (
+                    <p className="text-white/60 italic text-center py-1">No bookings or deadlines</p>
+                  )}
+                </div>
               </button>
             );
           })}
@@ -223,39 +308,79 @@ export default function DashboardCalendar({ repairs, onViewRepair }: DashboardCa
           </p>
         </div>
 
-        <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
-          {selectedDateRepairs.length > 0 ? (
-            selectedDateRepairs.map((repair) => (
-              <div
-                key={repair.id}
-                onClick={() => onViewRepair(repair)}
-                className="bg-white p-5 rounded-[24px] border border-brand-border hover:shadow-premium transition-all cursor-pointer group"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">{repair.invoiceNumber}</p>
-                      <h5 className="font-display font-bold text-sm text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
-                        {repair.shoeModel}
-                      </h5>
+        <div className="space-y-6 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+          {/* Section: Bookings */}
+          {selectedDateAppointments.length > 0 && (
+            <div className="space-y-2.5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-1">Bookings ({selectedDateAppointments.length})</p>
+              {selectedDateAppointments.map((apt) => (
+                <div
+                  key={apt.id}
+                  onClick={() => onViewAppointment?.(apt)}
+                  className="bg-white p-4 rounded-[20px] border border-brand-border hover:shadow-premium transition-all cursor-pointer group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-wider border border-indigo-150">
+                          {apt.time}
+                        </span>
+                        <h5 className="font-display font-bold text-xs text-brand-dark leading-tight mt-1.5 group-hover:text-brand-accent transition-colors">
+                          {apt.customerName}
+                        </h5>
+                      </div>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-100 uppercase tracking-widest">
+                        {apt.status}
+                      </span>
                     </div>
-                    <span className={clsx("w-2 h-2 rounded-full mt-1", getStatusColor(repair.status))} />
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t border-brand-border/40">
-                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest truncate max-w-[120px]">
-                      {repair.customerName}
-                    </p>
-                    <p className="text-xs font-display font-black text-brand-dark">
-                      ₹{repair.price.toLocaleString()}
-                    </p>
+                    <div className="flex items-center justify-between text-[9px] text-brand-muted">
+                      <span>{apt.serviceType}</span>
+                      {apt.shoeModel && <span className="truncate max-w-[120px] font-medium">{apt.shoeModel}</span>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          ) : (
+              ))}
+            </div>
+          )}
+
+          {/* Section: Repair Deadlines */}
+          {selectedDateRepairs.length > 0 && (
+            <div className="space-y-2.5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-muted mb-1">Repair Deadlines ({selectedDateRepairs.length})</p>
+              {selectedDateRepairs.map((repair) => (
+                <div
+                  key={repair.id}
+                  onClick={() => onViewRepair(repair)}
+                  className="bg-white p-4 rounded-[20px] border border-brand-border hover:shadow-premium transition-all cursor-pointer group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-0.5">
+                        <p className="text-[8px] font-black text-brand-muted uppercase tracking-widest">{repair.invoiceNumber}</p>
+                        <h5 className="font-display font-bold text-xs text-brand-dark leading-tight group-hover:text-brand-accent transition-colors">
+                          {repair.shoeModel}
+                        </h5>
+                      </div>
+                      <span className={clsx("w-1.5 h-1.5 rounded-full mt-1", getStatusColor(repair.status))} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-1 border-t border-brand-border/40 text-[9px]">
+                      <p className="font-black text-brand-muted uppercase tracking-widest truncate max-w-[120px]">
+                        {repair.customerName}
+                      </p>
+                      <p className="font-display font-black text-brand-dark">
+                        ₹{repair.price.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedDateAppointments.length === 0 && selectedDateRepairs.length === 0 && (
             <div className="bg-white/50 rounded-[24px] border border-brand-border border-dashed p-8 text-center">
-              <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">No Deadlines</p>
+              <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">No Scheduled Work</p>
             </div>
           )}
         </div>

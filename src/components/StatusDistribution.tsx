@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoeRepairRequest, RepairStatus } from '../types';
+import { useAppStore } from '../store';
 import clsx from 'clsx';
 import { motion } from 'motion/react';
 
@@ -8,18 +9,20 @@ interface StatusDistributionProps {
 }
 
 export default function StatusDistribution({ repairs }: StatusDistributionProps) {
-  const total = repairs.length;
+  const { appointments } = useAppStore();
+  const activeBookings = appointments.filter(a => a.status !== 'Cancelled');
+  const total = repairs.length + activeBookings.length;
 
   const distribution = [
-    { label: 'Pending', status: 'Received', color: 'bg-amber-400' },
-    { label: 'In Progress', status: 'In Progress', color: 'bg-[#B89C72]' },
-    { label: 'Polishing', status: 'Polishing', color: 'bg-purple-500' },
-    { label: 'Ready', status: 'Completed', color: 'bg-green-500' },
-    { label: 'Delivered', status: 'Delivered', color: 'bg-slate-400' },
+    { label: 'Bookings', key: 'Bookings', count: activeBookings.length, color: 'bg-indigo-500' },
+    { label: 'Pending', key: 'Received', count: repairs.filter(r => r.status === 'Received').length, color: 'bg-amber-400' },
+    { label: 'In Progress', key: 'In Progress', count: repairs.filter(r => r.status === 'In Progress').length, color: 'bg-[#B89C72]' },
+    { label: 'Polishing', key: 'Polishing', count: repairs.filter(r => r.status === 'Polishing').length, color: 'bg-purple-500' },
+    { label: 'Ready', key: 'Completed', count: repairs.filter(r => r.status === 'Completed').length, color: 'bg-green-500' },
+    { label: 'Delivered', key: 'Delivered', count: repairs.filter(r => r.status === 'Delivered').length, color: 'bg-slate-400' },
   ].map(item => {
-    const count = repairs.filter(r => r.status === item.status).length;
-    const percentage = total > 0 ? (count / total) * 100 : 0;
-    return { ...item, count, percentage };
+    const percentage = total > 0 ? (item.count / total) * 100 : 0;
+    return { ...item, percentage };
   });
 
   if (total === 0) return null;
@@ -33,7 +36,7 @@ export default function StatusDistribution({ repairs }: StatusDistributionProps)
         </div>
         <div className="text-right">
           <span className="text-2xl font-black text-brand-dark">{total}</span>
-          <span className="text-[10px] font-black text-brand-muted uppercase tracking-widest block">Total Tickets</span>
+          <span className="text-[10px] font-black text-brand-muted uppercase tracking-widest block">Total Work Items</span>
         </div>
       </div>
 
@@ -41,7 +44,7 @@ export default function StatusDistribution({ repairs }: StatusDistributionProps)
         {distribution.map((item, idx) => (
           item.percentage > 0 && (
             <motion.div
-              key={item.status}
+              key={item.key}
               initial={{ width: 0 }}
               animate={{ width: `${item.percentage}%` }}
               transition={{ duration: 0.8, delay: idx * 0.1, ease: "easeOut" }}
@@ -53,9 +56,9 @@ export default function StatusDistribution({ repairs }: StatusDistributionProps)
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 pt-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 pt-2">
         {distribution.map((item) => (
-          <div key={item.status} className="space-y-1">
+          <div key={item.key} className="space-y-1">
             <div className="flex items-center gap-1.5">
               <div className={clsx("w-2 h-2 rounded-full", item.color)} />
               <span className="text-[9px] font-black text-brand-muted uppercase tracking-widest truncate">{item.label}</span>
