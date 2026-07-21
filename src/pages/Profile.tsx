@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../services/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile } from '../types';
 import { motion } from 'motion/react';
 import { User, Calendar, Save, Loader2, Camera } from 'lucide-react';
@@ -11,11 +11,13 @@ import ServiceHub from '../components/ServiceHub';
 export default function Profile() {
   const user = useAppStore((state) => state.user);
   const repairs = useAppStore((state) => state.repairs);
+  const updateProfile = useAppStore((state) => state.updateProfile);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [message, setMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -64,12 +66,35 @@ export default function Profile() {
     fetchProfile();
   }, [user, db]);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const photoURL = reader.result as string;
+        try {
+          setSaving(true);
+          await updateProfile({ photoURL });
+          setProfile(prev => prev ? { ...prev, photoURL } : null);
+          setMessage('Profile picture updated successfully');
+          setTimeout(() => setMessage(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setMessage('Failed to update profile picture');
+        } finally {
+          setSaving(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !db) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'profiles', user.uid), {
+      await updateProfile({
         displayName
       });
       setProfile(prev => prev ? { ...prev, displayName } : null);
@@ -116,9 +141,20 @@ export default function Profile() {
               ) : (
                 <User className="w-10 h-10 text-brand-muted" />
               )}
-              <button className="absolute inset-0 bg-black/40 text-white rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/40 text-white rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              >
                 <Camera className="w-5 h-5" />
               </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handlePhotoUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
             </div>
           </div>
         </div>

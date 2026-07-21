@@ -205,6 +205,7 @@ export default function NewRepair() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const [shoeModel, setShoeModel] = useState('');
+  const [sizeCategory, setSizeCategory] = useState<'mens' | 'ladies'>('mens');
   const [shoeSize, setShoeSize] = useState('');
   const MENS_SIZES = ['UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8', 'UK 8.5', 'UK 9', 'UK 9.5', 'UK 10', 'UK 10.5', 'UK 11', 'UK 12'];
   const LADIES_SIZES = ['UK 3', 'UK 3.5', 'UK 4', 'UK 4.5', 'UK 5', 'UK 5.5', 'UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8'];
@@ -258,7 +259,7 @@ export default function NewRepair() {
   };
 
   const getSubtotal = () => {
-    return basePrice + getPackageCost() + getPlusItemsTotal() + getInsuranceCost() + pickupCharge;
+    return getPackageCost() + getPlusItemsTotal() + getInsuranceCost() + pickupCharge;
   };
 
   const getDiscountAmount = () => {
@@ -585,7 +586,10 @@ Thank you for trusting Cordwainers Studio!
     const addonsPriceSum = ticket.addons?.reduce((sum: number, item: any) => sum + (item.price * (item.quantity || 1)), 0) || ticket.addonPrice || 0;
     const insCost = ticket.hasInsurance ? (ticket.insurancePrice || 0) : 0;
     const pickCost = ticket.pickupCharge || 0;
-    const restorationCost = Math.max(0, ticket.price - basePr - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0));
+    const isOldInvoice = ticket.price >= (basePr + addonsPriceSum + insCost + pickCost);
+    const restorationCost = isOldInvoice 
+      ? Math.max(0, ticket.price - basePr - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0))
+      : Math.max(0, ticket.price - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0));
 
     const safeFormatDate = (dateVal: any) => {
       try {
@@ -670,8 +674,12 @@ Thank you for trusting Cordwainers Studio!
                     {ticket.shoeModel} {ticket.shoeColor ? `| Color: ${ticket.shoeColor}` : ''} {ticket.shoeSize ? `| Size: ${ticket.shoeSize}` : ''}
                   </p>
                 </div>
-                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>₹{basePr.toLocaleString()}</div>
-                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{basePr.toLocaleString()}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>
+                  ₹{basePr.toLocaleString()}
+                </div>
+                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold', color: isOldInvoice ? '#1A1A1A' : '#6B7280' }}>
+                  {isOldInvoice ? `₹${basePr.toLocaleString()}` : 'Declared Value'}
+                </div>
               </div>
 
               {/* 2. Restoration Service */}
@@ -1249,38 +1257,67 @@ Thank you for trusting Cordwainers Studio!
                         />
                       </div>
 
-                      <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Footwear Size Category</label>
-                          <select
-                            className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
-                            onChange={(e) => {
-                              // Just a category hint, the specific size dropdown has all optgroups
-                            }}
-                          >
-                            <option value="mens">Men's / Gentlemen</option>
-                            <option value="ladies">Ladies' / Women</option>
-                          </select>
+                      <div className="sm:col-span-2 space-y-3.5 bg-brand-bg/5 p-4 rounded-xl border border-brand-border/40">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/30 pb-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Size Category</label>
+                            <span className="text-[9.5px] text-brand-muted">Select profile for precise size mapping</span>
+                          </div>
+                          
+                          <div className="flex bg-brand-bg/25 p-1 rounded-lg border border-brand-border/60 w-fit">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSizeCategory('mens');
+                              }}
+                              className={clsx(
+                                "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all",
+                                sizeCategory === 'mens'
+                                  ? "bg-brand-dark text-white shadow-sm"
+                                  : "text-brand-muted hover:text-brand-dark"
+                              )}
+                            >
+                              Men's
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSizeCategory('ladies');
+                              }}
+                              className={clsx(
+                                "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all",
+                                sizeCategory === 'ladies'
+                                  ? "bg-brand-dark text-white shadow-sm"
+                                  : "text-brand-muted hover:text-brand-dark"
+                              )}
+                            >
+                              Women's
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1.5">Specific Size (UK/India)</label>
-                          <select
-                            value={shoeSize}
-                            onChange={e => setShoeSize(e.target.value)}
-                            className="w-full border border-brand-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark bg-brand-bg/10"
-                          >
-                            <option value="">Select Size</option>
-                            <optgroup label="Men's Sizes">
-                              {MENS_SIZES.map(size => (
-                                <option key={`m-${size}`} value={size}>{size}</option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="Ladies' Sizes">
-                              {LADIES_SIZES.map(size => (
-                                <option key={`l-${size}`} value={size}>{size}</option>
-                              ))}
-                            </optgroup>
-                          </select>
+
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Specific Size (UK/India) *</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(sizeCategory === 'mens' ? MENS_SIZES : LADIES_SIZES).map(size => {
+                              const isSelected = shoeSize === size;
+                              return (
+                                <button
+                                  key={size}
+                                  type="button"
+                                  onClick={() => setShoeSize(size)}
+                                  className={clsx(
+                                    "px-3 py-2 text-[11px] font-black border rounded-lg transition-all min-w-[54px] text-center",
+                                    isSelected
+                                      ? "bg-brand-olive text-white border-brand-olive shadow-sm"
+                                      : "bg-white text-brand-dark border-brand-border hover:bg-brand-bg/30"
+                                  )}
+                                >
+                                  {size.replace('UK ', '')}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>

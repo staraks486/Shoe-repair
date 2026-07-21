@@ -610,6 +610,25 @@ export default function Stock() {
 
             {/* Action buttons */}
             <div className="mt-6 flex flex-col gap-2">
+              <button
+                type="button"
+                disabled={selectedItem.quantity <= 0}
+                onClick={() => {
+                  const newQty = Math.max(0, (selectedItem.quantity ?? 0) - 1);
+                  updateInventoryItem(selectedItem.id, { quantity: newQty });
+                  setSelectedItem((prev: any) => prev ? { ...prev, quantity: newQty } : null);
+                }}
+                className={clsx(
+                  "w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest py-3.5 rounded-full transition-all duration-300",
+                  selectedItem.quantity > 0
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95"
+                    : "bg-brand-bg text-brand-muted border border-brand-border cursor-not-allowed"
+                )}
+              >
+                <CircleDollarSign className="w-4 h-4" />
+                <span>Sell 1 Unit ({selectedItem.quantity > 0 ? "In Stock" : "Out of Stock"})</span>
+              </button>
+
               <div className="flex gap-3">
                 <button
                   type="button"

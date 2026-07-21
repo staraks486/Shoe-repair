@@ -97,6 +97,103 @@ export function replaceOklchInString(str: string): string {
   });
 }
 
+function oklabToRgb(l: number, a: number, b: number, alpha?: number): string {
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = l - 0.0894841775 * a - 1.2914855480 * b;
+
+  const l_3 = l_ * l_ * l_;
+  const m_3 = m_ * m_ * m_;
+  const s_3 = s_ * s_ * s_;
+
+  const r = +4.0767416621 * l_3 - 3.3077115913 * m_3 + 0.2309699292 * s_3;
+  const g = -1.2684380046 * l_3 + 2.6097574011 * m_3 - 0.3413193965 * s_3;
+  const b_ = -0.0041960863 * l_3 - 0.7034186147 * m_3 + 1.7076147010 * s_3;
+
+  const toSRGB = (x: number) => {
+    if (x <= 0.0031308) {
+      return 12.92 * x;
+    }
+    return 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+  };
+
+  const rSrgb = Math.max(0, Math.min(255, Math.round(toSRGB(r) * 255)));
+  const gSrgb = Math.max(0, Math.min(255, Math.round(toSRGB(g) * 255)));
+  const bSrgb = Math.max(0, Math.min(255, Math.round(toSRGB(b_) * 255)));
+
+  if (alpha !== undefined) {
+    return `rgba(${rSrgb}, ${gSrgb}, ${bSrgb}, ${alpha})`;
+  }
+  return `rgb(${rSrgb}, ${gSrgb}, ${bSrgb})`;
+}
+
+function convertOklabToRgb(oklabStr: string): string {
+  try {
+    const match = oklabStr.match(/oklab\s*\(([^)]+)\)/i);
+    if (!match) return oklabStr;
+
+    const content = match[1].trim();
+    const parts = content.split(/[\s,/]+/).filter(Boolean);
+    if (parts.length < 3) return oklabStr;
+
+    const lStr = parts[0];
+    const aStr = parts[1];
+    const bStr = parts[2];
+    const alphaStr = parts[3];
+
+    let l = parseFloat(lStr);
+    if (isNaN(l)) l = 0;
+    if (lStr.endsWith('%')) {
+      l = l / 100;
+    }
+
+    let a = parseFloat(aStr);
+    if (isNaN(a)) a = 0;
+
+    let b = parseFloat(bStr);
+    if (isNaN(b)) b = 0;
+
+    let alpha: number | undefined = undefined;
+    if (alphaStr) {
+      alpha = parseFloat(alphaStr);
+      if (isNaN(alpha)) alpha = 1;
+      if (alphaStr.endsWith('%')) {
+        alpha = alpha / 100;
+      }
+    }
+
+    return oklabToRgb(l, a, b, alpha);
+  } catch (e) {
+    console.error("Error converting oklab color:", oklabStr, e);
+    return oklabStr;
+  }
+}
+
+export function replaceOklabInString(str: string): string {
+  if (typeof str !== 'string' || !str.includes('oklab')) return str;
+
+  return str.replace(/oklab\s*\([^)]+\)/gi, (match) => {
+    try {
+      return convertOklabToRgb(match);
+    } catch (e) {
+      console.warn("Failed to convert oklab color:", match, e);
+      return match;
+    }
+  });
+}
+
+export function replaceColorsInString(str: string): string {
+  if (typeof str !== 'string') return str;
+  let val = str;
+  if (val.includes('oklch')) {
+    val = replaceOklchInString(val);
+  }
+  if (val.includes('oklab')) {
+    val = replaceOklabInString(val);
+  }
+  return val;
+}
+
 let isPatched = false;
 
 export const patchGetComputedStyle = () => {
@@ -110,19 +207,18 @@ export const patchGetComputedStyle = () => {
         if (prop === 'getPropertyValue') {
           return (propertyName: string) => {
             const val = target.getPropertyValue(propertyName);
-            if (typeof val === 'string' && val.includes('oklch')) {
-              return replaceOklchInString(val);
+            if (typeof val === 'string' && (val.includes('oklch') || val.includes('oklab'))) {
+              return replaceColorsInString(val);
             }
             return val;
           };
         }
-        // Use target as the receiver to avoid "Illegal invocation" TypeError
         const val = Reflect.get(target, prop, target);
         if (typeof val === 'function') {
           return val.bind(target);
         }
-        if (typeof val === 'string' && val.includes('oklch')) {
-          return replaceOklchInString(val);
+        if (typeof val === 'string' && (val.includes('oklch') || val.includes('oklab'))) {
+          return replaceColorsInString(val);
         }
         return val;
       }

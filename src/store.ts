@@ -373,6 +373,7 @@ export const useAppStore = create<AppState>()(
       addRepair: (repairData) => {
         let createdRepair: ShoeRepairRequest | null = null;
         let newCustomers: Customer[] = [];
+        let updatedInventoryItems: { id: string, item: InventoryItem }[] = [];
         set((state) => {
           createdRepair = {
             ...repairData,
@@ -406,9 +407,26 @@ export const useAppStore = create<AppState>()(
             });
           }
           
+          // Decrement stock for inventory items sold/used in repair addons
+          const addonsList = repairData.addons as any[];
+          const newInventory = state.inventory.map(invItem => {
+            const addon = addonsList?.find((a: any) => a.id === invItem.id);
+            if (addon) {
+              const qtyUsed = typeof addon.quantity === 'number' ? addon.quantity : 1;
+              const updatedItem = {
+                ...invItem,
+                quantity: Math.max(0, (invItem.quantity ?? 0) - qtyUsed)
+              };
+              updatedInventoryItems.push({ id: invItem.id, item: updatedItem });
+              return updatedItem;
+            }
+            return invItem;
+          });
+          
           return {
             repairs: [createdRepair, ...state.repairs],
-            customers: newCustomers
+            customers: newCustomers,
+            inventory: newInventory
           };
         });
         
@@ -422,6 +440,12 @@ export const useAppStore = create<AppState>()(
           if (cust) {
             safeSetDoc(doc(db, 'stores', storeId, 'customers', cust.phoneNumber), cust).catch(e => console.error("Firestore customers set failed", e));
           }
+
+          // Write updated inventory items to Firestore
+          updatedInventoryItems.forEach(({ id, item }) => {
+            safeSetDoc(doc(db, 'stores', storeId, 'inventory', id), item)
+              .catch(e => console.error("Firestore inventory update on repair add failed", e));
+          });
         }
         
         // Trigger background sync to Google Sheets
@@ -792,6 +816,18 @@ export const useAppStore = create<AppState>()(
           const storeId = get().currentStoreId || 'default';
           safeSetDoc(doc(db, 'stores', storeId, 'appointments', id), updatedAppointment).catch(e => console.error("Firestore appointment update failed", e));
         }
+
+        if (updatedAppointment && data.status) {
+          setTimeout(async () => {
+            if (updatedAppointment) {
+              await get().addNotification({
+                title: 'Booking Status Updated',
+                message: `${updatedAppointment.customerName}'s booking status is now ${data.status}.`,
+                type: 'success'
+              });
+            }
+          }, 100);
+        }
       },
 
       deleteAppointment: (id) => {
@@ -980,8 +1016,7 @@ export const useAppStore = create<AppState>()(
         };
 
         try {
-          const storeId = get().currentStoreId || 'default';
-          await safeSetDoc(doc(db, 'stores', storeId, 'notifications', id), notification);
+          await safeSetDoc(doc(db, 'notifications', id), notification);
         } catch (e) {
           console.error("Failed to add notification:", e);
         }

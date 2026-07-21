@@ -88,7 +88,10 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
   const total = invoice.price;
   const basePriceVal = invoice.basePrice || 1500;
   const pickupChargeVal = (invoice as any).pickupCharge || 0;
-  const packageCost = Math.max(0, total - basePriceVal - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0));
+  const isOldInvoice = total >= (basePriceVal + addonsCost + (hasInsurance ? invoice.insurancePrice : 0) + pickupChargeVal);
+  const packageCost = isOldInvoice
+    ? Math.max(0, total - basePriceVal - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0))
+    : Math.max(0, total - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -178,9 +181,14 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
                 <tr className="border-b border-brand-border/30">
                   <td className="py-2.5">
                     <div className="font-semibold text-brand-dark">Footwear Diagnostics & Base Assessment</div>
-                    <div className="text-xs text-brand-muted">{invoice.shoeModel} {invoice.shoeColor ? `| Color: ${invoice.shoeColor}` : ''} {invoice.shoeSize ? `| Size: ${invoice.shoeSize}` : ''}</div>
+                    <div className="text-xs text-brand-muted">
+                      {invoice.shoeModel} {invoice.shoeColor ? `| Color: ${invoice.shoeColor}` : ''} {invoice.shoeSize ? `| Size: ${invoice.shoeSize}` : ''}
+                      {!isOldInvoice && ` | Appraised Value: ₹${basePriceVal.toLocaleString()}`}
+                    </div>
                   </td>
-                  <td className="text-right py-2.5 font-mono text-brand-dark">₹{basePriceVal.toFixed(2)}</td>
+                  <td className="text-right py-2.5 font-mono text-brand-dark">
+                    {isOldInvoice ? `₹${basePriceVal.toFixed(2)}` : <span className="text-xs font-semibold text-brand-muted uppercase tracking-wider bg-brand-bg/60 px-2 py-0.5 rounded border border-brand-border/30">Declared Value</span>}
+                  </td>
                 </tr>
 
                 {/* 2. Restoration Service Package */}

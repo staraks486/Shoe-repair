@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { motion, AnimatePresence } from 'motion/react';
 import DeleteConfirmationButton from '../components/DeleteConfirmationButton';
@@ -17,7 +17,10 @@ import {
   Filter,
   Search,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Check,
+  X
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
@@ -29,6 +32,15 @@ export default function Appointments() {
   const [filter, setFilter] = useState<'all' | 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  // Auto-clear toast after 4 seconds
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const filteredAppointments = appointments
     .filter(a => filter === 'all' || a.status === filter)
@@ -50,29 +62,81 @@ export default function Appointments() {
   };
 
   const handleStatusChange = async (id: string, status: Appointment['status']) => {
-    updateAppointment(id, { status });
-    const appointment = appointments.find(a => a.id === id);
-    
-    if (selectedAppointment?.id === id) {
-      setSelectedAppointment(prev => prev ? { ...prev, status } : null);
-    }
-
-    // Trigger Push Notification for appointment status update
-    if (appointment) {
-      const title = `Appointment ${status}: ${appointment.serviceType}`;
-      const body = `Your appointment for ${appointment.date} at ${appointment.time} has been ${status.toLowerCase()}.`;
+    try {
+      updateAppointment(id, { status });
+      const appointment = appointments.find(a => a.id === id);
       
-      await sendPushNotification({
-        title,
-        body,
-        email: appointment.email,
-        url: '/appointments'
+      if (selectedAppointment?.id === id) {
+        setSelectedAppointment(prev => prev ? { ...prev, status } : null);
+      }
+
+      setToastMessage({
+        type: 'success',
+        message: `Booking status updated to ${status}`
+      });
+
+      // Trigger Push Notification for appointment status update
+      if (appointment) {
+        const title = `Appointment ${status}: ${appointment.serviceType}`;
+        const body = `Your appointment for ${appointment.date} at ${appointment.time} has been ${status.toLowerCase()}.`;
+        
+        await sendPushNotification({
+          title,
+          body,
+          email: appointment.email,
+          url: '/appointments'
+        });
+      }
+    } catch (err: any) {
+      setToastMessage({
+        type: 'error',
+        message: `Failed to update status: ${err?.message || String(err)}`
       });
     }
   };
 
   return (
     <div className="space-y-4 md:space-y-8 animate-in fade-in duration-300">
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[250] flex items-center gap-3 bg-brand-dark border border-brand-border/40 text-white rounded-2xl px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-w-[320px] max-w-sm pointer-events-auto"
+          >
+            <div className={clsx(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+              toastMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-400" :
+              toastMessage.type === 'error' ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"
+            )}>
+              {toastMessage.type === 'success' ? (
+                <Check className="w-5 h-5" />
+              ) : toastMessage.type === 'error' ? (
+                <XCircle className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[10px] font-black uppercase tracking-wider text-brand-muted">
+                System Notification
+              </p>
+              <p className="text-xs font-bold leading-relaxed mt-0.5">
+                {toastMessage.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="text-white/40 hover:text-white transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* HEADER: Standardized Artisan style */}
       <header className="flex flex-col items-center justify-center text-center gap-6">
         <div className="space-y-1 flex flex-col items-center justify-center text-center">

@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Appointment } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
   Calendar, 
@@ -68,6 +69,14 @@ export default function BookingDetailModal({ appointment, onClose }: BookingDeta
   const { updateAppointment, settings } = useAppStore();
   const receiptRef = useRef<HTMLDivElement | null>(null);
   const [currentApt, setCurrentApt] = useState<Appointment>(appointment);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const bookingId = currentApt.id || 'BKS-' + currentApt.createdAt.replace(/\D/g, '').slice(-6);
 
@@ -85,8 +94,19 @@ export default function BookingDetailModal({ appointment, onClose }: BookingDeta
   };
 
   const handleStatusChange = (status: Appointment['status']) => {
-    updateAppointment(currentApt.id, { status });
-    setCurrentApt(prev => ({ ...prev, status }));
+    try {
+      updateAppointment(currentApt.id, { status });
+      setCurrentApt(prev => ({ ...prev, status }));
+      setToastMessage({
+        type: 'success',
+        message: `Booking status updated to ${status}`
+      });
+    } catch (err: any) {
+      setToastMessage({
+        type: 'error',
+        message: `Failed to update status: ${err?.message || String(err)}`
+      });
+    }
   };
 
   const triggerWhatsApp = () => {
@@ -181,6 +201,46 @@ Thank you for booking with Cordwainers Studio!
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[250] flex items-center gap-3 bg-brand-dark border border-brand-border/40 text-white rounded-2xl px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-w-[320px] max-w-sm pointer-events-auto"
+          >
+            <div className={clsx(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+              toastMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-400" :
+              toastMessage.type === 'error' ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"
+            )}>
+              {toastMessage.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : toastMessage.type === 'error' ? (
+                <XCircle className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[10px] font-black uppercase tracking-wider text-brand-muted">
+                System Notification
+              </p>
+              <p className="text-xs font-bold leading-relaxed mt-0.5">
+                {toastMessage.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="text-white/40 hover:text-white transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-60 transition-opacity backdrop-blur-xs" 
