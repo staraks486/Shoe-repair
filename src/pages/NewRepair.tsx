@@ -609,11 +609,19 @@ Thank you for trusting Cordwainers Studio!
         <div className="p-8 text-center space-y-2" style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
           <h2 className="text-2xl font-black tracking-widest uppercase" style={{ fontFamily: 'Outfit, sans-serif' }}>{settings.storeName}</h2>
           <p className="text-[9px] font-bold tracking-[0.3em]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Luxury Footwear Restoration • Archive Registry</p>
-          <div className="pt-4 flex justify-center">
-            <div className="bg-white px-5 py-2.5 rounded-xl inline-block shadow-md border border-brand-border/20">
-              <BarcodeSVG value={ticket.invoiceNumber || "DRAFT-INTAKE-99"} />
+          {ticket.invoiceNumber && !ticket.invoiceNumber.includes('PENDING') && !ticket.invoiceNumber.includes('DRAFT') ? (
+            <div className="pt-4 flex justify-center">
+              <div className="bg-white px-5 py-2.5 rounded-xl inline-block shadow-md border border-brand-border/20">
+                <BarcodeSVG value={ticket.invoiceNumber} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="pt-4 text-center">
+              <span className="text-[9.5px] font-bold uppercase tracking-[0.2em] border border-dashed border-white/20 px-3.5 py-1.5 rounded-xl text-white/40">
+                Draft Repair Intake • Barcode Hidden
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="p-8 space-y-8 text-left" style={{ fontFamily: 'Inter, sans-serif' }}>

@@ -31,6 +31,29 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
     }
   };
 
+  const handleDownloadImage = async () => {
+    const input = document.getElementById('printable-invoice');
+    if (input) {
+      try {
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(input as HTMLDivElement, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          backgroundColor: '#ffffff'
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = `Invoice-${invoice.invoiceNumber}.png`;
+        link.click();
+      } catch (err) {
+        console.error("Failed to generate Image:", err);
+        alert("Failed to generate image.");
+      }
+    }
+  };
+
   const handleSendWhatsApp = () => {
     if (!invoice) return;
     
@@ -86,7 +109,14 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Date:</span>
-              <span>{new Date(invoice.createdAt).toLocaleDateString()}</span>
+              <span>{(() => {
+                try {
+                  const d = new Date(invoice.createdAt);
+                  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+                } catch (err) {
+                  return 'N/A';
+                }
+              })()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-bold text-brand-olive uppercase tracking-widest text-xs">Customer:</span>
@@ -99,7 +129,14 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
             {invoice.dueDate && (
               <div className="flex justify-between text-sm">
                 <span className="font-bold text-amber-700 uppercase tracking-widest text-xs">Expected Delivery:</span>
-                <span className="font-bold text-amber-700">{new Date(invoice.dueDate).toLocaleDateString()}</span>
+                <span className="font-bold text-amber-700">{(() => {
+                  try {
+                    const d = new Date(invoice.dueDate);
+                    return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+                  } catch (err) {
+                    return 'N/A';
+                  }
+                })()}</span>
               </div>
             )}
             {invoice.receivedBy && (
@@ -271,7 +308,14 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
               Thank you for your business!
             </div>
             <div className="text-center text-xs text-brand-muted mt-2 font-bold text-amber-700">
-              Expected Delivery Date: {new Date(invoice.dueDate).toLocaleDateString()}
+              Expected Delivery Date: {(() => {
+                try {
+                  const d = new Date(invoice.dueDate);
+                  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+                } catch (err) {
+                  return 'N/A';
+                }
+              })()}
             </div>
           </div>
         </div>
@@ -282,6 +326,9 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
           </button>
           <button onClick={handleDownload} className="px-3 py-1.5 border border-brand-border-dark bg-white rounded-md text-[10px] font-bold text-brand-dark uppercase tracking-widest hover:bg-brand-bg">
             Download PDF
+          </button>
+          <button onClick={handleDownloadImage} className="px-3 py-1.5 border border-brand-border-dark bg-white rounded-md text-[10px] font-bold text-brand-dark uppercase tracking-widest hover:bg-brand-bg">
+            Download Image
           </button>
           <button onClick={handleSendWhatsApp} className="px-3 py-1.5 bg-green-600 text-white rounded-md text-[10px] font-bold uppercase tracking-widest hover:opacity-90">
             WhatsApp

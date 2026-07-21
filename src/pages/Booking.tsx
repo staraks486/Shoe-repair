@@ -29,12 +29,25 @@ import {
   Search,
   Check,
   CreditCard,
-  Trash2
+  Trash2,
+  XCircle,
+  X
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format, addDays, startOfToday, eachDayOfInterval } from 'date-fns';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+
+const safeFormat = (dateStr: string, formatStr: string, fallback = 'N/A') => {
+  if (!dateStr) return fallback;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return fallback;
+    return format(d, formatStr);
+  } catch (err) {
+    return fallback;
+  }
+};
 
 const TIME_SLOTS = [
   '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', 
@@ -82,12 +95,31 @@ function BarcodeSVG({ value }: { value: string }) {
 }
 
 export default function Booking() {
-  const { addAppointment, customers, appointments, settings } = useAppStore();
+  const { addAppointment, addCustomer, updateCustomer, customers, appointments, settings, updateSettings } = useAppStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [showDropdown, setShowDropdown] = useState(true);
+  const [isEditingTerms, setIsEditingTerms] = useState(false);
+  const [termsText, setTermsText] = useState(settings?.termsAndConditions || 'Advance is non-refundable. Reserved pairs are held for up to 7 days from arrival notification.');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  // Auto-clear toast after 4 seconds
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  // Sync terms text if settings changes or loads later
+  useEffect(() => {
+    if (settings?.termsAndConditions) {
+      setTermsText(settings.termsAndConditions);
+    }
+  }, [settings?.termsAndConditions]);
 
   // Form Data State matching current fields plus image options
   const [formData, setFormData] = useState({
@@ -182,14 +214,85 @@ export default function Booking() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.customerName || !formData.phone) {
-      alert("Please provide the Customer Name and Mobile Number.");
-      return;
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    // Step 1 Validation
+    if (!formData.serviceType) {
+      errors.serviceType = "Please select a service type.";
     }
+
+    // Step 2 Validation
+    if (!formData.date) {
+      errors.date = "Target schedule date is required.";
+    }
+
+    // Step 3 Validation
+    if (!formData.shoeModel || !formData.shoeModel.trim()) {
+      errors.shoeModel = "Shoe model or style description is required.";
+    }
+    
+    const amountVal = parseFloat(formData.amount || '0');
+    if (formData.serviceType === 'In-store Booking') {
+      if (!formData.amount || isNaN(amountVal) || amountVal <= 0) {
+        errors.amount = "Please provide valid assessment charges (greater than 0).";
+      }
+      if (formData.paymentMode === 'Partial') {
+        const partialVal = parseFloat(formData.partialAmount || '0');
+        if (!formData.partialAmount || isNaN(partialVal) || partialVal <= 0) {
+          errors.partialAmount = "Please provide a valid partial advance amount (greater than 0).";
+        } else if (partialVal > amountVal) {
+          errors.partialAmount = "Partial advance amount cannot exceed the total charges.";
+        }
+      }
+    }
+
+    // Step 4 Validation
+    if (!formData.customerName || !formData.customerName.trim()) {
+      errors.customerName = "Customer name is required.";
+    } else if (formData.customerName.trim().length < 3) {
+      errors.customerName = "Customer name must be at least 3 characters long.";
+    }
+
+    const cleanPhone = formData.phone.replace(/\D/g, '');
+    const digitsOnly = cleanPhone.startsWith('91') && cleanPhone.length > 2 ? cleanPhone.slice(2) : cleanPhone;
+    if (!digitsOnly || digitsOnly.length < 10) {
+      errors.phone = "Please enter a valid 10-digit mobile number.";
+    }
+
     if (!formData.termsAccepted) {
-      alert("You must authorize and accept the terms and conditions to proceed.");
+      errors.termsAccepted = "You must accept the terms & conditions.";
+    }
+
+    setValidationErrors(errors);
+
+    // If there are errors, automatically direct the user to the step of the first error
+    if (Object.keys(errors).length > 0) {
+      const errorKeys = Object.keys(errors);
+      let targetStep = 5;
+      if (errors.serviceType) {
+        targetStep = 1;
+      } else if (errors.date) {
+        targetStep = 2;
+      } else if (errors.shoeModel || errors.amount || errors.partialAmount) {
+        targetStep = 3;
+      } else if (errors.customerName || errors.phone) {
+        targetStep = 4;
+      }
+      setStep(targetStep);
+      setToastMessage({ type: 'error', message: errors[errorKeys[0]] });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // Reset errors
+    setValidationErrors({});
+
+    if (!validateForm()) {
       return;
     }
 
@@ -200,6 +303,7 @@ export default function Booking() {
 
       // Save to store
       await addAppointment({
+        id: generatedId,
         customerName: formData.customerName,
         email: formData.email,
         phone: formData.phone,
@@ -218,9 +322,36 @@ export default function Booking() {
         shoeImage: formData.shoeImage
       });
 
+      // Save or update customer record in the database
+      const customerExists = customers.find(c => {
+        const cleanC = c.phoneNumber.replace(/\D/g, '');
+        const cleanF = formData.phone.replace(/\D/g, '');
+        return cleanC.endsWith(cleanF) || cleanF.endsWith(cleanC);
+      });
+
+      if (!customerExists) {
+        addCustomer({
+          phoneNumber: formData.phone,
+          name: formData.customerName,
+          email: formData.email,
+          totalOrders: 1,
+          lastVisit: new Date().toISOString()
+        });
+      } else {
+        updateCustomer(customerExists.phoneNumber, {
+          name: formData.customerName,
+          email: formData.email || customerExists.email,
+          totalOrders: (customerExists.totalOrders || 0) + 1,
+          lastVisit: new Date().toISOString()
+        });
+      }
+
+      setToastMessage({ type: 'success', message: 'Booking entry successfully registered & synchronized!' });
       setSubmitted(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Booking submission failed:", err);
+      setToastMessage({ type: 'error', message: `Booking failed: ${err?.message || String(err)}` });
+      alert(`Booking submission failed: ${err?.message || String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -248,6 +379,53 @@ export default function Booking() {
       console.error("Failed to generate PDF receipt:", err);
       alert("Failed to generate PDF receipt. Please use the Print option.");
     }
+  };
+
+  const downloadReceiptAsImage = async () => {
+    if (!receiptRef.current) return;
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `Booking-${bookingRefId || 'draft'}.png`;
+      link.click();
+    } catch (err) {
+      console.error("Failed to generate Image receipt:", err);
+      alert("Failed to generate Image receipt.");
+    }
+  };
+
+  const handleSendWhatsApp = () => {
+    const isFull = formData.paymentMode === 'Full';
+    const totalAmount = parseInt(formData.amount || '0');
+    const paidAmount = isFull ? totalAmount : parseInt(formData.partialAmount || '0');
+    const balanceAmount = totalAmount - paidAmount;
+
+    const message = `*CORDWAINERS CARE - IN-STUDIO BOOKING REGISTRY*\n\n` +
+      `Hello *${formData.customerName}*,\n` +
+      `We have registered your studio booking successfully at *${settings?.storeName || 'Cordwainers Studio'}*!\n\n` +
+      `*Booking ID:* ${bookingRefId || 'Draft'}\n` +
+      `*Service Type:* ${formData.serviceType}\n` +
+      `*Schedule:* ${formData.date} at ${formData.time}\n\n` +
+      `*FOOTWEAR DETAILS:*\n` +
+      `*Model/Style:* ${formData.shoeModel || 'N/A'}\n` +
+      `*Size:* ${formData.shoeSize || 'N/A'}\n` +
+      `*Color:* ${formData.shoeColor || 'N/A'}\n` +
+      `*Total Cost:* ₹${totalAmount.toLocaleString()}\n` +
+      `*Amount Paid (${formData.paymentMode}):* ₹${paidAmount.toLocaleString()}\n` +
+      `*Balance Due:* ₹${balanceAmount.toLocaleString()}\n` +
+      `*Estimated Pickup Date:* ${formData.pickupDate}\n\n` +
+      `*Terms & Conditions:*\n${termsText}\n\n` +
+      `Thank you for choosing Cordwainers Studio!`;
+
+    const url = `https://wa.me/${formData.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const downloadReceiptAsText = () => {
@@ -339,11 +517,23 @@ Thank you for booking with Cordwainers Studio!
       <div ref={receiptRef} className="max-w-2xl mx-auto bg-white border border-brand-border p-0 relative" style={{ backgroundColor: '#FFFFFF', color: '#1A1A1A' }}>
         {/* Receipt Header */}
         <div className="p-8 text-center space-y-2" style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
-          <h2 className="text-2xl font-black tracking-widest uppercase font-display">Cordwainers Studio</h2>
+          <h2 className="text-2xl font-black tracking-widest uppercase font-display">{settings?.storeName || 'Cordwainers Studio'}</h2>
           <p className="text-[9px] font-bold tracking-[0.3em]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>In-Store Studio Booking • Archival Registry</p>
-          <div className="pt-4 flex justify-center">
-            <BarcodeSVG value={bookingRefId || "DRAFT-BOOKING-99"} />
+          <div className="text-[10px] space-y-0.5 opacity-80 font-medium pt-1">
+            <p>{settings?.address || '123 Main St, Cityville'}</p>
+            <p>Mobile: {(settings as any)?.phone || '+91 98765 43210'}</p>
           </div>
+          {bookingRefId ? (
+            <div className="pt-4 flex justify-center">
+              <BarcodeSVG value={bookingRefId} />
+            </div>
+          ) : (
+            <div className="pt-4 text-center">
+              <span className="text-[9.5px] font-bold uppercase tracking-[0.2em] border border-dashed border-white/20 px-3.5 py-1.5 rounded-xl text-white/40">
+                Draft Booking • Barcode Hidden
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="p-8 space-y-8 text-left font-sans">
@@ -381,7 +571,7 @@ Thank you for booking with Cordwainers Studio!
                   )}
                 </div>
                 <div className="text-center text-[10px] font-mono font-semibold text-brand-olive">
-                  {format(new Date(formData.date), 'dd MMM')} {formData.serviceType !== 'In-store Booking' && `@ ${formData.time}`}
+                  {safeFormat(formData.date, 'dd MMM')} {formData.serviceType !== 'In-store Booking' && `@ ${formData.time}`}
                 </div>
                 <div className="text-right font-mono font-bold">
                   ₹{totalAmount.toLocaleString()}
@@ -394,7 +584,7 @@ Thank you for booking with Cordwainers Studio!
                     Estimated Pickup Protection Date
                   </div>
                   <div className="text-center font-mono font-semibold">
-                    {format(new Date(formData.pickupDate), 'dd MMM yyyy')}
+                    {safeFormat(formData.pickupDate, 'dd MMM yyyy')}
                   </div>
                   <div className="text-right font-mono">
                     Included
@@ -432,6 +622,14 @@ Thank you for booking with Cordwainers Studio!
             <p className="text-[9px] font-black uppercase tracking-[0.15em] text-amber-800">✦ Meticulous Care Recommendation</p>
             <p className="text-[10px] font-medium leading-relaxed text-gray-600">
               Keep your handcrafted footwear in soft cotton shoe bags to protect them from dust and ambient humidity. Allow the leather to rest for at least 24 hours between wears.
+            </p>
+          </div>
+
+          {/* Terms & Conditions Display */}
+          <div className="p-4 rounded-xl border text-left space-y-1 border-brand-border/40 bg-brand-bg/5">
+            <p className="text-[9px] font-black uppercase tracking-[0.15em] text-brand-dark">✦ Booking Terms & Conditions</p>
+            <p className="text-[10px] font-semibold leading-relaxed text-brand-muted italic whitespace-pre-line">
+              {termsText}
             </p>
           </div>
 
@@ -538,24 +736,39 @@ Thank you for booking with Cordwainers Studio!
         <div className="bg-white border border-brand-border rounded-[40px] p-6 md:p-10 shadow-premium">
           <ReceiptDocument />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-8 border-t border-brand-border print:hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-8 border-t border-brand-border print:hidden">
+            <button
+              onClick={handleSendWhatsApp}
+              className="flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest py-4 px-4 rounded-full transition-all shadow-md"
+            >
+              <MessageSquare className="w-4 h-4" /> Send WhatsApp
+            </button>
             <button
               onClick={downloadReceiptAsPDF}
-              className="flex items-center justify-center gap-2.5 bg-brand-accent hover:bg-brand-accent/90 text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all shadow-premium"
+              className="flex items-center justify-center gap-2.5 bg-brand-accent hover:bg-brand-accent/90 text-white font-black text-[10px] uppercase tracking-widest py-4 px-4 rounded-full transition-all shadow-premium"
             >
               <FileText className="w-4 h-4" /> Download PDF
             </button>
             <button
+              onClick={downloadReceiptAsImage}
+              className="flex items-center justify-center gap-2.5 bg-brand-olive hover:bg-brand-dark text-white font-black text-[10px] uppercase tracking-widest py-4 px-4 rounded-full transition-all shadow-sm"
+            >
+              <Download className="w-4 h-4" /> Download Image
+            </button>
+            <button
               onClick={handlePrint}
-              className="flex items-center justify-center gap-2.5 bg-brand-dark hover:bg-brand-muted text-white font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all"
+              className="flex items-center justify-center gap-2.5 bg-brand-dark hover:bg-brand-muted text-white font-black text-[10px] uppercase tracking-widest py-4 px-4 rounded-full transition-all"
             >
               <Printer className="w-4 h-4" /> Print Document
             </button>
+          </div>
+
+          <div className="flex justify-center mt-4 print:hidden">
             <button
               onClick={downloadReceiptAsText}
-              className="flex items-center justify-center gap-2.5 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[10px] uppercase tracking-widest py-4 px-6 rounded-full transition-all"
+              className="flex items-center justify-center gap-2 bg-brand-bg hover:bg-white text-brand-dark border border-brand-border font-black text-[9px] uppercase tracking-widest py-2.5 px-6 rounded-full transition-all"
             >
-              <Download className="w-4 h-4" /> Raw Data
+              <Download className="w-3.5 h-3.5" /> Download Raw Text Data
             </button>
           </div>
 
@@ -596,6 +809,46 @@ Thank you for booking with Cordwainers Studio!
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[250] flex items-center gap-3 bg-brand-dark border border-brand-border/40 text-white rounded-2xl px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-w-[320px] max-w-sm pointer-events-auto"
+          >
+            <div className={clsx(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+              toastMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-400" :
+              toastMessage.type === 'error' ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"
+            )}>
+              {toastMessage.type === 'success' ? (
+                <Check className="w-5 h-5" />
+              ) : toastMessage.type === 'error' ? (
+                <XCircle className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-wider text-brand-muted">
+                System Notification
+              </p>
+              <p className="text-xs font-bold leading-relaxed mt-0.5">
+                {toastMessage.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="text-white/40 hover:text-white transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* TABS HEADER */}
       <div className="flex border-b border-brand-border print:hidden">
         <button
@@ -759,12 +1012,14 @@ Thank you for booking with Cordwainers Studio!
                             <Calendar className="w-4 h-4" />
                           </span>
                           <input
-                            required
                             type="date"
                             value={formData.date}
                             onChange={e => setFormData({ ...formData, date: e.target.value })}
                             className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                           />
+                          {validationErrors.date && (
+                            <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.date}</p>
+                          )}
                         </div>
                       </div>
 
@@ -823,13 +1078,15 @@ Thank you for booking with Cordwainers Studio!
                                   <span className="font-bold text-xs">₹</span>
                                 </span>
                                 <input
-                                  required
                                   type="number"
                                   placeholder="e.g. 1000"
                                   value={formData.partialAmount}
                                   onChange={e => setFormData({ ...formData, partialAmount: e.target.value })}
                                   className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                                 />
+                                {validationErrors.partialAmount && (
+                                  <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.partialAmount}</p>
+                                )}
                               </div>
                             </div>
                           )}
@@ -841,7 +1098,6 @@ Thank you for booking with Cordwainers Studio!
                                 <Calendar className="w-4 h-4" />
                               </span>
                               <input
-                                required
                                 type="date"
                                 value={formData.pickupDate}
                                 onChange={e => setFormData({ ...formData, pickupDate: e.target.value })}
@@ -875,13 +1131,15 @@ Thank you for booking with Cordwainers Studio!
                       <div className="sm:col-span-2 relative group">
                         <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Shoe Model / Style *</label>
                         <input
-                          required
                           type="text"
                           placeholder="e.g. Allen Edmonds Oxford Black"
                           value={formData.shoeModel}
                           onChange={e => setFormData({ ...formData, shoeModel: e.target.value })}
                           className="w-full bg-brand-bg/30 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                         />
+                        {validationErrors.shoeModel && (
+                          <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.shoeModel}</p>
+                        )}
                       </div>
 
                       <div className="relative group">
@@ -915,6 +1173,9 @@ Thank you for booking with Cordwainers Studio!
                           onChange={e => setFormData({ ...formData, amount: e.target.value })}
                           className="w-full bg-brand-bg/30 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                         />
+                        {validationErrors.amount && (
+                          <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.amount}</p>
+                        )}
                       </div>
 
                       {/* Photo Upload / Device Camera */}
@@ -1016,7 +1277,6 @@ Thank you for booking with Cordwainers Studio!
                             <Phone className="w-4 h-4" />
                           </span>
                           <input
-                            required
                             type="tel"
                             placeholder="+91 98765 43210"
                             value={formData.phone}
@@ -1053,6 +1313,9 @@ Thank you for booking with Cordwainers Studio!
                             }}
                             className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark"
                           />
+                          {validationErrors.phone && (
+                            <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.phone}</p>
+                          )}
                         </div>
 
                         {/* Customer auto suggest matches */}
@@ -1110,13 +1373,15 @@ Thank you for booking with Cordwainers Studio!
                             <User className="w-4 h-4" />
                           </span>
                           <input
-                            required
                             type="text"
                             placeholder="e.g. Preeti Roy"
                             value={formData.customerName}
                             onChange={e => setFormData({ ...formData, customerName: e.target.value })}
                             className="w-full bg-brand-bg/30 border border-brand-border rounded-full pl-14 pr-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold text-brand-dark font-display"
                           />
+                          {validationErrors.customerName && (
+                            <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-1.5 ml-4">{validationErrors.customerName}</p>
+                          )}
                         </div>
                       </div>
 
@@ -1196,15 +1461,71 @@ Thank you for booking with Cordwainers Studio!
 
                     <ReceiptDocument />
 
-                    <div className="pt-6 border-t border-brand-border space-y-4 text-left">
-                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <div className="pt-6 border-t border-brand-border space-y-4 text-left bg-brand-bg/20 p-5 rounded-2xl border border-dashed relative">
+                      <div className="flex justify-between items-center border-b border-brand-border/40 pb-1.5">
+                        <h4 className="text-[10px] font-black text-brand-dark uppercase tracking-widest">
+                          Shoe Booking Terms & Conditions
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingTerms(!isEditingTerms)}
+                          className="text-[9px] font-black text-brand-olive uppercase tracking-wider hover:underline"
+                        >
+                          {isEditingTerms ? 'Cancel' : 'Edit Terms ✎'}
+                        </button>
+                      </div>
+
+                      {isEditingTerms ? (
+                        <div className="space-y-3 pt-1">
+                          <textarea
+                            value={termsText}
+                            onChange={(e) => setTermsText(e.target.value)}
+                            rows={3}
+                            className="w-full bg-white border border-brand-border rounded-xl p-3 text-xs font-semibold text-brand-dark outline-none focus:ring-1 focus:ring-brand-olive"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingTerms(false);
+                              try {
+                                if (updateSettings) {
+                                  updateSettings({ termsAndConditions: termsText });
+                                }
+                              } catch (e) {
+                                console.warn("Failed to update global settings (non-admin):", e);
+                              }
+                            }}
+                            className="bg-brand-olive text-white px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider hover:bg-brand-dark"
+                          >
+                            Apply Terms
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-brand-muted leading-relaxed font-semibold whitespace-pre-line italic">
+                          {termsText}
+                        </p>
+                      )}
+
+                      <div className="pt-1">
+                        <a 
+                          href="https://cordwainers.com/care-terms" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-black text-brand-olive uppercase tracking-widest hover:underline border-b border-brand-olive/40 pb-0.5 inline-flex items-center gap-1"
+                        >
+                          View Detailed Terms & Conditions →
+                        </a>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer select-none pt-2 border-t border-brand-border/30">
                         <input
                           type="checkbox"
                           checked={formData.termsAccepted}
                           onChange={e => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
                           className="w-4.5 h-4.5 border-brand-border rounded focus:ring-0 text-brand-dark"
                         />
-                        <span className="text-[11px] font-black text-brand-dark uppercase tracking-wide">The client authorizes these digital studio booking terms.</span>
+                        <span className="text-[11px] font-black text-brand-dark uppercase tracking-wide">
+                          The client authorizes and accepts these studio booking terms.
+                        </span>
                       </label>
                     </div>
 

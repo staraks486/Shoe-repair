@@ -64,7 +64,7 @@ interface AppState {
   updateInsurance: (id: string, data: Partial<ShoeInsurance>) => void;
   deleteInsurance: (id: string) => void;
   
-  addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'status'> & { id?: string }) => Promise<void>;
   updateAppointment: (id: string, data: Partial<Appointment>) => void;
   deleteAppointment: (id: string) => void;
   
@@ -739,7 +739,7 @@ export const useAppStore = create<AppState>()(
       },
 
       addAppointment: async (appointmentData) => {
-        const id = generateId();
+        const id = appointmentData.id || generateId();
         const createdAt = new Date().toISOString();
         const newAppointment: Appointment = {
           ...appointmentData,
@@ -758,9 +758,16 @@ export const useAppStore = create<AppState>()(
             await safeSetDoc(doc(db, 'stores', storeId, 'appointments', id), newAppointment);
             
             // Add notification for the artisan
+            let dateText = newAppointment.date;
+            try {
+              dateText = format(parseISO(newAppointment.date), 'MMM dd');
+            } catch (dErr) {
+              console.warn("Date parsing error in appointment notification:", dErr);
+            }
+
             await get().addNotification({
               title: 'New Appointment Booked',
-              message: `${newAppointment.customerName} has scheduled a ${newAppointment.serviceType} for ${format(parseISO(newAppointment.date), 'MMM dd')} at ${newAppointment.time}.`,
+              message: `${newAppointment.customerName} has scheduled a ${newAppointment.serviceType} for ${dateText} at ${newAppointment.time}.`,
               type: 'info'
             });
           } catch (e) {

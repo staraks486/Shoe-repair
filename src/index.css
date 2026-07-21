@@ -52,7 +52,33 @@
   }
 
   input, select, textarea {
-    @apply focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/40 transition-all duration-300 outline-none bg-brand-bg/50;
+    @apply focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/40 transition-all duration-300 outline-none;
+  }
+
+  input[type="text"], 
+  input[type="email"], 
+  input[type="tel"], 
+  input[type="number"], 
+  input[type="date"], 
+  input[type="time"], 
+  input[type="password"], 
+  input[type="search"], 
+  select, 
+  textarea {
+    @apply bg-[#ECEEF1]! text-brand-dark! font-medium! border-brand-border/80!;
+  }
+  
+  input[type="text"]:focus, 
+  input[type="email"]:focus, 
+  input[type="tel"]:focus, 
+  input[type="number"]:focus, 
+  input[type="date"]:focus, 
+  input[type="time"]:focus, 
+  input[type="password"]:focus, 
+  input[type="search"]:focus, 
+  select:focus, 
+  textarea:focus {
+    @apply bg-[#E2E5E9]! border-brand-accent/50!;
   }
 }
 
