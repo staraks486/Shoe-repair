@@ -157,22 +157,23 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const primaryNavItems = [
     { to: '/new-repair', icon: PlusCircle, label: 'CW Care' },
+    { to: '/book', icon: Calendar, label: 'CW Book' },
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/cobbler-desk', icon: Package, label: 'Cobbler Desk' },
-    { to: '/inventory', icon: Boxes, label: 'Inventory', adminOnly: true },
+    { to: '/stock', icon: Boxes, label: 'CW Plus' },
     { to: '/insurance', icon: Shield, label: 'CW Assure' },
   ];
 
   const secondaryNavItems = [
     { to: '/customers', icon: Users, label: 'Directory' },
-    { to: '/offers', icon: CloudLightning, label: 'Flash Offers' },
+    { to: '/inventory', icon: Tag, label: 'Inventory' },
     { to: '/socials-payments', icon: IndianRupee, label: 'Sales & Media' },
     { to: '/appointments', icon: Calendar, label: 'Schedule' },
   ];
 
   const renderNavItems = (items: typeof primaryNavItems) => {
     return items.map((item) => {
-      if (item.adminOnly && !isAdmin) return null;
+      if ((item as any).adminOnly && !isAdmin) return null;
       return (
         <NavLink
           key={item.to}
@@ -583,6 +584,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Mobile Navigation Bar */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F5F3EC]/95 backdrop-blur-md border-t border-[#E8E6DF] px-2 py-2 flex items-center justify-around z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] pb-[calc(env(safe-area-inset-bottom,0px)+8px)]">
           <NavLink
+            key="/dashboard"
             to="/dashboard"
             className={({ isActive }) => clsx(
               "flex flex-col items-center justify-center flex-1 py-1 transition-all relative",
@@ -605,6 +607,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </NavLink>
 
           <NavLink
+            key="/new-repair"
             to="/new-repair"
             className={({ isActive }) => clsx(
               "flex flex-col items-center justify-center flex-1 py-1 transition-all relative",
@@ -627,6 +630,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </NavLink>
 
           <NavLink
+            key="/insurance"
             to="/insurance"
             className={({ isActive }) => clsx(
               "flex flex-col items-center justify-center flex-1 py-1 transition-all relative",
@@ -649,7 +653,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           </NavLink>
 
           <NavLink
-            to="/offers"
+            key="/stock"
+            to="/stock"
             className={({ isActive }) => clsx(
               "flex flex-col items-center justify-center flex-1 py-1 transition-all relative",
               isActive ? "text-brand-dark font-black" : "text-brand-muted hover:text-brand-dark font-semibold"
@@ -657,7 +662,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             {({ isActive }) => (
               <>
-                <Tag className="w-5 h-5" />
+                <Boxes className="w-5 h-5" />
                 <span className="text-[9px] uppercase tracking-wider mt-1 scale-95 origin-center">CW Plus</span>
                 {isActive && (
                   <motion.div 

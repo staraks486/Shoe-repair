@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store';
-import { RepairStatus, ShoeRepairRequest } from '../types';
+import { RepairStatus, ShoeRepairRequest, Appointment } from '../types';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles, Check, X } from 'lucide-react';
 import clsx from 'clsx';
 import DashboardSummary from '../components/DashboardSummary';
 import AppointmentSummary from '../components/AppointmentSummary';
+import BookingDetailModal from '../components/BookingDetailModal';
 import DashboardCalendar from '../components/DashboardCalendar';
 import StatusDistribution from '../components/StatusDistribution';
 import InvoiceModal from '../components/InvoiceModal';
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const activeCobblers = settings?.cobblers?.length > 0 ? settings.cobblers : FALLBACK_COBBLERS;
   const [editingRepair, setEditingRepair] = useState<ShoeRepairRequest | null>(null);
   const [viewingRepair, setViewingRepair] = useState<ShoeRepairRequest | null>(null);
+  const [viewingAppointment, setViewingAppointment] = useState<Appointment | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('All');
@@ -76,7 +78,7 @@ export default function Dashboard() {
           <DashboardSummary />
         </div>
         <div className="lg:col-span-1">
-          <AppointmentSummary />
+          <AppointmentSummary onViewAppointment={setViewingAppointment} />
         </div>
       </section>
       
@@ -586,6 +588,13 @@ export default function Dashboard() {
         <InvoiceModal 
           invoice={viewingRepair} 
           onClose={() => setShowInvoice(false)} 
+        />
+      )}
+
+      {viewingAppointment && (
+        <BookingDetailModal 
+          appointment={viewingAppointment} 
+          onClose={() => setViewingAppointment(null)} 
         />
       )}
     </div>

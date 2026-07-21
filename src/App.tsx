@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Lazy load pages for performance optimization
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NewRepair = lazy(() => import('./pages/NewRepair'));
+const Stock = lazy(() => import('./pages/Stock'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Insurance = lazy(() => import('./pages/Insurance'));
@@ -60,7 +61,8 @@ export default function App() {
                 <Route path="/" element={<ProtectedRoute><PageWrapper><Dashboard /></PageWrapper></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><PageWrapper><Dashboard /></PageWrapper></ProtectedRoute>} />
                 <Route path="/new-repair" element={<ProtectedRoute><PageWrapper><NewRepair /></PageWrapper></ProtectedRoute>} />
-                <Route path="/inventory" element={<ProtectedRoute requireAdmin><PageWrapper><Inventory /></PageWrapper></ProtectedRoute>} />
+                <Route path="/stock" element={<ProtectedRoute><PageWrapper><Stock /></PageWrapper></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute><PageWrapper><Inventory /></PageWrapper></ProtectedRoute>} />
                 <Route path="/customers" element={<ProtectedRoute><PageWrapper><Customers /></PageWrapper></ProtectedRoute>} />
                 <Route path="/insurance" element={<ProtectedRoute><PageWrapper><Insurance /></PageWrapper></ProtectedRoute>} />
                 <Route path="/cobbler-desk" element={<ProtectedRoute><PageWrapper><CobblerDesk /></PageWrapper></ProtectedRoute>} />

@@ -161,6 +161,7 @@ export default function NewRepair() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<{ id: string; name: string; price: number; description: string } | null>(null);
+  const [newItem, setNewItem] = useState<{ name: string; category: string; quantity: number; unit: string; price: number }>({ name: '', category: '', quantity: 0, unit: '', price: 0 });
 
   const [advanceAmount, setAdvanceAmount] = useState<number>(0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState<'Cash' | 'Card' | 'UPI' | 'Bank Transfer'>('Cash');
@@ -359,7 +360,17 @@ export default function NewRepair() {
 
   // Add Item from Inventory to Shoe Plus list
   const addPlusItem = (inv: any) => {
+    const stockItem = inventory.find(item => item.id === inv.id) || inv;
+    const stockQty = stockItem.quantity ?? 0;
+    
     const existing = plusItems.find(item => item.id === inv.id);
+    const currentQty = existing ? existing.quantity : 0;
+    
+    if (currentQty >= stockQty) {
+      alert(`Cannot add more "${inv.name}". Only ${stockQty} units are in stock.`);
+      return;
+    }
+
     if (existing) {
       setPlusItems(plusItems.map(item => 
         item.id === inv.id ? { ...item, quantity: item.quantity + 1 } : item
@@ -376,9 +387,16 @@ export default function NewRepair() {
 
   // Decrease/Remove Shoe Plus item
   const updatePlusQuantity = (id: string, delta: number) => {
+    const stockItem = inventory.find(item => item.id === id);
+    const stockQty = stockItem ? stockItem.quantity : 999;
+
     setPlusItems(plusItems.map(item => {
       if (item.id === id) {
         const newQty = item.quantity + delta;
+        if (delta > 0 && newQty > stockQty) {
+          alert(`Cannot add more. Only ${stockQty} units of "${item.name}" are in stock.`);
+          return item;
+        }
         return newQty > 0 ? { ...item, quantity: newQty } : null;
       }
       return item;
@@ -563,14 +581,38 @@ Thank you for trusting Cordwainers Studio!
   };
 
   const ReceiptDocument = ({ ticket }: { ticket: any }) => {
+    const basePr = ticket.basePrice || 1500;
+    const addonsPriceSum = ticket.addons?.reduce((sum: number, item: any) => sum + (item.price * (item.quantity || 1)), 0) || ticket.addonPrice || 0;
+    const insCost = ticket.hasInsurance ? (ticket.insurancePrice || 0) : 0;
+    const pickCost = ticket.pickupCharge || 0;
+    const restorationCost = Math.max(0, ticket.price - basePr - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0));
+
+    const safeFormatDate = (dateVal: any) => {
+      try {
+        return format(new Date(dateVal || Date.now()), 'dd MMM yyyy • HH:mm');
+      } catch (e) {
+        return 'N/A';
+      }
+    };
+
+    const safeFormatDueDate = (dateVal: any) => {
+      try {
+        return format(new Date(dateVal), 'dd MMM yyyy');
+      } catch (e) {
+        return 'N/A';
+      }
+    };
+
     return (
       <div ref={receiptRef} className="max-w-2xl mx-auto bg-white border rounded-none p-0 relative" style={{ backgroundColor: '#FFFFFF', color: '#1A1A1A', borderColor: '#E5E7EB' }}>
         {/* Receipt Header */}
         <div className="p-8 text-center space-y-2" style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
-          <h2 className="text-2xl font-black tracking-widest uppercase" style={{ fontFamily: 'Outfit, sans-serif' }}>Cordwainers Studio</h2>
+          <h2 className="text-2xl font-black tracking-widest uppercase" style={{ fontFamily: 'Outfit, sans-serif' }}>{settings.storeName}</h2>
           <p className="text-[9px] font-bold tracking-[0.3em]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Luxury Footwear Restoration • Archive Registry</p>
           <div className="pt-4 flex justify-center">
-            <BarcodeSVG value={ticket.invoiceNumber || "DRAFT-INTAKE-99"} />
+            <div className="bg-white px-5 py-2.5 rounded-xl inline-block shadow-md border border-brand-border/20">
+              <BarcodeSVG value={ticket.invoiceNumber || "DRAFT-INTAKE-99"} />
+            </div>
           </div>
         </div>
 
@@ -585,15 +627,21 @@ Thank you for trusting Cordwainers Studio!
                 <div className="pt-2">
                   <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Expected Delivery</p>
                   <p className="text-[11px] font-black text-amber-600 uppercase tracking-wide">
-                    {format(new Date(ticket.dueDate), 'dd MMM yyyy')}
+                    {safeFormatDueDate(ticket.dueDate)}
                   </p>
                 </div>
               )}
             </div>
             <div className="text-right space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Date / Time</p>
-              <p className="text-[10px] font-bold uppercase" style={{ color: '#1A1A1A' }}>{format(new Date(ticket.createdAt || Date.now()), 'dd MMM yyyy • HH:mm')}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#3B82F6' }}>Inspector: {ticket.receivedBy}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Studio Location</p>
+              <p className="text-[10px] font-bold uppercase" style={{ color: '#1A1A1A' }}>{settings.storeName}</p>
+              <p className="text-[9px] text-gray-500 font-medium">{settings.address}</p>
+              <p className="text-[9px] text-brand-olive font-bold">Call: {(settings as any).phone || '+91 98765 43210'}</p>
+              <div className="pt-2">
+                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>Date / Time</p>
+                <p className="text-[10px] font-bold uppercase" style={{ color: '#1A1A1A' }}>{safeFormatDate(ticket.createdAt)}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#3B82F6]">Inspector: {ticket.receivedBy}</p>
+              </div>
             </div>
           </div>
 
@@ -606,15 +654,28 @@ Thank you for trusting Cordwainers Studio!
             </div>
 
             <div className="space-y-3">
-              <div className="grid grid-cols-4 text-[11px] items-center" style={{ color: '#1A1A1A' }}>
+              {/* 1. Footwear Diagnostics & Base Assessment */}
+              <div className="grid grid-cols-4 text-[11px] items-center pb-2 border-b border-dashed border-gray-100" style={{ color: '#1A1A1A' }}>
                 <div className="col-span-2">
-                  <p className="font-black uppercase tracking-tight">{ticket.repairType?.[0]}</p>
+                  <p className="font-black uppercase tracking-tight">Footwear Diagnostics & Base Assessment</p>
                   <p className="text-[9px] font-medium mt-0.5" style={{ color: '#6B7280' }}>
-                    {ticket.shoeModel} {ticket.shoeColor ? `| Color: ${ticket.shoeColor}` : ''}
+                    {ticket.shoeModel} {ticket.shoeColor ? `| Color: ${ticket.shoeColor}` : ''} {ticket.shoeSize ? `| Size: ${ticket.shoeSize}` : ''}
                   </p>
                 </div>
-                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>₹{(ticket.basePrice || 1500).toLocaleString()}</div>
-                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{(ticket.basePrice || 1500).toLocaleString()}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>₹{basePr.toLocaleString()}</div>
+                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{basePr.toLocaleString()}</div>
+              </div>
+
+              {/* 2. Restoration Service */}
+              <div className="grid grid-cols-4 text-[11px] items-center pb-2 border-b border-dashed border-gray-100" style={{ color: '#1A1A1A' }}>
+                <div className="col-span-2">
+                  <p className="font-black uppercase tracking-tight">Restoration: {ticket.repairType?.[0]}</p>
+                  <p className="text-[9px] font-medium mt-0.5" style={{ color: '#6B7280' }}>
+                    Artisan restoration package fee
+                  </p>
+                </div>
+                <div style={{ textAlign: 'center', fontFamily: 'monospace' }}>₹{restorationCost.toLocaleString()}</div>
+                <div style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>₹{restorationCost.toLocaleString()}</div>
               </div>
 
               {ticket.addons?.map((item: any) => (
@@ -1469,21 +1530,32 @@ Thank you for trusting Cordwainers Studio!
                     
                     {/* Stock listing filtered */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto border border-brand-border rounded-xl p-3 bg-brand-bg/10">
-                      {inventory.map(item => (
-                        <div key={item.id} className="bg-white border border-brand-border/60 p-2.5 rounded-lg flex justify-between items-center text-xs">
-                          <div>
-                            <p className="font-semibold text-brand-dark">{item.name}</p>
-                            <p className="text-[10px] text-brand-muted mt-0.5">₹{item.price || 350} • In Stock: {item.quantity}</p>
+                      {inventory.map(item => {
+                        const existing = plusItems.find(p => p.id === item.id);
+                        const addedQty = existing ? existing.quantity : 0;
+                        const isMaxed = addedQty >= item.quantity;
+                        return (
+                          <div key={item.id} className="bg-white border border-brand-border/60 p-2.5 rounded-lg flex justify-between items-center text-xs">
+                            <div>
+                              <p className="font-semibold text-brand-dark">{item.name}</p>
+                              <p className="text-[10px] text-brand-muted mt-0.5">₹{item.price || 350} • In Stock: {item.quantity}</p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={item.quantity <= 0 || isMaxed}
+                              onClick={() => addPlusItem(item)}
+                              className={clsx(
+                                "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all",
+                                (item.quantity <= 0 || isMaxed)
+                                  ? "bg-brand-border text-brand-muted cursor-not-allowed"
+                                  : "bg-brand-dark hover:bg-brand-muted text-white"
+                              )}
+                            >
+                              <Plus className="w-3 h-3" /> {item.quantity <= 0 ? 'Out of Stock' : (isMaxed ? 'Max Limit' : 'Add')}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => addPlusItem(item)}
-                            className="bg-brand-dark hover:bg-brand-muted text-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all"
-                          >
-                            <Plus className="w-3 h-3" /> Add
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Current chosen shoe plus bundle */}
@@ -1621,20 +1693,47 @@ Thank you for trusting Cordwainers Studio!
                           <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Advance Deposit (₹)</label>
                           <span className="text-[10.5px] font-mono text-brand-olive font-black bg-brand-olive/10 px-2.5 py-0.5 rounded border border-brand-olive/20">₹{advanceAmount.toLocaleString()}</span>
                         </div>
-                        <div className="space-y-2.5 bg-brand-bg/15 p-3 rounded-xl border border-brand-border/40">
+                        <div className="space-y-3 bg-brand-bg/15 p-3 rounded-xl border border-brand-border/40">
                           <input
                             type="range"
                             min="0"
                             max={getGrandTotal() || 5000}
                             step="50"
                             value={advanceAmount}
-                            onChange={e => setAdvanceAmount(parseInt(e.target.value) || 0)}
+                            onChange={e => setAdvanceAmount(Math.min(getGrandTotal(), parseInt(e.target.value) || 0))}
                             className="w-full accent-brand-olive h-1.5 bg-brand-border rounded-lg cursor-pointer transition-all"
                           />
-                          <div className="flex justify-between text-[7.5px] text-brand-muted font-bold uppercase tracking-wider">
+                          <div className="flex justify-between text-[7.5px] text-brand-muted font-bold uppercase tracking-wider mb-2">
                             <span>0% (Pay Later)</span>
                             <span>Partial Deposit</span>
                             <span>100% Fully Paid</span>
+                          </div>
+
+                          {/* Exact Numeric Input for Advance Deposit */}
+                          <div className="pt-2 border-t border-brand-border/30 flex gap-2 items-center">
+                            <span className="text-[10px] font-bold text-brand-dark uppercase tracking-wider">Exact Amount:</span>
+                            <div className="relative flex-1">
+                              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-brand-muted text-xs">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max={getGrandTotal()}
+                                placeholder="0"
+                                value={advanceAmount || ''}
+                                onChange={e => {
+                                  const val = Math.min(getGrandTotal(), Math.max(0, parseInt(e.target.value) || 0));
+                                  setAdvanceAmount(val);
+                                }}
+                                className="w-full border border-brand-border rounded-lg pl-7 pr-3 py-1.5 text-xs focus:ring-1 focus:ring-brand-dark bg-white font-mono text-brand-dark"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setAdvanceAmount(getGrandTotal())}
+                              className="bg-brand-dark hover:bg-brand-muted text-white px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all"
+                            >
+                              100% Paid
+                            </button>
                           </div>
                         </div>
                       </div>

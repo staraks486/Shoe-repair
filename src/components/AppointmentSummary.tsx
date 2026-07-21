@@ -3,8 +3,13 @@ import { format, isToday, parseISO } from 'date-fns';
 import { Clock, User, ArrowRight, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { Appointment } from '../types';
 
-export default function AppointmentSummary() {
+interface AppointmentSummaryProps {
+  onViewAppointment?: (apt: Appointment) => void;
+}
+
+export default function AppointmentSummary({ onViewAppointment }: AppointmentSummaryProps) {
   const { appointments } = useAppStore();
   const navigate = useNavigate();
 
@@ -37,7 +42,7 @@ export default function AppointmentSummary() {
               key={apt.id}
               whileHover={{ x: 4 }}
               className="flex items-center justify-between p-4 bg-brand-bg rounded-2xl border border-brand-border/40 hover:border-brand-accent/20 transition-all cursor-pointer"
-              onClick={() => navigate('/appointments')}
+              onClick={() => onViewAppointment ? onViewAppointment(apt) : navigate('/appointments')}
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-brand-dark font-black shadow-sm border border-brand-border/40">

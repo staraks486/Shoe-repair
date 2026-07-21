@@ -8,10 +8,19 @@ export interface Appointment {
   phone: string;
   date: string;
   time: string;
-  serviceType: 'Drop-off' | 'Consultation' | 'Home Pickup';
+  serviceType: 'Drop-off' | 'Consultation' | 'Home Pickup' | 'In-store Booking';
   notes?: string;
   status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
   createdAt: string;
+  paymentMode?: 'Full' | 'Partial';
+  partialAmount?: string;
+  pickupDate?: string;
+  shoeModel?: string;
+  shoeColor?: string;
+  shoeSize?: string;
+  amount?: string;
+  paidAmount?: string;
+  shoeImage?: string;
 }
 
 export interface UserProfile {

@@ -17,6 +17,7 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
   const storeName = invoiceStore?.storeName || settings.storeName;
   const storeAddress = invoiceStore?.address || settings.address;
   const storeHours = invoiceStore?.hours || settings.hours;
+  const storePhone = (invoiceStore as any)?.phone || (settings as any).phone || '+91 98765 43210';
 
   const handlePrint = () => {
     window.print();
@@ -59,19 +60,23 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
 
   const hasInsurance = invoice.insurancePrice > 0;
   const addonsCost = invoice.addons && invoice.addons.length > 0 
-    ? invoice.addons.reduce((sum, a) => sum + a.price, 0) 
+    ? (invoice.addons as any[]).reduce((sum, a) => sum + (a.price * (a.quantity || 1)), 0) 
     : invoice.addonPrice || 0;
   const total = invoice.price;
-  const baseServicePrice = invoice.basePrice || Math.max(0, invoice.price - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) + (invoice.discountAmount || 0));
+  const basePriceVal = invoice.basePrice || 1500;
+  const pickupChargeVal = (invoice as any).pickupCharge || 0;
+  const packageCost = Math.max(0, total - basePriceVal - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden max-h-screen overflow-y-auto">
         <div id="printable-invoice" className="p-8 bg-white text-brand-dark">
           <div className="text-center mb-6 border-b border-brand-border-dark pb-6">
-            <h2 className="font-display text-3xl font-bold mb-1">{storeName}</h2>
-            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{storeAddress}</p>
-            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{storeHours}</p>
+            <h2 className="font-display text-3xl font-bold mb-1 text-brand-dark">{storeName}</h2>
+            {storeAddress && <p className="text-xs font-sans text-brand-muted uppercase tracking-wider">{storeAddress}</p>}
+            <p className="text-xs font-sans text-brand-muted uppercase tracking-wider mt-0.5">
+              {storeHours} {storeHours && storePhone && ' • '} {storePhone && `Call: ${storePhone}`}
+            </p>
           </div>
           
           <div className="mb-6 space-y-1">
@@ -132,35 +137,52 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-2">
-                    {Array.isArray(invoice.repairType) ? invoice.repairType.join(', ') : invoice.repairType}
-                    <div className="text-xs text-brand-muted">{invoice.shoeModel}</div>
+                {/* 1. Footwear Diagnostics & Base Assessment */}
+                <tr className="border-b border-brand-border/30">
+                  <td className="py-2.5">
+                    <div className="font-semibold text-brand-dark">Footwear Diagnostics & Base Assessment</div>
+                    <div className="text-xs text-brand-muted">{invoice.shoeModel} {invoice.shoeColor ? `| Color: ${invoice.shoeColor}` : ''} {invoice.shoeSize ? `| Size: ${invoice.shoeSize}` : ''}</div>
                   </td>
-                  <td className="text-right py-2">₹{(baseServicePrice || 0).toFixed(2)}</td>
+                  <td className="text-right py-2.5 font-mono text-brand-dark">₹{basePriceVal.toFixed(2)}</td>
                 </tr>
-                {invoice.addons && invoice.addons.map(a => (
-                  <tr key={a.name}>
-                    <td className="py-2">Add-on: {a.name}</td>
-                    <td className="text-right py-2">₹{a.price.toFixed(2)}</td>
+
+                {/* 2. Restoration Service Package */}
+                <tr className="border-b border-brand-border/30">
+                  <td className="py-2.5">
+                    <div className="font-semibold text-brand-dark">Restoration Service: {Array.isArray(invoice.repairType) ? invoice.repairType.join(', ') : invoice.repairType}</div>
+                    <div className="text-xs text-brand-muted">Artisan handcrafted restoration package selection</div>
+                  </td>
+                  <td className="text-right py-2.5 font-mono text-brand-dark font-semibold">₹{packageCost.toFixed(2)}</td>
+                </tr>
+
+                {invoice.addons && (invoice.addons as any[]).map(a => (
+                  <tr key={a.name} className="border-b border-brand-border/30">
+                    <td className="py-2">Add-on: {a.name} {a.quantity ? `(x${a.quantity})` : ''}</td>
+                    <td className="text-right py-2 font-mono">₹{(a.price * (a.quantity || 1)).toFixed(2)}</td>
                   </tr>
                 ))}
                 {invoice.addonPrice > 0 && (!invoice.addons || invoice.addons.length === 0) && (
-                  <tr>
+                  <tr className="border-b border-brand-border/30">
                     <td className="py-2">Add-on: {invoice.addonType || 'Misc'}</td>
-                    <td className="text-right py-2">₹{invoice.addonPrice.toFixed(2)}</td>
+                    <td className="text-right py-2 font-mono">₹{invoice.addonPrice.toFixed(2)}</td>
+                  </tr>
+                )}
+                {pickupChargeVal > 0 && (
+                  <tr className="border-b border-brand-border/30">
+                    <td className="py-2">Pickup & Handling Charges</td>
+                    <td className="text-right py-2 font-mono">₹{pickupChargeVal.toFixed(2)}</td>
                   </tr>
                 )}
                 {hasInsurance && (
-                  <tr>
+                  <tr className="border-b border-brand-border/30">
                     <td className="py-2">Cordwainers cover: {invoice.insuranceType}</td>
-                    <td className="text-right py-2">₹{invoice.insurancePrice.toFixed(2)}</td>
+                    <td className="text-right py-2 font-mono">₹{invoice.insurancePrice.toFixed(2)}</td>
                   </tr>
                 )}
                 {(invoice.discountAmount || 0) > 0 && (
-                  <tr>
+                  <tr className="border-b border-brand-border/30">
                     <td className="py-2">Discount ({invoice.appliedOfferCode}):</td>
-                    <td className="text-right py-2 text-red-600">-₹{invoice.discountAmount.toFixed(2)}</td>
+                    <td className="text-right py-2 text-red-600 font-mono">-₹{invoice.discountAmount.toFixed(2)}</td>
                   </tr>
                 )}
               </tbody>
