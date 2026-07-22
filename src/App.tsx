@@ -27,10 +27,10 @@ import ShoeFactsLoader from './components/ShoeFactsLoader';
 // Page transition component
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <motion.div
-    initial={{ opacity: 0, y: 5 }}
+    initial={{ opacity: 0, y: 3 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -5 }}
-    transition={{ duration: 0.2, ease: "easeOut" }}
+    exit={{ opacity: 0, y: -3 }}
+    transition={{ duration: 0.15, ease: "easeOut" }}
   >
     {children}
   </motion.div>
@@ -65,8 +65,18 @@ export default function App() {
       console.log('App went offline.');
     };
 
+    const handleFocusOrVisibility = () => {
+      if (document.visibilityState === 'visible' || document.hasFocus()) {
+        if (navigator.onLine) {
+          processOfflineQueue();
+        }
+      }
+    };
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('focus', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', handleFocusOrVisibility);
 
     // Try processing if we are already online on mount
     if (navigator.onLine) {
@@ -88,6 +98,8 @@ export default function App() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }

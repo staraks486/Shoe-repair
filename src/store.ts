@@ -477,84 +477,12 @@ export const useAppStore = create<AppState>()(
 
         set({ lastSyncStatus: 'syncing' });
         try {
-          // 1. Fetch stores once to resolve currentStoreId
-          const storesSnapshot = await getDocs(collection(db, 'stores'));
-          const fetchedStores: StoreDetails[] = [];
-          storesSnapshot.forEach((doc) => {
-            const data = doc.data();
-            fetchedStores.push({
-              id: doc.id,
-              storeName: data.storeName || 'Cordwainers Studio',
-              address: data.address || '123 Main St, Cityville',
-              hours: data.hours || 'Mon-Sat: 9AM - 6PM',
-              phone: data.phone || '',
-              logoUrl: data.logoUrl || '',
-              paymentLink: data.paymentLink || '',
-              qrCode: data.qrCode || '',
-              isDefault: data.isDefault === true,
-              instagramLink: data.instagramLink || '',
-              facebookLink: data.facebookLink || '',
-              twitterLink: data.twitterLink || '',
-              websiteLink: data.websiteLink || '',
-              whatsappLink: data.whatsappLink || '',
-              createdAt: data.createdAt || new Date().toISOString()
-            });
-          });
-
-          // If no stores exist, create the default store
-          if (fetchedStores.length === 0) {
-            const defaultStore: StoreDetails = {
-              id: 'default',
-              storeName: 'Cordwainers Studio',
-              address: '123 Main St, Cityville',
-              hours: 'Mon-Sat: 9AM - 6PM',
-              phone: '',
-              logoUrl: '',
-              paymentLink: '',
-              qrCode: '',
-              isDefault: true,
-              createdAt: new Date().toISOString()
-            };
-            await safeSetDoc(doc(db, 'stores', 'default'), defaultStore);
-            fetchedStores.push(defaultStore);
+          // Resolve initial target active store ID immediately from memory/state
+          let activeStoreId = get().currentStoreId || 'default';
+          if (!get().currentStoreId) {
+            set({ currentStoreId: activeStoreId });
           }
 
-          set({ stores: fetchedStores });
-
-          // Resolve active store ID (prefer explicit default store if currentStoreId is empty)
-          let storeId = get().currentStoreId;
-          const defaultStoreObj = fetchedStores.find(s => s.isDefault);
-          if (!storeId || !fetchedStores.some(s => s.id === storeId)) {
-            storeId = defaultStoreObj ? defaultStoreObj.id : fetchedStores[0].id;
-            set({ currentStoreId: storeId });
-          }
-
-          // Sync global settings details with the active/default store's fields
-          const activeStoreObj = fetchedStores.find(s => s.id === storeId) || defaultStoreObj || fetchedStores[0];
-          if (activeStoreObj) {
-            set((state) => ({
-              settings: {
-                ...state.settings,
-                storeName: activeStoreObj.storeName || state.settings.storeName,
-                address: activeStoreObj.address || state.settings.address,
-                hours: activeStoreObj.hours || state.settings.hours,
-                phone: activeStoreObj.phone || (state.settings as any).phone || '',
-                logoUrl: activeStoreObj.logoUrl || state.settings.logoUrl || '',
-                paymentLink: activeStoreObj.paymentLink || state.settings.paymentLink || '',
-                qrCode: activeStoreObj.qrCode || state.settings.qrCode || '',
-                instagramLink: activeStoreObj.instagramLink || state.settings.instagramLink || '',
-                facebookLink: activeStoreObj.facebookLink || state.settings.facebookLink || '',
-                twitterLink: activeStoreObj.twitterLink || state.settings.twitterLink || '',
-                linkedinLink: activeStoreObj.linkedinLink || (state.settings as any).linkedinLink || '',
-                websiteLink: activeStoreObj.websiteLink || state.settings.websiteLink || '',
-                whatsappLink: activeStoreObj.whatsappLink || (state.settings as any).whatsappLink || ''
-              }
-            }));
-          }
-
-          // 2. Set up real-time subcollection listeners for this active store
-          const activeStoreId = storeId;
-          
           const setupStoreListener = (
             colName: string, 
             onNext: (snapshot: any) => void, 
@@ -645,6 +573,9 @@ export const useAppStore = create<AppState>()(
                   userCredentials: settingsObj.userCredentials || state.settings.userCredentials
                 }
               }));
+            } else {
+              const currentSettings = get().settings;
+              get().performWrite('settings', 'global_settings', 'set', currentSettings, `Initialize Store Settings for ${activeStoreId}`);
             }
           }, (error) => {
             console.error("Failed to sync settings:", error);
@@ -673,9 +604,25 @@ export const useAppStore = create<AppState>()(
                 createdAt: data.createdAt || new Date().toISOString()
               });
             });
-            if (fetchedStores.length > 0) {
-              set({ stores: fetchedStores });
+
+            if (fetchedStores.length === 0) {
+              const defaultStore: StoreDetails = {
+                id: 'default',
+                storeName: 'Cordwainers Studio',
+                address: '123 Main St, Cityville',
+                hours: 'Mon-Sat: 9AM - 6PM',
+                phone: '',
+                logoUrl: '',
+                paymentLink: '',
+                qrCode: '',
+                isDefault: true,
+                createdAt: new Date().toISOString()
+              };
+              safeSetDoc(doc(db, 'stores', 'default'), defaultStore).catch(console.error);
+              fetchedStores.push(defaultStore);
             }
+
+            set({ stores: fetchedStores });
           }, (error) => {
             console.error("Failed to sync stores collection:", error);
           });
@@ -1187,11 +1134,38 @@ export const useAppStore = create<AppState>()(
           return;
         }
 
-        set((state) => {
-          const updatedSettings = { ...state.settings, ...newSettings };
-          get().performWrite('settings', 'global_settings', 'set', updatedSettings, `Update Global Studio Settings`);
-          return { settings: updatedSettings };
-        });
+        const currentStoreId = get().currentStoreId || 'default';
+        const updatedSettings = { ...get().settings, ...newSettings };
+
+        get().performWrite('settings', 'global_settings', 'set', updatedSettings, `Update Global Studio Settings`);
+
+        const currentStore = get().stores.find(s => s.id === currentStoreId);
+        if (currentStore) {
+          const updatedStoreDoc: StoreDetails = {
+            ...currentStore,
+            storeName: updatedSettings.storeName || currentStore.storeName,
+            address: updatedSettings.address || currentStore.address,
+            hours: updatedSettings.hours || currentStore.hours,
+            phone: (updatedSettings as any).phone || currentStore.phone || '',
+            logoUrl: updatedSettings.logoUrl || currentStore.logoUrl || '',
+            paymentLink: updatedSettings.paymentLink || currentStore.paymentLink || '',
+            qrCode: updatedSettings.qrCode || currentStore.qrCode || '',
+            instagramLink: updatedSettings.instagramLink || currentStore.instagramLink || '',
+            facebookLink: updatedSettings.facebookLink || currentStore.facebookLink || '',
+            twitterLink: updatedSettings.twitterLink || currentStore.twitterLink || '',
+            linkedinLink: (updatedSettings as any).linkedinLink || (currentStore as any).linkedinLink || '',
+            websiteLink: updatedSettings.websiteLink || currentStore.websiteLink || '',
+            whatsappLink: (updatedSettings as any).whatsappLink || (currentStore as any).whatsappLink || ''
+          };
+          get().performWrite('stores', currentStoreId, 'set', updatedStoreDoc, `Sync Store Document`);
+
+          set((state) => ({
+            settings: updatedSettings,
+            stores: state.stores.map(s => s.id === currentStoreId ? updatedStoreDoc : s)
+          }));
+        } else {
+          set({ settings: updatedSettings });
+        }
       },
 
       togglePrivacyMask: () => {
@@ -1631,6 +1605,26 @@ export const useAppStore = create<AppState>()(
           } catch (err) {
             console.error("Firestore store update failed, kept in local state:", err);
           }
+        }
+
+        if (isCurrentActive) {
+          const updatedSettings = {
+            ...get().settings,
+            storeName: updatedStore.storeName || get().settings.storeName,
+            address: updatedStore.address || get().settings.address,
+            hours: updatedStore.hours || get().settings.hours,
+            phone: updatedStore.phone || (get().settings as any).phone || '',
+            logoUrl: updatedStore.logoUrl || get().settings.logoUrl || '',
+            paymentLink: updatedStore.paymentLink || get().settings.paymentLink || '',
+            qrCode: updatedStore.qrCode || get().settings.qrCode || '',
+            instagramLink: updatedStore.instagramLink || get().settings.instagramLink || '',
+            facebookLink: updatedStore.facebookLink || get().settings.facebookLink || '',
+            twitterLink: updatedStore.twitterLink || get().settings.twitterLink || '',
+            linkedinLink: updatedStore.linkedinLink || (get().settings as any).linkedinLink || '',
+            websiteLink: updatedStore.websiteLink || get().settings.websiteLink || '',
+            whatsappLink: updatedStore.whatsappLink || (get().settings as any).whatsappLink || ''
+          };
+          get().performWrite('settings', 'global_settings', 'set', updatedSettings, `Update Store Global Settings ${id}`);
         }
 
         if (isBecomingDefault || id === get().currentStoreId) {

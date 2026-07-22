@@ -24,6 +24,7 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
   }
   
   body {
@@ -39,6 +40,10 @@
     padding-right: env(safe-area-inset-right);
   }
 
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight font-bold;
   }
@@ -48,11 +53,18 @@
   }
 
   .premium-card {
-    @apply bg-white rounded-[32px] border border-brand-border shadow-premium hover:shadow-premium-hover transition-all duration-500;
+    @apply bg-white rounded-[32px] border border-brand-border shadow-premium hover:shadow-premium-hover transition-all duration-300;
   }
 
   input, select, textarea {
-    @apply focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/40 transition-all duration-300 outline-none;
+    @apply focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/40 transition-all duration-200 outline-none;
+    font-size: 16px; /* Prevents iOS auto-zoom on mobile focus */
+  }
+
+  @media (min-width: 768px) {
+    input, select, textarea {
+      font-size: 0.875rem; /* 14px on desktop */
+    }
   }
 
   input[type="text"], 
