@@ -339,6 +339,26 @@ export const useAppStore = create<AppState>()(
             successCount++;
           } catch (err: any) {
             console.error(`Error syncing offline operation ${op.id} (${op.description}):`, err);
+
+            // If separate database failed, mark as failed and retry immediately with default database subcollection fallback
+            const isSeparateDbActive = op.storeId && op.storeId !== 'default' && op.storeId !== '(default)' && !isDatabaseFailed(op.storeId);
+            if (isSeparateDbActive && op.collectionName !== 'profiles' && op.collectionName !== 'notifications' && op.collectionName !== 'messages' && op.collectionName !== 'stores') {
+              markDatabaseAsFailed(op.storeId);
+              try {
+                const fallbackDocRef = getStoreDocRef(op.storeId, op.collectionName, op.docId);
+                if (op.action === 'set') {
+                  await safeSetDoc(fallbackDocRef, op.data);
+                } else {
+                  await deleteDoc(fallbackDocRef);
+                }
+                await removeQueuedWrite(op.id);
+                successCount++;
+                continue; // Move to next operation successfully!
+              } catch (retryErr) {
+                console.error(`Error retrying synced operation with fallback default database:`, retryErr);
+              }
+            }
+
             const isNetworkError = err.message?.includes('offline') || 
                                    err.message?.includes('network') || 
                                    err.code === 'unavailable' || 
@@ -388,8 +408,25 @@ export const useAppStore = create<AppState>()(
               await deleteDoc(docRef);
             }
             return;
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Direct Firestore write failed for ${collectionName}/${docId}:`, err);
+            // If we attempted to write to a separate database, and it failed, mark it as failed and retry with default database subcollection fallback
+            const isSeparateDbActive = storeId && storeId !== 'default' && storeId !== '(default)' && !isDatabaseFailed(storeId);
+            if (isSeparateDbActive && collectionName !== 'profiles' && collectionName !== 'notifications' && collectionName !== 'messages' && collectionName !== 'stores') {
+              console.warn(`[FIREBASE] Writing to separate database for store "${storeId}" failed. Marking as failed and retrying with fallback default database subcollection...`);
+              markDatabaseAsFailed(storeId);
+              try {
+                const fallbackDocRef = getStoreDocRef(storeId, collectionName, docId);
+                if (action === 'set') {
+                  await safeSetDoc(fallbackDocRef, data);
+                } else {
+                  await deleteDoc(fallbackDocRef);
+                }
+                return; // Successfully recovered!
+              } catch (retryErr) {
+                console.error(`[FIREBASE] Retry with fallback default database failed:`, retryErr);
+              }
+            }
           }
         }
 
@@ -1349,8 +1386,8 @@ export const useAppStore = create<AppState>()(
 
         if (updatedRepair && db) {
           const storeId = get().currentStoreId || 'default';
-          const storeDb = getDbForStore(storeId);
-          safeSetDoc(doc(storeDb, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note add failed", e));
+          const docRef = getStoreDocRef(storeId, 'repairs', repairId);
+          safeSetDoc(docRef, updatedRepair).catch(e => console.error("Firestore voice note add failed", e));
         }
       },
 
@@ -1370,8 +1407,8 @@ export const useAppStore = create<AppState>()(
 
         if (updatedRepair && db) {
           const storeId = get().currentStoreId || 'default';
-          const storeDb = getDbForStore(storeId);
-          safeSetDoc(doc(storeDb, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
+          const docRef = getStoreDocRef(storeId, 'repairs', repairId);
+          safeSetDoc(docRef, updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
         }
       },
 
@@ -1424,8 +1461,15 @@ export const useAppStore = create<AppState>()(
           hours: storeData.hours,
           phone: storeData.phone || ''
         };
-        const storeDb = getDbForStore(id);
-        await safeSetDoc(doc(storeDb, 'settings', 'global_settings'), storeSettings);
+        try {
+          const docRef = getStoreDocRef(id, 'settings', 'global_settings');
+          await safeSetDoc(docRef, storeSettings);
+        } catch (error) {
+          console.warn(`[FIREBASE] Failed to write settings to separate database for new store "${id}". falling back to default database:`, error);
+          markDatabaseAsFailed(id);
+          const fallbackDocRef = getStoreDocRef(id, 'settings', 'global_settings');
+          await safeSetDoc(fallbackDocRef, storeSettings);
+        }
 
         set((state) => ({
           stores: [...state.stores, newStore]
