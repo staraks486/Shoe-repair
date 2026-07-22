@@ -355,7 +355,10 @@ export default function Appointments() {
                       )}
                       {(selectedAppointment.status === 'Completed' || selectedAppointment.status === 'Cancelled') && (
                         <DeleteConfirmationButton 
-                          onDelete={() => deleteAppointment(selectedAppointment.id)}
+                          onDelete={() => {
+                            deleteAppointment(selectedAppointment.id);
+                            setSelectedAppointment(null);
+                          }}
                           itemName={`Appointment for ${selectedAppointment.customerName}`}
                           className="col-span-2 bg-white/5 text-white/60 p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-red-900/40 hover:text-red-200 transition-all"
                           iconClassName="w-4 h-4"

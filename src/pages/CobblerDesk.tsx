@@ -1551,7 +1551,7 @@ function VoiceNoteItem({ note, onDelete }: { note: VoiceNote, onDelete: () => vo
 
       <button 
         onClick={onDelete}
-        className="p-2 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600"
+        className="p-2 text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:text-red-600"
       >
         <TrashIcon className="w-4 h-4" />
       </button>

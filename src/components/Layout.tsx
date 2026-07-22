@@ -361,37 +361,43 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Mobile Header */}
         <header className="md:hidden sticky top-0 left-0 right-0 h-16 bg-[#F5F3EC] border-b border-[#E8E6DF] flex items-center justify-between px-4 z-40 shadow-sm">
-          <div 
-            className="flex items-center gap-2.5 cursor-pointer group/logo relative select-none" 
-            onClick={() => setIsProfileOpen(true)}
-            title="Open Artisan Portal"
-          >
-            <div className="w-8 h-8 rounded-lg bg-brand-dark text-[#D4AF37] flex items-center justify-center shadow-md overflow-hidden relative border border-white/10 group-hover/logo:scale-105 transition-all duration-300">
-              <span className="font-display font-black text-sm tracking-tighter leading-none z-10">C</span>
-              <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-brand-dark" />
-            </div>
+          {/* Left Navigation: Hamburger Menu Button and Brand */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="w-9 h-9 rounded-xl bg-brand-dark text-white flex items-center justify-center hover:bg-brand-olive transition-colors active:scale-95 shadow-sm"
+              aria-label="Toggle Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
             <div>
               <div className="flex items-center gap-1">
-                <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-sm group-hover/logo:text-brand-accent transition-colors">Cordwainers</h1>
+                <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-sm">Cordwainers</h1>
                 <Sparkles className="w-3 h-3 text-brand-accent animate-pulse" />
               </div>
               <p className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-muted mt-0.5">
-                Studio <span className="text-brand-accent/80 font-bold tracking-normal normal-case font-sans">• Portal</span>
+                Studio
               </p>
             </div>
           </div>
 
+          {/* Right Navigation: Notifications and Profile Portal */}
           <div className="flex items-center gap-2">
             <Suspense fallback={<div className="w-6 h-6 rounded-full bg-brand-border/20 animate-pulse" />}>
               <NotificationCenter />
             </Suspense>
 
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-8 h-8 rounded-lg bg-brand-dark text-white flex items-center justify-center hover:bg-brand-olive transition-colors animate-fade-in"
-              aria-label="Toggle Menu"
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-xl bg-brand-dark text-[#D4AF37] flex items-center justify-center shadow-md overflow-hidden relative border border-white/10 hover:scale-105 active:scale-95 transition-all duration-300"
+              title="Open Artisan Portal"
             >
-              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {userProfile?.displayName ? (
+                <span className="text-xs font-black uppercase">{userProfile.displayName.charAt(0)}</span>
+              ) : (
+                <span className="font-display font-black text-sm tracking-tighter leading-none">C</span>
+              )}
+              <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-brand-dark" />
             </button>
           </div>
         </header>
@@ -824,9 +830,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Mobile Navigation Bar */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F5F3EC]/95 backdrop-blur-md border-t border-[#E8E6DF] px-2 py-2 flex items-center justify-around z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] pb-[calc(env(safe-area-inset-bottom,0px)+8px)]">
+          {/* 1. CW Book */}
           <NavLink
-            key="/dashboard"
-            to="/dashboard"
+            key="/book"
+            to="/book"
             className={({ isActive }) => clsx(
               "flex flex-col items-center justify-center flex-1 py-1 transition-all relative",
               isActive ? "text-brand-dark font-black" : "text-brand-muted hover:text-brand-dark font-semibold"
@@ -834,8 +841,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             {({ isActive }) => (
               <>
-                <LayoutDashboard className="w-5 h-5" />
-                <span className="text-[9px] uppercase tracking-wider mt-1 scale-95 origin-center">Dashboard</span>
+                <Calendar className="w-5 h-5" />
+                <span className="text-[9px] uppercase tracking-wider mt-1 scale-95 origin-center">CW Book</span>
                 {isActive && (
                   <motion.div 
                     layoutId="activeMobileNavIndicator"
@@ -847,6 +854,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </NavLink>
 
+          {/* 2. CW Care */}
           <NavLink
             key="/new-repair"
             to="/new-repair"
@@ -870,6 +878,38 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </NavLink>
 
+          {/* 3. Dashboard (Center) */}
+          <NavLink
+            key="/dashboard"
+            to="/dashboard"
+            className={({ isActive }) => clsx(
+              "flex flex-col items-center justify-center flex-1 transition-all relative z-50",
+              isActive ? "text-brand-accent font-black" : "text-brand-dark hover:text-brand-accent font-semibold"
+            )}
+          >
+            {({ isActive }) => (
+              <div className="flex flex-col items-center justify-center">
+                <div className={clsx(
+                  "w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all -mt-5 border",
+                  isActive 
+                    ? "bg-brand-dark border-brand-accent text-brand-accent" 
+                    : "bg-white border-[#E8E6DF] text-brand-muted"
+                )}>
+                  <LayoutDashboard className="w-5 h-5" />
+                </div>
+                <span className="text-[8px] uppercase tracking-wider mt-1.5 font-bold">Dashboard</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeMobileNavIndicator"
+                    className="absolute -bottom-1.5 w-1.5 h-1.5 bg-brand-accent rounded-full"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </div>
+            )}
+          </NavLink>
+
+          {/* 4. CW Cover (CW Assure) */}
           <NavLink
             key="/insurance"
             to="/insurance"
@@ -881,7 +921,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             {({ isActive }) => (
               <>
                 <Shield className="w-5 h-5" />
-                <span className="text-[9px] uppercase tracking-wider mt-1 scale-95 origin-center">CW Cover</span>
+                <span className="text-[9px] uppercase tracking-wider mt-1 scale-95 origin-center">CW Assure</span>
                 {isActive && (
                   <motion.div 
                     layoutId="activeMobileNavIndicator"
@@ -893,6 +933,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </NavLink>
 
+          {/* 5. CW Plus (Stock) */}
           <NavLink
             key="/stock"
             to="/stock"
