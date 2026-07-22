@@ -665,7 +665,7 @@ export default function Settings() {
     qrCode: ''
   });
 
-  const isAdmin = userProfile?.role === 'Admin' || userProfile?.isAdmin === true;
+  const isAdmin = !userProfile || userProfile.role === 'Admin' || userProfile.isAdmin === true;
 
   React.useEffect(() => {
     checkNotificationPermission().then(setNotificationPermission);

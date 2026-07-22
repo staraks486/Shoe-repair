@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
     // Synchronous request blocks just long enough to capture runtime settings before SDK init
     xhr.open('GET', '/api/firebase-config', false);
     xhr.send(null);
-    if (xhr.status === 200) {
+    if (xhr.status === 200 && xhr.responseText && xhr.responseText.trim().startsWith('{')) {
       serverConfig = JSON.parse(xhr.responseText);
       console.log('[FIREBASE] Loaded live runtime configuration from server successfully.');
     }

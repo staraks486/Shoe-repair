@@ -1179,7 +1179,7 @@ export const useAppStore = create<AppState>()(
 
       addUserCredential: (credential) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) return;
         
         const currentCreds = get().settings.userCredentials || [];
         get().updateSettings({ userCredentials: [...currentCreds, credential] });
@@ -1187,7 +1187,7 @@ export const useAppStore = create<AppState>()(
 
       deleteUserCredential: (email) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) return;
         
         const currentCreds = get().settings.userCredentials || [];
         get().updateSettings({ userCredentials: currentCreds.filter(c => c.email !== email) });
@@ -1195,7 +1195,7 @@ export const useAppStore = create<AppState>()(
 
       updateUserCredential: (email, data) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) return;
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) return;
         
         const currentCreds = get().settings.userCredentials || [];
         get().updateSettings({ 
@@ -1446,37 +1446,49 @@ export const useAppStore = create<AppState>()(
           console.warn("[SECURITY] Blocked addStore from restricted Staff user profile");
           return;
         }
-        if (!db) return;
+        
         const id = generateId();
         const newStore: StoreDetails = {
           ...storeData,
           id,
           createdAt: new Date().toISOString()
         };
-        await safeSetDoc(doc(db, 'stores', id), newStore);
 
-        // Save custom settings for this new store using the active defaults
-        const defaultSettings = get().settings;
-        const storeSettings = {
-          ...defaultSettings,
-          storeName: storeData.storeName,
-          address: storeData.address,
-          hours: storeData.hours,
-          phone: storeData.phone || ''
-        };
-        try {
-          const docRef = getStoreDocRef(id, 'settings', 'global_settings');
-          await safeSetDoc(docRef, storeSettings);
-        } catch (error) {
-          console.warn(`[FIREBASE] Failed to write settings to separate database for new store "${id}". falling back to default database:`, error);
-          markDatabaseAsFailed(id);
-          const fallbackDocRef = getStoreDocRef(id, 'settings', 'global_settings');
-          await safeSetDoc(fallbackDocRef, storeSettings);
+        // Synchronously update local state so the store is instantly visible
+        set((state) => ({
+          stores: [...state.stores.filter(s => s.id !== id), newStore]
+        }));
+
+        if (!get().currentStoreId) {
+          set({ currentStoreId: id });
         }
 
-        set((state) => ({
-          stores: [...state.stores, newStore]
-        }));
+        if (db) {
+          try {
+            await safeSetDoc(doc(db, 'stores', id), newStore);
+
+            // Save custom settings for this new store using active defaults
+            const defaultSettings = get().settings;
+            const storeSettings = {
+              ...defaultSettings,
+              storeName: storeData.storeName,
+              address: storeData.address,
+              hours: storeData.hours,
+              phone: storeData.phone || ''
+            };
+            try {
+              const docRef = getStoreDocRef(id, 'settings', 'global_settings');
+              await safeSetDoc(docRef, storeSettings);
+            } catch (error) {
+              console.warn(`[FIREBASE] Failed to write settings to separate database for new store "${id}". falling back to default database:`, error);
+              markDatabaseAsFailed(id);
+              const fallbackDocRef = getStoreDocRef(id, 'settings', 'global_settings');
+              await safeSetDoc(fallbackDocRef, storeSettings);
+            }
+          } catch (err) {
+            console.error("Firestore store write failed, kept in local state:", err);
+          }
+        }
       },
 
       updateStore: async (id, storeData) => {
@@ -1485,7 +1497,7 @@ export const useAppStore = create<AppState>()(
           console.warn("[SECURITY] Blocked updateStore from restricted Staff user profile");
           return;
         }
-        if (!db) return;
+
         const existingStore = get().stores.find(s => s.id === id);
         if (!existingStore) return;
 
@@ -1493,7 +1505,11 @@ export const useAppStore = create<AppState>()(
           ...existingStore,
           ...storeData
         };
-        await safeSetDoc(doc(db, 'stores', id), updatedStore);
+
+        // Immediately update local state
+        set((state) => ({
+          stores: state.stores.map(s => s.id === id ? updatedStore : s)
+        }));
 
         if (id === get().currentStoreId) {
           get().updateSettings({
@@ -1503,9 +1519,13 @@ export const useAppStore = create<AppState>()(
           });
         }
 
-        set((state) => ({
-          stores: state.stores.map(s => s.id === id ? updatedStore : s)
-        }));
+        if (db) {
+          try {
+            await safeSetDoc(doc(db, 'stores', id), updatedStore);
+          } catch (err) {
+            console.error("Firestore store update failed, kept in local state:", err);
+          }
+        }
       },
 
       deleteStore: async (id) => {
@@ -1514,67 +1534,61 @@ export const useAppStore = create<AppState>()(
           console.warn("[SECURITY] Blocked deleteStore from restricted Staff user profile");
           return;
         }
-        if (!db) return;
         if (get().stores.length <= 1) {
           alert("Cannot delete the only registered store location.");
           return;
         }
 
-        try {
-          const storeToBackup = get().stores.find(s => s.id === id);
-          const storeName = storeToBackup?.storeName || 'Unnamed Store';
-          
-          // 1. Take a full store backup before deletion
-          const backupData = await get().createStoreBackup(id);
-          if (backupData) {
-            const backupId = generateId();
-            const newBackup = {
-              id: backupId,
-              name: `Pre-deletion Backup: ${storeName}`,
-              type: 'store' as const,
-              timestamp: new Date().toISOString(),
-              data: backupData
-            };
-            
-            set((state) => ({
-              backups: [newBackup, ...(state.backups || [])]
-            }));
+        const storeToBackup = get().stores.find(s => s.id === id);
+        const storeName = storeToBackup?.storeName || 'Unnamed Store';
+        const updatedStores = get().stores.filter(s => s.id !== id);
+        let nextStoreId = get().currentStoreId;
+        if (get().currentStoreId === id) {
+          nextStoreId = updatedStores[0]?.id || 'default';
+        }
 
-            // Also trigger an automatic file download
-            try {
-              const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-                JSON.stringify(backupData, null, 2)
-              )}`;
-              const downloadAnchor = document.createElement('a');
-              downloadAnchor.setAttribute('href', jsonString);
-              downloadAnchor.setAttribute('download', `store_backup_${storeName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.json`);
-              document.body.appendChild(downloadAnchor);
-              downloadAnchor.click();
-              downloadAnchor.remove();
-            } catch (downloadErr) {
-              console.error("Auto download failed, saved in app backups list.", downloadErr);
+        // Immediately update local state
+        set({
+          stores: updatedStores,
+          currentStoreId: nextStoreId
+        });
+
+        if (db) {
+          try {
+            const backupData = await get().createStoreBackup(id);
+            if (backupData) {
+              const backupId = generateId();
+              const newBackup = {
+                id: backupId,
+                name: `Pre-deletion Backup: ${storeName}`,
+                type: 'store' as const,
+                timestamp: new Date().toISOString(),
+                data: backupData
+              };
+              
+              set((state) => ({
+                backups: [newBackup, ...(state.backups || [])]
+              }));
+
+              try {
+                const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+                  JSON.stringify(backupData, null, 2)
+                )}`;
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute('href', jsonString);
+                downloadAnchor.setAttribute('download', `store_backup_${storeName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+              } catch (downloadErr) {
+                console.error("Auto download failed, saved in app backups list.", downloadErr);
+              }
             }
+
+            await deleteDoc(doc(db, 'stores', id));
+          } catch (error) {
+            console.error("Firestore store delete failed, removed locally:", error);
           }
-
-          // 2. Proceed with Firestore deletion
-          await deleteDoc(doc(db, 'stores', id));
-          
-          let nextStoreId = get().currentStoreId;
-          const updatedStores = get().stores.filter(s => s.id !== id);
-          
-          if (get().currentStoreId === id) {
-            nextStoreId = updatedStores[0]?.id || 'default';
-          }
-
-          set({
-            stores: updatedStores,
-            currentStoreId: nextStoreId
-          });
-
-          // Fetch the database details for the active store if switched
-          await get().fetchFromFirestore();
-        } catch (error) {
-          console.error("Firestore store delete failed", error);
         }
       },
 
