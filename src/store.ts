@@ -11,7 +11,8 @@ import {
   UserProfile,
   Appointment,
   StoreDetails,
-  UserCredential
+  UserCredential,
+  Message
 } from './types';
 import { NotificationService } from './services/NotificationService';
 import { db, auth } from './services/firebase';
@@ -51,6 +52,8 @@ interface AppState {
   currentStoreId: string;
   unsubscribers: (() => void)[];
   offlineQueue: OfflineOperation[];
+  profiles: UserProfile[];
+  messages: Message[];
   
   setUser: (user: User | null) => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -58,6 +61,8 @@ interface AppState {
   loadOfflineQueue: () => Promise<void>;
   processOfflineQueue: () => Promise<void>;
   performWrite: (collectionName: string, docId: string, action: 'set' | 'delete', data?: any, description?: string) => Promise<void>;
+  sendMessage: (chatId: string, text: string, imageUrl?: string, quickReplyId?: string) => Promise<void>;
+  markMessagesAsRead: (chatId: string) => Promise<void>;
 
   addRepair: (repair: Omit<ShoeRepairRequest, 'id' | 'isSynced' | 'createdAt' | 'invoiceNumber'>) => ShoeRepairRequest;
   updateRepairStatus: (id: string, status: ShoeRepairRequest['status']) => void;
@@ -112,15 +117,26 @@ const generateInvoice = () => 'INV-' + Math.floor(100000 + Math.random() * 90000
 function cleanUndefined<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) {
-    return obj.map(item => cleanUndefined(item)) as any;
+    return (obj as any[])
+      .filter(item => item !== undefined)
+      .map(item => cleanUndefined(item)) as any;
   }
   if (typeof obj === 'object') {
+    // Check if it's a built-in object like Date or RegExp
+    if (obj instanceof Date || obj instanceof RegExp) {
+      return obj;
+    }
     const newObj: any = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const val = obj[key];
-        if (val !== undefined) {
-          newObj[key] = cleanUndefined(val);
+        if (val !== undefined && val !== null) {
+          const cleaned = cleanUndefined(val);
+          if (cleaned !== undefined) {
+            newObj[key] = cleaned;
+          }
+        } else if (val === null) {
+          newObj[key] = null;
         }
       }
     }
@@ -129,8 +145,22 @@ function cleanUndefined<T>(obj: T): T {
   return obj;
 }
 
-const safeSetDoc = (docRef: any, data: any) => {
-  return setDoc(docRef, cleanUndefined(data));
+const safeSetDoc = async (docRef: any, data: any) => {
+  const cleaned = cleanUndefined(data);
+  try {
+    return await setDoc(docRef, cleaned);
+  } catch (err) {
+    console.warn("[safeSetDoc Warning] Direct write failed, attempting extreme deep clean of undefined values:", err);
+    // Extreme defensive check: iterate keys on the cleaned object and delete any undefineds
+    if (cleaned && typeof cleaned === 'object') {
+      Object.keys(cleaned).forEach(key => {
+        if ((cleaned as any)[key] === undefined) {
+          delete (cleaned as any)[key];
+        }
+      });
+    }
+    return await setDoc(docRef, cleaned);
+  }
 };
 
 export const useAppStore = create<AppState>()(
@@ -145,6 +175,8 @@ export const useAppStore = create<AppState>()(
       isPrivacyMasked: false,
       backups: [],
       unsubscribers: [],
+      profiles: [],
+      messages: [],
       inventory: [
         { id: '1', name: 'Premium Leather Soles', category: 'Soles', quantity: 50, unit: 'pairs', minThreshold: 10 },
         { id: '2', name: 'Rubber Heels', category: 'Heels', quantity: 5, unit: 'pairs', minThreshold: 20 },
@@ -289,6 +321,8 @@ export const useAppStore = create<AppState>()(
               docRef = doc(db, 'profiles', op.docId);
             } else if (op.collectionName === 'notifications') {
               docRef = doc(db, 'notifications', op.docId);
+            } else if (op.collectionName === 'messages') {
+              docRef = doc(db, 'messages', op.docId);
             } else {
               docRef = doc(db, 'stores', op.storeId, op.collectionName, op.docId);
             }
@@ -338,6 +372,8 @@ export const useAppStore = create<AppState>()(
               docRef = doc(db, 'profiles', docId);
             } else if (collectionName === 'notifications') {
               docRef = doc(db, 'notifications', docId);
+            } else if (collectionName === 'messages') {
+              docRef = doc(db, 'messages', docId);
             } else {
               docRef = doc(db, 'stores', storeId, collectionName, docId);
             }
@@ -544,6 +580,30 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync stores collection:", error);
           });
 
+          // Listener for profiles
+          const unsubProfiles = onSnapshot(collection(db, 'profiles'), (snapshot) => {
+            const profilesList: UserProfile[] = [];
+            snapshot.forEach((doc) => {
+              profilesList.push(doc.data() as UserProfile);
+            });
+            set({ profiles: profilesList });
+          }, (error) => {
+            console.error("Failed to sync profiles collection:", error);
+          });
+
+          // Listener for messages
+          const unsubMessages = onSnapshot(collection(db, 'messages'), (snapshot) => {
+            const messagesList: Message[] = [];
+            snapshot.forEach((doc) => {
+              messagesList.push(doc.data() as Message);
+            });
+            // Sort by createdAt ascending for chat layout
+            messagesList.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            set({ messages: messagesList });
+          }, (error) => {
+            console.error("Failed to sync messages collection:", error);
+          });
+
           // Save unsubscribers and set sync state
           set({
             unsubscribers: [
@@ -553,7 +613,9 @@ export const useAppStore = create<AppState>()(
               unsubInsurance,
               unsubAppointments,
               unsubSettings,
-              unsubStores
+              unsubStores,
+              unsubProfiles,
+              unsubMessages
             ],
             lastSyncStatus: 'success'
           });
@@ -1124,6 +1186,95 @@ export const useAppStore = create<AppState>()(
           await safeSetDoc(doc(db, 'profiles', user.uid), updatedProfile);
         } catch (e) {
           console.error("Failed to update profile:", e);
+        }
+      },
+
+      sendMessage: async (chatId, text, imageUrl, quickReplyId) => {
+        const { user, userProfile } = get();
+        if (!user || !userProfile) {
+          console.error("Cannot send message: User is not logged in.");
+          return;
+        }
+
+        const newMessage: Message = {
+          id: generateId(),
+          chatId,
+          senderId: user.uid,
+          senderName: userProfile.displayName || user.email || 'Anonymous Cobbler',
+          senderPhoto: userProfile.photoURL || undefined,
+          text,
+          imageUrl,
+          quickReplyId,
+          createdAt: new Date().toISOString(),
+          readBy: [user.uid],
+          status: 'sent'
+        };
+
+        // Update local state optimistically
+        set((state) => ({
+          messages: [...state.messages, newMessage]
+        }));
+
+        // Clean up undefined properties for Firestore
+        const dbMessage: Record<string, any> = {
+          id: newMessage.id,
+          chatId: newMessage.chatId,
+          senderId: newMessage.senderId,
+          senderName: newMessage.senderName,
+          text: newMessage.text,
+          createdAt: newMessage.createdAt,
+          readBy: newMessage.readBy,
+          status: newMessage.status
+        };
+        if (newMessage.senderPhoto) dbMessage.senderPhoto = newMessage.senderPhoto;
+        if (newMessage.imageUrl) dbMessage.imageUrl = newMessage.imageUrl;
+        if (newMessage.quickReplyId) dbMessage.quickReplyId = newMessage.quickReplyId;
+
+        if (db) {
+          try {
+            await safeSetDoc(doc(db, 'messages', newMessage.id), dbMessage);
+          } catch (err) {
+            console.error("Failed to write message to Firestore, using offline queue:", err);
+            await get().performWrite('messages', newMessage.id, 'set', dbMessage, 'Send internal message');
+          }
+        } else {
+          await get().performWrite('messages', newMessage.id, 'set', dbMessage, 'Send internal message');
+        }
+      },
+
+      markMessagesAsRead: async (chatId) => {
+        const { user, messages } = get();
+        if (!user || !db) return;
+
+        const unreadMessages = messages.filter(m => m.chatId === chatId && (!m.readBy || !m.readBy.includes(user.uid)));
+        if (unreadMessages.length === 0) return;
+
+        // Optimistically update locally
+        set((state) => ({
+          messages: state.messages.map(m => {
+            if (m.chatId === chatId && (!m.readBy || !m.readBy.includes(user.uid))) {
+              return {
+                ...m,
+                readBy: [...(m.readBy || []), user.uid],
+                status: 'read' as const
+              };
+            }
+            return m;
+          })
+        }));
+
+        try {
+          const batch = writeBatch(db);
+          unreadMessages.forEach(m => {
+            const docRef = doc(db, 'messages', m.id);
+            batch.update(docRef, {
+              readBy: [...(m.readBy || []), user.uid],
+              status: 'read'
+            });
+          });
+          await batch.commit();
+        } catch (err) {
+          console.error("Failed to batch update message read statuses:", err);
         }
       },
 

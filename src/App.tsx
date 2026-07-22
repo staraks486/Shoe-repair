@@ -20,6 +20,7 @@ const Appointments = lazy(() => import('./pages/Appointments'));
 const Booking = lazy(() => import('./pages/Booking'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Messaging = lazy(() => import('./pages/Messaging'));
 
 // Page transition component
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -115,6 +116,7 @@ export default function App() {
                 <Route path="/socials-payments" element={<ProtectedRoute><PageWrapper><SocialsPayments /></PageWrapper></ProtectedRoute>} />
                 <Route path="/appointments" element={<ProtectedRoute><PageWrapper><Appointments /></PageWrapper></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><PageWrapper><Profile /></PageWrapper></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute><PageWrapper><Messaging /></PageWrapper></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute requireAdmin><PageWrapper><Settings /></PageWrapper></ProtectedRoute>} />
                 
                 <Route path="*" element={<Navigate to="/" replace />} />

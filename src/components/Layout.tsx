@@ -32,7 +32,8 @@ import {
   Activity,
   HardDrive,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageSquare
 } from 'lucide-react';
 import clsx from 'clsx';
 import { auth, db } from '../services/firebase';
@@ -269,6 +270,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   ];
 
   const secondaryNavItems = [
+    { to: '/chat', icon: MessageSquare, label: 'CW Chat' },
     { to: '/customers', icon: Users, label: 'Directory' },
     { to: '/socials-payments', icon: IndianRupee, label: 'Sales & Media' },
     { to: '/appointments', icon: Calendar, label: 'Schedule' },

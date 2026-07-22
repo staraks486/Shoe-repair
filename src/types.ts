@@ -268,3 +268,18 @@ export interface StoreDetails {
   createdAt?: string;
 }
 
+export interface Message {
+  id: string;
+  chatId: string; // "general" or "store-<storeId>" or "uid1-uid2" sorted alphabetically
+  senderId: string;
+  senderName: string;
+  senderPhoto?: string;
+  text: string;
+  imageUrl?: string;
+  quickReplyId?: string;
+  createdAt: string; // ISO string
+  readBy?: string[]; // array of userIds
+  status?: 'sent' | 'delivered' | 'read';
+}
+
+
