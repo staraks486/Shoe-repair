@@ -40,12 +40,106 @@ import { sendPushNotification } from '../lib/notifications';
 import PhotoManager from '../components/PhotoManager';
 
 export default function CobblerDesk() {
-  const { repairs, updateRepairStatus, updateRepair, addVoiceNote, deleteVoiceNote, settings, updateSettings, user, userProfile } = useAppStore();
+  const { repairs, updateRepairStatus, updateRepair, addVoiceNote, deleteVoiceNote, settings, updateSettings, user, userProfile, isPrivacyMasked } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<RepairStatus | 'All'>('All');
   const [selectedRepair, setSelectedRepair] = useState<ShoeRepairRequest | null>(null);
   const [activeTab, setActiveTab] = useState<'assigned' | 'in-progress' | 'completed'>('assigned');
   const [currentView, setCurrentView] = useState<'repairs' | 'cobblers' | 'payments'>('repairs');
+
+  // Privacy Masking helpers
+  const maskPhone = (phone: string) => {
+    if (!isPrivacyMasked) return phone;
+    const cleaned = (phone || '').replace(/\s+/g, '');
+    if (cleaned.length < 5) return '••••••';
+    return cleaned.slice(0, 4) + ' •••• ••' + cleaned.slice(-3);
+  };
+
+  const maskName = (name: string) => {
+    if (!isPrivacyMasked) return name;
+    const parts = (name || '').split(' ');
+    return parts.map((p, i) => i === 0 ? p : p[0] + '•••').join(' ');
+  };
+
+  function MaskedText({ text, maskFn }: { text: string; maskFn: (t: string) => string }) {
+    const [revealed, setRevealed] = useState(false);
+    return (
+      <span 
+        onMouseEnter={() => setRevealed(true)}
+        onMouseLeave={() => setRevealed(false)}
+        onClick={() => setRevealed(!revealed)}
+        className="cursor-help select-none border-b border-dotted border-brand-border/40 hover:border-brand-olive transition-colors"
+        title="Hover/click to reveal safely"
+      >
+        {revealed ? text : maskFn(text)}
+      </span>
+    );
+  }
+
+  // Stopwatch states
+  const [stopwatchRepairId, setStopwatchRepairId] = useState<string | null>(null);
+  const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
+  const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
+  const stopwatchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync stopwatch on active repair change
+  useEffect(() => {
+    if (selectedRepair) {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+      }
+      setIsStopwatchRunning(false);
+      setStopwatchSeconds(0);
+      setStopwatchRepairId(selectedRepair.id);
+    } else {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+      }
+      setIsStopwatchRunning(false);
+    }
+    return () => {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+      }
+    };
+  }, [selectedRepair]);
+
+  // Stopwatch ticking effect
+  useEffect(() => {
+    if (isStopwatchRunning) {
+      stopwatchIntervalRef.current = setInterval(() => {
+        setStopwatchSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+      }
+    }
+    return () => {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+      }
+    };
+  }, [isStopwatchRunning]);
+
+  const formatStopwatchTime = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleSaveLaborTime = () => {
+    if (!selectedRepair) return;
+    const currentLabor = selectedRepair.laborSeconds || 0;
+    const newLabor = currentLabor + stopwatchSeconds;
+    
+    updateRepair(selectedRepair.id, { laborSeconds: newLabor });
+    setSelectedRepair(prev => prev ? { ...prev, laborSeconds: newLabor } : null);
+    
+    setStopwatchSeconds(0);
+    setIsStopwatchRunning(false);
+  };
 
   // Artisan Text Comments states
   const [newCommentText, setNewCommentText] = useState('');
@@ -794,8 +888,12 @@ export default function CobblerDesk() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-brand-light/50 p-4 rounded-2xl border border-brand-border/40">
                     <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">Customer</p>
-                    <p className="text-sm font-bold text-brand-dark">{selectedRepair.customerName}</p>
-                    <p className="text-xs text-brand-muted font-mono">{selectedRepair.phoneNumber}</p>
+                    <p className="text-sm font-bold text-brand-dark">
+                      <MaskedText text={selectedRepair.customerName} maskFn={maskName} />
+                    </p>
+                    <p className="text-xs text-brand-muted font-mono">
+                      <MaskedText text={selectedRepair.phoneNumber} maskFn={maskPhone} />
+                    </p>
                   </div>
                   <div className="bg-brand-light/50 p-4 rounded-2xl border border-brand-border/40">
                     <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">Due Date</p>
@@ -849,6 +947,60 @@ export default function CobblerDesk() {
                         <option key={cob.id} value={cob.id}>{cob.name}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* Active Workshop Hands-On Labor Stopwatch */}
+                <div className="bg-brand-light/50 p-4 rounded-2xl border border-brand-border/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-brand-olive" />
+                      Active Hands-On Labor
+                    </p>
+                    {selectedRepair.laborSeconds && selectedRepair.laborSeconds > 0 ? (
+                      <span className="text-[9px] font-mono font-bold bg-[#FAF9F5] border border-brand-border/40 text-[#5C5340] px-2 py-0.5 rounded-md">
+                        Total Logged: {Math.floor(selectedRepair.laborSeconds / 3600)}h {Math.floor((selectedRepair.laborSeconds % 3600) / 60)}m {selectedRepair.laborSeconds % 60}s
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-brand-muted font-bold uppercase tracking-wide">
+                        No Time Logged
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-brand-border/50">
+                    <div className="font-mono text-xl font-black tracking-wider text-brand-dark">
+                      {formatStopwatchTime(stopwatchSeconds)}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsStopwatchRunning(!isStopwatchRunning)}
+                        className={clsx(
+                          "p-2.5 rounded-xl text-white transition-all active:scale-90 shadow-sm cursor-pointer",
+                          isStopwatchRunning 
+                            ? "bg-amber-600 hover:bg-amber-700" 
+                            : "bg-brand-olive hover:bg-brand-dark"
+                        )}
+                        title={isStopwatchRunning ? "Pause timer" : "Start timer"}
+                      >
+                        {isStopwatchRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
+
+                      <button
+                        onClick={handleSaveLaborTime}
+                        disabled={stopwatchSeconds === 0}
+                        className={clsx(
+                          "px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer",
+                          stopwatchSeconds === 0 
+                            ? "bg-[#FAF9F5] border border-[#E8E6DF] text-brand-muted/40 cursor-not-allowed" 
+                            : "bg-brand-accent text-white hover:bg-brand-accent/90 shadow-sm"
+                        )}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Log Time
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1289,6 +1441,14 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
   onSelect: (r: ShoeRepairRequest) => void,
   getStatusColor: (s: RepairStatus) => string
 }) {
+  const { isPrivacyMasked } = useAppStore();
+
+  const maskName = (name: string) => {
+    if (!isPrivacyMasked) return name;
+    const parts = (name || '').split(' ');
+    return parts.map((p, i) => i === 0 ? p : p[0] + '•••').join(' ');
+  };
+
   return (
     <div className="space-y-3">
       {repairs.map((repair) => (
@@ -1325,9 +1485,9 @@ function RepairList({ repairs, onSelect, getStatusColor }: {
             </div>
             <h4 className="font-display text-base font-black text-brand-dark truncate leading-tight mb-0.5">{repair.shoeModel}</h4>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-brand-muted truncate">{repair.customerName}</span>
+              <span className="text-xs font-bold text-brand-muted truncate">{maskName(repair.customerName)}</span>
               <span className="w-1 h-1 bg-brand-border rounded-full" />
-              <span className="text-xs font-mono text-brand-olive">₹{repair.price}</span>
+              <span className="text-xs font-mono text-brand-olive font-bold">₹{repair.price}</span>
             </div>
           </div>
 

@@ -10,7 +10,7 @@ import PageHeader from '../components/PageHeader';
 import SwipeToDelete from '../components/SwipeToDelete';
 
 export default function Customers() {
-  const { customers, addCustomer, deleteCustomer } = useAppStore();
+  const { customers, addCustomer, deleteCustomer, isPrivacyMasked } = useAppStore();
   const [search, setSearch] = useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -20,6 +20,41 @@ export default function Customers() {
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerOrders, setNewCustomerOrders] = useState(0);
   const [addError, setAddError] = useState('');
+
+  const maskPhone = (phone: string) => {
+    if (!isPrivacyMasked) return phone;
+    const cleaned = phone.replace(/\s+/g, '');
+    if (cleaned.length < 5) return '••••••';
+    return cleaned.slice(0, 4) + ' •••• ••' + cleaned.slice(-3);
+  };
+
+  const maskName = (name: string) => {
+    if (!isPrivacyMasked) return name;
+    const parts = name.split(' ');
+    return parts.map((p, i) => i === 0 ? p : p[0] + '•••').join(' ');
+  };
+
+  const maskEmail = (email: string) => {
+    if (!isPrivacyMasked || !email) return email;
+    const [user, domain] = email.split('@');
+    if (!domain) return '•••••';
+    return user.slice(0, 2) + '••••@' + domain;
+  };
+
+  function MaskedText({ text, maskFn }: { text: string; maskFn: (t: string) => string }) {
+    const [revealed, setRevealed] = useState(false);
+    return (
+      <span 
+        onMouseEnter={() => setRevealed(true)}
+        onMouseLeave={() => setRevealed(false)}
+        onClick={() => setRevealed(!revealed)}
+        className="cursor-help select-none border-b border-dotted border-brand-border/40 hover:border-brand-olive transition-colors"
+        title="Hover/click to reveal safely"
+      >
+        {revealed ? text : maskFn(text)}
+      </span>
+    );
+  }
 
   const handleDelete = (phoneNumber: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete customer "${name}" from the database?`)) {
@@ -145,19 +180,21 @@ export default function Customers() {
                         <div className="w-10 h-10 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-olive font-display font-black text-sm">
                           {c.name.charAt(0)}
                         </div>
-                        <div className="text-sm font-bold text-brand-dark font-display">{c.name}</div>
+                        <div className="text-sm font-bold text-brand-dark font-display">
+                          <MaskedText text={c.name} maskFn={maskName} />
+                        </div>
                       </div>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs font-bold text-brand-dark">
                           <Phone className="w-3.5 h-3.5 text-brand-muted opacity-40" />
-                          {c.phoneNumber}
+                          <MaskedText text={c.phoneNumber} maskFn={maskPhone} />
                         </div>
                         {c.email && (
                           <div className="flex items-center gap-2 text-[10px] text-brand-muted font-medium">
                             <Mail className="w-3.5 h-3.5 text-brand-muted opacity-40" />
-                            {c.email}
+                            <MaskedText text={c.email} maskFn={maskEmail} />
                           </div>
                         )}
                       </div>

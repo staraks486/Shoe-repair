@@ -111,6 +111,7 @@ export interface ShoeRepairRequest {
   voiceNotes?: VoiceNote[];
   artisanNotes?: string;
   comments?: WorkComment[];
+  laborSeconds?: number;
 }
 
 export interface WorkComment {

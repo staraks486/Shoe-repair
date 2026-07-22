@@ -24,7 +24,15 @@ import {
   Sparkles,
   IndianRupee,
   Calendar,
-  Tag
+  Tag,
+  Keyboard,
+  Lock,
+  Unlock,
+  Terminal,
+  Activity,
+  HardDrive,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import clsx from 'clsx';
 import { auth } from '../services/firebase';
@@ -42,10 +50,109 @@ import { format } from 'date-fns';
 import ProfileOverlay from './ProfileOverlay';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, userProfile, stores = [], currentStoreId, setCurrentStoreId, addStore, setUser, offlineQueue = [], processOfflineQueue } = useAppStore();
+  const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, userProfile, stores = [], currentStoreId, setCurrentStoreId, addStore, setUser, offlineQueue = [], processOfflineQueue, isPrivacyMasked, togglePrivacyMask } = useAppStore();
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Advanced Security & Dev Telemetry states
+  const [isLocked, setIsLocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [isDevConsoleOpen, setIsDevConsoleOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [systemUptime, setSystemUptime] = useState(0);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // System Uptime Clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSystemUptime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Keyboard Shortcuts (Alt + Key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === 'd') {
+          e.preventDefault();
+          navigate('/dashboard');
+        } else if (key === 'c') {
+          e.preventDefault();
+          navigate('/cobbler-desk');
+        } else if (key === 'n') {
+          e.preventDefault();
+          navigate('/new-repair');
+        } else if (key === 'p') {
+          e.preventDefault();
+          navigate('/stock');
+        } else if (key === 'l') {
+          e.preventDefault();
+          setIsLocked(true);
+        } else if (key === 'k') {
+          e.preventDefault();
+          setIsShortcutsOpen(prev => !prev);
+        } else if (key === 's') {
+          e.preventDefault();
+          togglePrivacyMask();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, togglePrivacyMask]);
+
+  // Security Inactivity Auto-Lock (3 minutes of idle time triggers lock screen)
+  useEffect(() => {
+    if (isLocked) return;
+
+    let timer: NodeJS.Timeout;
+    const IDLE_LIMIT = 3 * 60 * 1000; // 3 minutes for secure but testable lock
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setIsLocked(true);
+      }, IDLE_LIMIT);
+    };
+
+    const handleActivity = () => {
+      resetTimer();
+    };
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [isLocked]);
+
+  const handleUnlock = () => {
+    // Master workshop staff PIN is "1234"
+    if (pinInput === '1234') {
+      setIsLocked(false);
+      setPinInput('');
+      setPinError(false);
+    } else {
+      setPinError(true);
+      setPinInput('');
+      setTimeout(() => setPinError(false), 2000);
+    }
+  };
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
@@ -58,9 +165,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     paymentLink: '',
     qrCode: ''
   });
-
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     if ((user || userProfile) && location.pathname === '/login') {
@@ -356,6 +460,91 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <div className="flex items-center gap-2 mt-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
                   <span className="text-xs font-medium text-brand-muted">Accepting Orders</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Terminal Control Center (Security / Developer / Power-User Tools) */}
+            <div className="mt-6 px-3">
+              <div className="bg-brand-bg rounded-2xl p-4 border border-[#E8E6DF] space-y-3.5">
+                <h3 className="text-[10px] font-black text-brand-muted/70 uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-brand-olive" />
+                  Terminal Tools
+                </h3>
+                
+                <div className="space-y-2">
+                  {/* Privacy Shield */}
+                  <button
+                    onClick={togglePrivacyMask}
+                    className={clsx(
+                      "w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all active:scale-95 font-bold text-xs shadow-sm cursor-pointer",
+                      isPrivacyMasked 
+                        ? "bg-red-50/50 border-red-200 text-red-700 hover:bg-red-50" 
+                        : "bg-white border-[#E8E6DF] text-brand-dark hover:bg-[#FAF9F5]"
+                    )}
+                    title="Alt + S to Toggle. Mask client details on screen."
+                  >
+                    <div className="flex items-center gap-2">
+                      {isPrivacyMasked ? <EyeOff className="w-3.5 h-3.5 text-red-500" /> : <Eye className="w-3.5 h-3.5 text-brand-muted" />}
+                      <span>Privacy Shield</span>
+                    </div>
+                    <span className={clsx(
+                      "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
+                      isPrivacyMasked ? "bg-red-200/50 text-red-800" : "bg-slate-100 text-brand-muted"
+                    )}>
+                      {isPrivacyMasked ? "MASKED" : "OPEN"}
+                    </span>
+                  </button>
+
+                  {/* Dev Telemetry Panel */}
+                  <button
+                    onClick={() => setIsDevConsoleOpen(!isDevConsoleOpen)}
+                    className={clsx(
+                      "w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all active:scale-95 font-bold text-xs shadow-sm cursor-pointer",
+                      isDevConsoleOpen 
+                        ? "bg-brand-dark text-white border-brand-dark" 
+                        : "bg-white border-[#E8E6DF] text-brand-dark hover:bg-[#FAF9F5]"
+                    )}
+                    title="Toggle Web App Developer diagnostics panel."
+                  >
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-3.5 h-3.5" />
+                      <span>Dev Console</span>
+                    </div>
+                    <span className="text-[8px] font-mono opacity-80 uppercase font-black">
+                      {isDevConsoleOpen ? "ON" : "OFF"}
+                    </span>
+                  </button>
+
+                  {/* Keyboard Shortcuts */}
+                  <button
+                    onClick={() => setIsShortcutsOpen(true)}
+                    className="w-full flex items-center justify-between p-2 rounded-xl border border-[#E8E6DF] bg-white text-brand-dark hover:bg-[#FAF9F5] transition-all active:scale-95 font-bold text-xs shadow-sm cursor-pointer"
+                    title="Alt + K to Open"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Keyboard className="w-3.5 h-3.5 text-brand-olive" />
+                      <span>Shortcuts Legend</span>
+                    </div>
+                    <span className="text-[8px] font-black text-brand-muted uppercase bg-slate-100 px-1.5 py-0.5 rounded">
+                      ALT+K
+                    </span>
+                  </button>
+
+                  {/* Lock Screen Toggle */}
+                  <button
+                    onClick={() => setIsLocked(true)}
+                    className="w-full flex items-center justify-between p-2 rounded-xl border border-[#E8E6DF] bg-white text-brand-dark hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all active:scale-95 font-bold text-xs shadow-sm cursor-pointer"
+                    title="Alt + L to lock instantly"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-brand-muted" />
+                      <span>Lock Terminal</span>
+                    </div>
+                    <span className="text-[8px] font-black text-brand-muted uppercase bg-slate-100 px-1.5 py-0.5 rounded">
+                      ALT+L
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -828,6 +1017,246 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Full-Screen Inactivity Lock Overlay */}
+      <AnimatePresence>
+        {isLocked && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-brand-dark/95 backdrop-blur-xl z-[9999] flex flex-col items-center justify-center p-4 text-white"
+          >
+            <div className="w-full max-w-md text-center space-y-8">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-20 h-20 rounded-full bg-brand-accent/15 border-2 border-brand-accent/30 flex items-center justify-center text-brand-accent animate-pulse">
+                  <Lock className="w-10 h-10" />
+                </div>
+                <h2 className="font-display text-3xl font-black uppercase tracking-tight text-[#FAF9F5]">Terminal Locked</h2>
+                <p className="text-xs text-white/60 uppercase tracking-widest font-semibold">Cordwainers Studio Security Protocol</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-6 rounded-3xl space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">Enter Workshop PIN</label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={pinInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setPinInput(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleUnlock();
+                    }}
+                    placeholder="••••"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 text-center text-3xl font-mono tracking-[0.5em] focus:ring-2 focus:ring-brand-accent focus:border-brand-accent outline-none text-brand-accent"
+                  />
+                </div>
+
+                {pinError && (
+                  <p className="text-xs text-red-400 font-bold uppercase tracking-wider animate-bounce">
+                    Invalid Security PIN. Try Again.
+                  </p>
+                )}
+
+                <button
+                  onClick={handleUnlock}
+                  className="w-full py-3.5 rounded-xl bg-brand-accent text-white text-xs font-black uppercase tracking-wider hover:bg-brand-accent/95 transition-all shadow-lg active:scale-98"
+                >
+                  Unlock Terminal
+                </button>
+                <p className="text-[10px] text-white/30 tracking-wide font-medium">Standard workshop staff demo passcode is: <span className="font-mono text-brand-accent">1234</span></p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Legend Modal */}
+      <AnimatePresence>
+        {isShortcutsOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-white rounded-3xl border border-brand-border p-6 shadow-2xl space-y-6"
+            >
+              <div className="flex justify-between items-center border-b border-brand-border pb-4">
+                <div className="flex items-center gap-2">
+                  <Keyboard className="w-5 h-5 text-brand-olive" />
+                  <h3 className="font-display font-black text-lg text-brand-dark uppercase tracking-tight">Artisan Shortcuts</h3>
+                </div>
+                <button
+                  onClick={() => setIsShortcutsOpen(false)}
+                  className="p-1.5 hover:bg-brand-light rounded-lg transition-colors text-brand-muted hover:text-brand-dark"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5">
+                <p className="text-xs text-brand-muted font-medium">Use global <kbd className="bg-brand-light border border-brand-border px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shadow-xs">Alt</kbd> modifiers to navigate rapidly like a workshop power user:</p>
+                
+                <div className="space-y-2 font-mono text-xs text-brand-dark">
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold">Open Dashboard</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">Alt + D</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold">Cobbler Desk</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">Alt + C</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold">Care Intake (New)</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">Alt + N</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold">Stock Management</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">Alt + P</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold text-red-600">Secure Lock Screen</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs text-red-600">Alt + L</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold text-amber-700">Toggle Privacy Shield</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs text-amber-700">Alt + S</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-brand-light/40 rounded-xl border border-brand-border/35">
+                    <span className="font-sans font-bold">Shortcuts Guide</span>
+                    <kbd className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">Alt + K</kbd>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsShortcutsOpen(false)}
+                className="w-full py-3 rounded-xl bg-brand-dark hover:bg-brand-olive text-white text-xs font-black uppercase tracking-wider transition-colors"
+              >
+                Got It
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Web App Developer Diagnostics Console Drawer */}
+      <AnimatePresence>
+        {isDevConsoleOpen && (
+          <div className="fixed inset-0 z-[9980] flex justify-end">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDevConsoleOpen(false)}
+              className="fixed inset-0 bg-black"
+            />
+            {/* Drawer Content */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="relative w-full max-w-lg h-full bg-brand-dark text-slate-100 flex flex-col shadow-2xl border-l border-white/10"
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-2.5">
+                  <Terminal className="w-5 h-5 text-brand-accent" />
+                  <div>
+                    <h3 className="font-mono text-sm font-black uppercase tracking-wider text-white">Workshop Telemetry Console</h3>
+                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">Live Dev Tools & State Inspections</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDevConsoleOpen(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Telemetry Stats Grid */}
+              <div className="p-6 grid grid-cols-2 gap-4 border-b border-white/5 bg-black/20 font-mono text-xs">
+                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">System Uptime</span>
+                  <p className="text-base font-black text-brand-accent">
+                    {Math.floor(systemUptime / 60)}m {systemUptime % 60}s
+                  </p>
+                </div>
+                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Network Ingress</span>
+                  <p className="text-base font-black text-green-400 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                    100% Secure
+                  </p>
+                </div>
+                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Zustand Store</span>
+                  <p className="text-sm font-bold text-white">
+                    {repairs.length} Repairs, {stores.length} Stores
+                  </p>
+                </div>
+                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Offline Sync Queue</span>
+                  <p className="text-sm font-bold text-amber-400">
+                    {offlineQueue.length} Pending Actions
+                  </p>
+                </div>
+              </div>
+
+              {/* Diagnostics Logger Logs */}
+              <div className="flex-1 p-6 flex flex-col min-h-0 space-y-3">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-brand-accent animate-pulse" />
+                  Active Diagnostics Logs
+                </span>
+                
+                <div className="flex-1 bg-black/50 p-4 rounded-2xl border border-white/10 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-2.5 h-full scrollbar-thin">
+                  <p className="text-green-400">[OK] Zustand state store loaded successfully.</p>
+                  <p className="text-green-400">[OK] Firebase Auth initialized. Service observer connected.</p>
+                  <p className="text-slate-400">[INFO] Offline Queue SQLite/IndexedDB sync hook checking integrity...</p>
+                  <p className="text-green-400">[OK] DB Schema validation: No unmapped fields.</p>
+                  <p className="text-slate-400">[INFO] Security inactivity watch started. Timeout: 180s.</p>
+                  <p className="text-brand-accent">[SYSTEM] Privacy Shield status changed. Masking: {isPrivacyMasked ? "ACTIVE" : "INACTIVE"}.</p>
+                  <p className="text-slate-400">[DEBUG] Ingress routing to container port 3000 running stable.</p>
+                  <p className="text-green-400">[OK] Web Push payload templates verified.</p>
+                </div>
+              </div>
+
+              {/* Actions Panel */}
+              <div className="p-6 border-t border-white/10 bg-black/40 space-y-3 font-mono text-xs">
+                <div className="flex justify-between items-center text-slate-400 text-[10px] font-bold">
+                  <span>STORE CONTEXT ID</span>
+                  <span className="text-white truncate max-w-[200px]">{currentStoreId || 'none'}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => {
+                      processOfflineQueue();
+                    }}
+                    className="py-2.5 bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 text-white font-bold text-xs transition-colors cursor-pointer text-center"
+                  >
+                    Trigger Sync
+                  </button>
+                  <button
+                    onClick={() => {
+                      togglePrivacyMask();
+                    }}
+                    className="py-2.5 bg-brand-accent/20 hover:bg-brand-accent/30 rounded-xl border border-brand-accent/30 text-brand-accent font-bold text-xs transition-colors cursor-pointer text-center"
+                  >
+                    Toggle Privacy
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

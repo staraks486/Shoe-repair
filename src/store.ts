@@ -96,6 +96,9 @@ interface AppState {
   deleteUserCredential: (email: string) => void;
   updateUserCredential: (email: string, data: Partial<UserCredential>) => void;
   
+  isPrivacyMasked: boolean;
+  togglePrivacyMask: () => void;
+  
   backups: Array<{ id: string; name: string; type: 'store' | 'app'; timestamp: string; data: any }>;
   createStoreBackup: (storeId: string) => Promise<any>;
   createAppBackup: () => Promise<any>;
@@ -139,6 +142,7 @@ export const useAppStore = create<AppState>()(
       customers: [],
       stores: [],
       currentStoreId: '',
+      isPrivacyMasked: false,
       backups: [],
       unsubscribers: [],
       inventory: [
@@ -1015,6 +1019,10 @@ export const useAppStore = create<AppState>()(
           get().performWrite('settings', 'global_settings', 'set', updatedSettings, `Update Global Studio Settings`);
           return { settings: updatedSettings };
         });
+      },
+
+      togglePrivacyMask: () => {
+        set((state) => ({ isPrivacyMasked: !state.isPrivacyMasked }));
       },
 
       addUserCredential: (credential) => {
