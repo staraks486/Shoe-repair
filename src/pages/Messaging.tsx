@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { Message, UserProfile } from '../types';
 import PageHeader from '../components/PageHeader';
@@ -24,7 +25,9 @@ import {
   Trash2,
   HelpCircle,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X,
+  Plus
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -51,6 +54,7 @@ const formatChatHeaderTime = (isoString?: string) => {
 };
 
 export default function Messaging() {
+  const navigate = useNavigate();
   const { 
     user, 
     userProfile, 
@@ -59,7 +63,8 @@ export default function Messaging() {
     sendMessage, 
     markMessagesAsRead,
     stores,
-    currentStoreId 
+    currentStoreId,
+    updateProfile
   } = useAppStore();
 
   const [activeChatId, setActiveChatId] = useState<string>('general');
@@ -126,12 +131,40 @@ export default function Messaging() {
     allProfiles.push(userProfile);
   }
 
-  // Group chats definitions
+  // Dynamic Channels definitions
   const activeStoreName = stores.find(s => s.id === currentStoreId)?.storeName || 'Cordwainers Studio';
-  const groupChats = [
-    { id: 'general', name: '📢 General Studio Broadcast', isGroup: true, description: 'Store-wide team announcements and coordination', photoUrl: '' },
-    { id: `store-${currentStoreId || 'default'}`, name: `🥾 ${activeStoreName} Room`, isGroup: true, description: `Official channel for active shift coordination`, photoUrl: '' }
+  const DISCOVERABLE_CHANNELS = [
+    { id: 'general', name: '📢 General Studio Broadcast', description: 'Store-wide team announcements and coordination' },
+    { id: `store-${currentStoreId || 'default'}`, name: `🥾 ${activeStoreName} Room`, description: `Official channel for active shift coordination` },
+    { id: 'shift-handover', name: '📝 Daily Shift Handover', description: 'Record logs, key notes and artisan handovers' },
+    { id: 'leather-crafts', name: '🧶 Leather Restoration Experts', description: 'Share photos, tips, and workshop techniques' },
+    { id: 'customer-front', name: '🛎️ Front Counter Coordination', description: 'Coordinate customer intakes, payments and quick handoffs' },
+    { id: 'vip-clients', name: '💎 VIP Bespoke Commissions', description: 'Exclusive coordination for high-value bespoke commissions' }
   ];
+
+  const joinedChannelIds = userProfile?.joinedChannels || ['general', `store-${currentStoreId || 'default'}`];
+
+  const groupChats = DISCOVERABLE_CHANNELS
+    .filter(ch => joinedChannelIds.includes(ch.id))
+    .map(ch => ({
+      id: ch.id,
+      name: ch.name,
+      isGroup: true,
+      description: ch.description,
+      photoUrl: ''
+    }));
+
+  const unjoinedChannels = DISCOVERABLE_CHANNELS.filter(ch => !joinedChannelIds.includes(ch.id));
+
+  const handleJoinChannel = async (channelId: string) => {
+    if (!joinedChannelIds.includes(channelId)) {
+      const updatedChannels = [...joinedChannelIds, channelId];
+      await updateProfile({ joinedChannels: updatedChannels });
+      setActiveChatId(channelId);
+      // Wait briefly to write membership, then send system hello message
+      await sendMessage(channelId, `👋 Joined the channel! Ready to coordinate.`);
+    }
+  };
 
   // Build list of active direct message conversations based on profiles
   const directChats = allProfiles
@@ -212,13 +245,23 @@ export default function Messaging() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
       <PageHeader 
         title="CW Chat" 
         subtitle="Artisan Studio Real-time Coordination Hub" 
-      />
+      >
+        <button 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brand-dark hover:text-white bg-[#FDFCFB] hover:bg-brand-dark border border-brand-accent/30 rounded-full shadow-sm hover:shadow-md transition-all duration-200"
+          title="Return to Dashboard"
+          id="close-chat-button"
+        >
+          <X className="w-3.5 h-3.5" />
+          Close Chat
+        </button>
+      </PageHeader>
 
-      <div className="bg-white border border-brand-bg/60 rounded-3xl shadow-xl overflow-hidden flex h-[calc(100vh-14rem)] min-h-[500px] md:h-[680px] relative">
+      <div className="bg-white border border-brand-bg/60 rounded-2xl md:rounded-3xl shadow-xl overflow-hidden flex h-[calc(100vh-10rem)] md:h-[700px] min-h-[500px] relative">
         
         {/* SIDEBAR: Chats List */}
         <div className={clsx(
@@ -300,6 +343,33 @@ export default function Messaging() {
 
           {/* Conversations list container */}
           <div className="flex-1 overflow-y-auto divide-y divide-brand-bg/40 bg-white">
+            {/* Suggested Channels to Join */}
+            {(selectedTab === 'all' || selectedTab === 'groups') && unjoinedChannels.length > 0 && (
+              <div className="p-4 bg-[#FDFCFB] border-b border-brand-bg/60">
+                <div className="flex items-center gap-1.5 mb-2 px-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping" />
+                  <h5 className="text-[10px] font-black uppercase tracking-wider text-brand-dark">Available Rooms to Join</h5>
+                </div>
+                <div className="space-y-2">
+                  {unjoinedChannels.map(ch => (
+                    <div key={ch.id} className="p-3 bg-white rounded-2xl border border-brand-bg flex items-center justify-between gap-3 shadow-sm hover:shadow transition-all">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[11px] font-bold text-brand-dark truncate block leading-tight">{ch.name}</span>
+                        <span className="text-[9px] text-brand-muted truncate block mt-0.5">{ch.description}</span>
+                      </div>
+                      <button
+                        onClick={() => handleJoinChannel(ch.id)}
+                        className="bg-brand-dark hover:bg-brand-accent text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97] flex-shrink-0 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Join
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {filteredConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center h-48">
                 <HelpCircle className="w-8 h-8 text-brand-muted mb-2 opacity-60" />

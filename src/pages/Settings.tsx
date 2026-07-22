@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import clsx from 'clsx';
@@ -107,6 +107,336 @@ function SwipeToDelete({ onDelete, confirmMessage, itemName, children }: SwipeTo
   );
 }
 
+function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; index: number; settings: any; updateSettings: any }) {
+  const [avatarUrl, setAvatarUrl] = useState(emp.avatarUrl || '');
+  const [name, setName] = useState(emp.name || '');
+  const [role, setRole] = useState(emp.role || '');
+  const [mobile, setMobile] = useState(emp.mobile || '');
+  const [email, setEmail] = useState(emp.email || '');
+
+  useEffect(() => {
+    setAvatarUrl(emp.avatarUrl || '');
+    setName(emp.name || '');
+    setRole(emp.role || '');
+    setMobile(emp.mobile || '');
+    setEmail(emp.email || '');
+  }, [emp]);
+
+  const handleBlur = (field: string, value: string) => {
+    const newItems = [...settings.employees];
+    newItems[index] = { ...newItems[index], [field]: value };
+    updateSettings({ employees: newItems });
+  };
+
+  const handleAutoPhoto = () => {
+    const defaultAvatars = [
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"
+    ];
+    const avatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
+    setAvatarUrl(avatar);
+    const newItems = [...settings.employees];
+    newItems[index] = { ...newItems[index], avatarUrl: avatar };
+    updateSettings({ employees: newItems });
+  };
+
+  return (
+    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
+      <button 
+        type="button"
+        onClick={() => {
+          if (window.confirm(`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`)) {
+            const newItems = settings.employees.filter((_, i: number) => i !== index);
+            updateSettings({ employees: newItems });
+          }
+        }}
+        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
+        title="Dismiss personnel"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+      
+      {/* Avatar preview and URL input */}
+      <div className="md:col-span-2 flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-brand-border/40">
+        <div className="w-20 h-20 rounded-full border border-brand-border overflow-hidden bg-brand-bg flex-shrink-0 flex items-center justify-center shadow-inner">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <User className="w-8 h-8 text-brand-muted" />
+          )}
+        </div>
+        <div className="flex-1 w-full space-y-2">
+          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Profile Photo / Avatar URL</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={avatarUrl} 
+              placeholder="https://images.unsplash.com/... or paste any image URL" 
+              onChange={(e) => setAvatarUrl(e.target.value)} 
+              onBlur={() => handleBlur('avatarUrl', avatarUrl)}
+              className="flex-1 bg-white border border-brand-border rounded-full px-6 py-2.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+            />
+            <button
+              type="button"
+              onClick={handleAutoPhoto}
+              className="px-4 py-2 bg-brand-bg hover:bg-brand-dark hover:text-white text-brand-dark border border-brand-border rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
+            >
+              Auto Photo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name</label>
+        <input 
+          type="text" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          onBlur={() => handleBlur('name', name)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Role</label>
+        <input 
+          type="text" 
+          value={role} 
+          onChange={(e) => setRole(e.target.value)} 
+          onBlur={() => handleBlur('role', role)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
+        <input 
+          type="tel" 
+          value={mobile} 
+          onChange={(e) => setMobile(e.target.value)} 
+          onBlur={() => handleBlur('mobile', mobile)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="+1 555-0100" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+        <input 
+          type="email" 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)} 
+          onBlur={() => handleBlur('email', email)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="name@artisan.com" 
+        />
+      </div>
+    </div>
+  );
+}
+
+function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: any; index: number; settings: any; updateSettings: any }) {
+  const [name, setName] = useState(cobbler.name || '');
+  const [specialty, setSpecialty] = useState(cobbler.specialty || '');
+  const [mobile, setMobile] = useState(cobbler.mobile || '');
+  const [email, setEmail] = useState(cobbler.email || '');
+
+  useEffect(() => {
+    setName(cobbler.name || '');
+    setSpecialty(cobbler.specialty || '');
+    setMobile(cobbler.mobile || '');
+    setEmail(cobbler.email || '');
+  }, [cobbler]);
+
+  const handleBlur = (field: string, value: string) => {
+    const newItems = [...settings.cobblers];
+    newItems[index] = { ...newItems[index], [field]: value };
+    updateSettings({ cobblers: newItems });
+  };
+
+  return (
+    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
+      <button 
+        type="button"
+        onClick={() => {
+          if (window.confirm(`Are you sure you want to dismiss "${cobbler.name || 'this cobbler'}" from the enlisted artisans?`)) {
+            const newItems = settings.cobblers.filter((_, i: number) => i !== index);
+            updateSettings({ cobblers: newItems });
+          }
+        }}
+        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
+        title="Dismiss cobbler"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Name</label>
+        <input 
+          type="text" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          onBlur={() => handleBlur('name', name)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-display font-bold" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Specialty</label>
+        <input 
+          type="text" 
+          value={specialty} 
+          onChange={(e) => setSpecialty(e.target.value)} 
+          onBlur={() => handleBlur('specialty', specialty)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
+        <input 
+          type="tel" 
+          value={mobile} 
+          onChange={(e) => setMobile(e.target.value)} 
+          onBlur={() => handleBlur('mobile', mobile)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="+1 555-0155" 
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+        <input 
+          type="email" 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)} 
+          onBlur={() => handleBlur('email', email)}
+          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="artisan@cordwainers.com" 
+        />
+      </div>
+    </div>
+  );
+}
+
+function CredentialCard({ cred, index, settings, deleteUserCredential, updateUserCredential, updateSettings, isAdmin }: { cred: any; index: number; settings: any; deleteUserCredential: any; updateUserCredential: any; updateSettings: any; isAdmin: boolean }) {
+  const [displayName, setDisplayName] = useState(cred.displayName || '');
+  const [username, setUsername] = useState(cred.username || '');
+  const [email, setEmail] = useState(cred.email || '');
+  const [mobile, setMobile] = useState(cred.mobile || '');
+  const [password, setPassword] = useState(cred.password || '');
+  const [role, setRole] = useState(cred.role);
+
+  useEffect(() => {
+    setDisplayName(cred.displayName || '');
+    setUsername(cred.username || '');
+    setEmail(cred.email || '');
+    setMobile(cred.mobile || '');
+    setPassword(cred.password || '');
+    setRole(cred.role);
+  }, [cred]);
+
+  const handleBlur = (field: string, value: any) => {
+    updateUserCredential(cred.email, { [field]: value });
+  };
+
+  return (
+    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full rounded-3xl border border-brand-border/40 shadow-sm hover:shadow-md transition-all">
+      <button 
+        type="button"
+        onClick={() => {
+          if (window.confirm(`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`)) {
+            deleteUserCredential(cred.email);
+          }
+        }}
+        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
+        title="Delete account access"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+      
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name (Display Name)</label>
+        <input 
+          type="text" 
+          value={displayName} 
+          onChange={(e) => setDisplayName(e.target.value)}
+          onBlur={() => handleBlur('displayName', displayName)}
+          className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
+          placeholder="e.g. John Doe" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Login Username (Unique)</label>
+        <input 
+          type="text" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+          onBlur={() => handleBlur('username', username)}
+          className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold font-mono" 
+          placeholder="e.g. johndoe" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+        <input 
+          type="email" 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => {
+            const newCreds = [...(settings.userCredentials || [])];
+            newCreds[index] = { ...newCreds[index], email };
+            updateSettings({ userCredentials: newCreds });
+          }}
+          className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
+          placeholder="e.g. john@cordwainers.com" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Mobile Number</label>
+        <input 
+          type="tel" 
+          value={mobile} 
+          onChange={(e) => setMobile(e.target.value)}
+          onBlur={() => handleBlur('mobile', mobile)}
+          className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
+          placeholder="e.g. +91 9876543210" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Change Password</label>
+        <input 
+          type="text" 
+          value={password} 
+          disabled={!isAdmin} 
+          onChange={(e) => setPassword(e.target.value)}
+          onBlur={() => handleBlur('password', password)}
+          className={clsx("w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold", !isAdmin && "opacity-50 cursor-not-allowed")} 
+          placeholder="Change Password" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Account Role</label>
+        <select 
+          value={role} 
+          onChange={(e) => {
+            const r = e.target.value as 'Admin' | 'Staff';
+            setRole(r);
+            updateUserCredential(cred.email, { role: r });
+          }} 
+          className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold"
+        >
+          <option value="Admin">Admin (Full Access)</option>
+          <option value="Staff">Staff (Read-Only/Limited)</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { 
     settings, 
@@ -130,9 +460,38 @@ export default function Settings() {
     backups = [],
     createAppBackup,
     importBackup,
-    deleteBackupRecord
+    deleteBackupRecord,
+    currentStoreId
   } = useAppStore();
   const [activeTab, setActiveTab] = useState('Store');
+  const [localFields, setLocalFields] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setLocalFields({
+      logoUrl: settings.logoUrl || '',
+      storeName: settings.storeName || '',
+      hours: settings.hours || '',
+      address: settings.address || '',
+      cobblerBio: settings.cobblerBio || '',
+      instagramLink: settings.instagramLink || '',
+      facebookLink: settings.facebookLink || '',
+      twitterLink: settings.twitterLink || '',
+      linkedinLink: settings.linkedinLink || '',
+      websiteLink: settings.websiteLink || '',
+      termsAndConditions: settings.termsAndConditions || '',
+      googleSheetsWebAppUrl: settings.googleSheetsWebAppUrl || '',
+      whatsappIntakeTemplate: settings.whatsappIntakeTemplate || '',
+      whatsappReadyTemplate: settings.whatsappReadyTemplate || '',
+    });
+  }, [settings, currentStoreId]);
+
+  const handleLocalChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setLocalFields(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    updateSettings({ [e.target.name]: e.target.value });
+  };
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
     displayName: '',
@@ -815,8 +1174,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="logoUrl" 
-                        value={settings.logoUrl || ''} 
-                        onChange={handleChange}
+                        value={localFields.logoUrl || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://artisan.com/logo.png"
                         className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" 
                       />
@@ -827,25 +1187,25 @@ export default function Settings() {
 
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Studio Name</label>
-                  <input type="text" name="storeName" value={settings.storeName || ''} onChange={handleChange}
+                  <input type="text" name="storeName" value={localFields.storeName || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-display text-lg font-bold" />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Artisan Hours</label>
-                  <input type="text" name="hours" value={settings.hours || ''} onChange={handleChange}
+                  <input type="text" name="hours" value={localFields.hours || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" />
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
                   <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">Geographic Anchor (Address)</label>
-                  <input type="text" name="address" value={settings.address || ''} onChange={handleChange}
+                  <input type="text" name="address" value={localFields.address || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium" />
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
                   <label className="block text-[10px] font-black text-brand-muted mb-2 uppercase tracking-widest">The Artisan Philosophy (Bio)</label>
-                  <textarea name="cobblerBio" rows={4} value={settings.cobblerBio || ''} onChange={handleChange}
+                  <textarea name="cobblerBio" rows={4} value={localFields.cobblerBio || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     className="w-full bg-brand-bg/50 border border-brand-border rounded-[32px] px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium leading-relaxed" />
                 </div>
 
@@ -865,8 +1225,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="instagramLink" 
-                        value={settings.instagramLink || ''} 
-                        onChange={handleChange}
+                        value={localFields.instagramLink || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://instagram.com/yourbrand"
                         className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-5 py-3 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" 
                       />
@@ -879,8 +1240,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="facebookLink" 
-                        value={settings.facebookLink || ''} 
-                        onChange={handleChange}
+                        value={localFields.facebookLink || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://facebook.com/yourbrand"
                         className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-5 py-3 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" 
                       />
@@ -893,8 +1255,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="twitterLink" 
-                        value={settings.twitterLink || ''} 
-                        onChange={handleChange}
+                        value={localFields.twitterLink || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://twitter.com/yourbrand"
                         className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-5 py-3 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" 
                       />
@@ -907,8 +1270,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="linkedinLink" 
-                        value={settings.linkedinLink || ''} 
-                        onChange={handleChange}
+                        value={localFields.linkedinLink || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://linkedin.com/company/yourbrand"
                         className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-5 py-3 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" 
                       />
@@ -921,8 +1285,9 @@ export default function Settings() {
                       <input 
                         type="url" 
                         name="websiteLink" 
-                        value={settings.websiteLink || ''} 
-                        onChange={handleChange}
+                        value={localFields.websiteLink || ''} 
+                        onChange={handleLocalChange}
+                        onBlur={handleBlur}
                         placeholder="https://yourbrand.com"
                         className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-5 py-3.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold" 
                       />
@@ -1003,101 +1368,7 @@ export default function Settings() {
                     }}
                     confirmMessage={`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`}
                   >
-                    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`)) {
-                            const newItems = settings.employees.filter((_, i) => i !== index);
-                            updateSettings({ employees: newItems });
-                          }
-                        }}
-                        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
-                        title="Dismiss personnel"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Avatar preview and URL input */}
-                      <div className="md:col-span-2 flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-brand-border/40">
-                        <div className="w-20 h-20 rounded-full border border-brand-border overflow-hidden bg-brand-bg flex-shrink-0 flex items-center justify-center shadow-inner">
-                          {emp.avatarUrl ? (
-                            <img src={emp.avatarUrl} alt={emp.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <User className="w-8 h-8 text-brand-muted" />
-                          )}
-                        </div>
-                        <div className="flex-1 w-full space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Profile Photo / Avatar URL</label>
-                          <div className="flex gap-2">
-                            <input 
-                              type="text" 
-                              value={emp.avatarUrl || ''} 
-                              placeholder="https://images.unsplash.com/... or paste any image URL" 
-                              onChange={(e) => {
-                                const newItems = [...settings.employees];
-                                newItems[index].avatarUrl = e.target.value;
-                                updateSettings({ employees: newItems });
-                              }} 
-                              className="flex-1 bg-white border border-brand-border rounded-full px-6 py-2.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none" 
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const defaultAvatars = [
-                                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
-                                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
-                                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop",
-                                  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
-                                  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop",
-                                  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"
-                                ];
-                                const avatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
-                                const newItems = [...settings.employees];
-                                newItems[index].avatarUrl = avatar;
-                                updateSettings({ employees: newItems });
-                              }}
-                              className="px-4 py-2 bg-brand-bg hover:bg-brand-dark hover:text-white text-brand-dark border border-brand-border rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
-                            >
-                              Auto Photo
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name</label>
-                        <input type="text" value={emp.name || ''} onChange={(e) => {
-                          const newItems = [...settings.employees];
-                          newItems[index].name = e.target.value;
-                          updateSettings({ employees: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Role</label>
-                        <input type="text" value={emp.role || ''} onChange={(e) => {
-                          const newItems = [...settings.employees];
-                          newItems[index].role = e.target.value;
-                          updateSettings({ employees: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
-                        <input type="tel" value={emp.mobile || ''} onChange={(e) => {
-                          const newItems = [...settings.employees];
-                          newItems[index].mobile = e.target.value;
-                          updateSettings({ employees: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" placeholder="+1 555-0100" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
-                        <input type="email" value={emp.email || ''} onChange={(e) => {
-                          const newItems = [...settings.employees];
-                          newItems[index].email = e.target.value;
-                          updateSettings({ employees: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" placeholder="name@artisan.com" />
-                      </div>
-                    </div>
+                    <EmployeeCard emp={emp} index={index} settings={settings} updateSettings={updateSettings} />
                   </SwipeToDelete>
                 ))}
               </div>
@@ -1135,53 +1406,7 @@ export default function Settings() {
                     }}
                     confirmMessage={`Are you sure you want to dismiss "${cobbler.name || 'this cobbler'}" from the enlisted artisans?`}
                   >
-                    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to dismiss "${cobbler.name || 'this cobbler'}" from the enlisted artisans?`)) {
-                            const newItems = settings.cobblers.filter((_, i) => i !== index);
-                            updateSettings({ cobblers: newItems });
-                          }
-                        }}
-                        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
-                        title="Dismiss cobbler"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Name</label>
-                        <input type="text" value={cobbler.name || ''} onChange={(e) => {
-                          const newItems = [...settings.cobblers];
-                          newItems[index].name = e.target.value;
-                          updateSettings({ cobblers: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-display font-bold" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Specialty</label>
-                        <input type="text" value={cobbler.specialty || ''} onChange={(e) => {
-                          const newItems = [...settings.cobblers];
-                          newItems[index].specialty = e.target.value;
-                          updateSettings({ cobblers: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
-                        <input type="tel" value={cobbler.mobile || ''} onChange={(e) => {
-                          const newItems = [...settings.cobblers];
-                          newItems[index].mobile = e.target.value;
-                          updateSettings({ cobblers: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" placeholder="+1 555-0155" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
-                        <input type="email" value={cobbler.email || ''} onChange={(e) => {
-                          const newItems = [...settings.cobblers];
-                          newItems[index].email = e.target.value;
-                          updateSettings({ cobblers: newItems });
-                        }} className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" placeholder="cobbler@artisan.com" />
-                      </div>
-                    </div>
+                    <CobblerCard cobbler={cobbler} index={index} settings={settings} updateSettings={updateSettings} />
                   </SwipeToDelete>
                 ))}
               </div>
@@ -1386,71 +1611,15 @@ export default function Settings() {
                       onDelete={() => deleteUserCredential(cred.email)}
                       confirmMessage={`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`}
                     >
-                      <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full rounded-3xl border border-brand-border/40 shadow-sm hover:shadow-md transition-all">
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete access for "${cred.displayName || cred.email}"?`)) {
-                              deleteUserCredential(cred.email);
-                            }
-                          }}
-                          className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
-                          title="Delete account access"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name (Display Name)</label>
-                          <input type="text" value={cred.displayName || ''} onChange={(e) => {
-                            updateUserCredential(cred.email, { displayName: e.target.value });
-                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. John Doe" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Login Username (Unique)</label>
-                          <input type="text" value={cred.username || ''} onChange={(e) => {
-                            updateUserCredential(cred.email, { username: e.target.value.toLowerCase().replace(/\s+/g, '') });
-                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold font-mono" placeholder="e.g. johndoe" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
-                          <input type="email" value={cred.email} onChange={(e) => {
-                            const newCreds = [...(settings.userCredentials || [])];
-                            newCreds[index].email = e.target.value;
-                            updateSettings({ userCredentials: newCreds });
-                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. john@cordwainers.com" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Mobile Number</label>
-                          <input type="tel" value={cred.mobile || ''} onChange={(e) => {
-                            updateUserCredential(cred.email, { mobile: e.target.value });
-                          }} className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" placeholder="e.g. +91 9876543210" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Change Password</label>
-                          <input type="text" value={cred.password || ''} disabled={userProfile?.role !== 'Admin'} onChange={(e) => {
-                            updateUserCredential(cred.email, { password: e.target.value });
-                          }} className={clsx("w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none text-brand-accent font-mono font-bold", userProfile?.role !== 'Admin' && "opacity-50 cursor-not-allowed")} placeholder="Change Password" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Account Role</label>
-                          <select 
-                            value={cred.role} 
-                            onChange={(e) => {
-                              updateUserCredential(cred.email, { role: e.target.value as 'Admin' | 'Staff' });
-                            }} 
-                            className="w-full bg-brand-bg/50 border border-brand-border rounded-full px-6 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold"
-                          >
-                            <option value="Admin">Admin (Full Access)</option>
-                            <option value="Staff">Staff (Read-Only/Limited)</option>
-                          </select>
-                        </div>
-                      </div>
+                      <CredentialCard 
+                        cred={cred} 
+                        index={index} 
+                        settings={settings}
+                        deleteUserCredential={deleteUserCredential} 
+                        updateUserCredential={updateUserCredential} 
+                        updateSettings={updateSettings}
+                        isAdmin={isAdmin} 
+                      />
                     </SwipeToDelete>
                   ))}
                 </div>
@@ -1469,7 +1638,7 @@ export default function Settings() {
                 </div>
                 <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Legal Foundations</h3>
               </div>
-              <textarea name="termsAndConditions" rows={6} value={settings.termsAndConditions || ''} onChange={handleChange}
+              <textarea name="termsAndConditions" rows={6} value={localFields.termsAndConditions || ''} onChange={handleLocalChange} onBlur={handleBlur}
                 placeholder="Artisan service terms..."
                 className="w-full bg-brand-bg/30 border border-brand-border rounded-[32px] px-8 py-6 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium leading-relaxed italic" />
             </div>
@@ -1536,7 +1705,7 @@ export default function Settings() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest ml-6">Google Sheets Web App URL</label>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <input type="url" name="googleSheetsWebAppUrl" value={settings.googleSheetsWebAppUrl || ''} onChange={handleChange}
+                      <input type="url" name="googleSheetsWebAppUrl" value={localFields.googleSheetsWebAppUrl || ''} onChange={handleLocalChange} onBlur={handleBlur}
                         placeholder="https://script.google.com/..."
                         className="flex-1 bg-white border border-brand-border rounded-full px-8 py-4 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-mono" />
                       <button
@@ -1620,14 +1789,14 @@ export default function Settings() {
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest ml-6">Care Intake Confirmation (Received)</label>
-                  <textarea name="whatsappIntakeTemplate" value={settings.whatsappIntakeTemplate || ''} onChange={handleChange}
+                  <textarea name="whatsappIntakeTemplate" value={localFields.whatsappIntakeTemplate || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     placeholder="Hello {customerName}, your shoe repair {repairType} has been received. Ticket: {invoiceNumber}"
                     className="w-full bg-brand-bg/30 border border-brand-border rounded-[24px] px-8 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" />
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest ml-6">Ready for Pickup Notification</label>
-                  <textarea name="whatsappReadyTemplate" value={settings.whatsappReadyTemplate || ''} onChange={handleChange}
+                  <textarea name="whatsappReadyTemplate" value={localFields.whatsappReadyTemplate || ''} onChange={handleLocalChange} onBlur={handleBlur}
                     placeholder="Great news {customerName}! Your shoes are ready for pickup. Total due: ₹{balance}"
                     className="w-full bg-brand-bg/30 border border-brand-border rounded-[24px] px-8 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all" />
                 </div>

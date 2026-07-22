@@ -31,6 +31,7 @@ export interface UserProfile {
   createdAt: string;
   role?: string;
   isAdmin?: boolean;
+  joinedChannels?: string[];
 }
 
 export interface AppNotification {

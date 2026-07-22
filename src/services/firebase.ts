@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore, collection, doc } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
@@ -62,5 +62,84 @@ const db = hasConfig
       })
     }, firebaseConfig.firestoreDatabaseId || '(default)')
   : null as any;
+
+const dbInstances: Record<string, any> = {};
+const failedDatabases = new Set<string>();
+
+export function markDatabaseAsFailed(storeId: string) {
+  if (!storeId || storeId === 'default' || storeId === '(default)') return;
+  if (!failedDatabases.has(storeId)) {
+    failedDatabases.add(storeId);
+    console.warn(`[FIREBASE] Separate database for store "${storeId}" marked as failed/unavailable. Using default database fallback.`);
+  }
+}
+
+export function isDatabaseFailed(storeId: string) {
+  return failedDatabases.has(storeId);
+}
+
+export function getDbForStore(storeId: string) {
+  if (!hasConfig || !app) return null as any;
+
+  // If storeId is empty, default, or has been marked as failed, use primary db
+  if (!storeId || storeId === 'default' || storeId === '(default)' || failedDatabases.has(storeId)) {
+    return db;
+  }
+
+  // Sanitize storeId to be a valid Firestore database ID:
+  // Must be 4-63 characters, start with a lowercase letter, and contain only lowercase letters, numbers, and hyphens.
+  let dbId = storeId.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!/^[a-z]/.test(dbId)) {
+    dbId = 'store-' + dbId;
+  }
+  if (dbId.length < 4) {
+    dbId = dbId + '-db';
+  }
+  dbId = dbId.substring(0, 63);
+
+  if (!dbInstances[dbId]) {
+    try {
+      dbInstances[dbId] = initializeFirestore(app!, {
+        experimentalForceLongPolling: true,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      }, dbId);
+      console.log(`[FIREBASE] Initialized separate Firestore database for store: "${storeId}" with Database ID: "${dbId}"`);
+    } catch (e: any) {
+      // If already initialized, get the existing instance using getFirestore
+      try {
+        dbInstances[dbId] = getFirestore(app!, dbId);
+      } catch (err) {
+        console.warn(`[FIREBASE] Failed to retrieve initialized Firestore instance for "${dbId}", falling back to default db.`, err);
+        return db;
+      }
+    }
+  }
+
+  return dbInstances[dbId];
+}
+
+export function getStoreCollectionRef(storeId: string, collectionName: string) {
+  if (!storeId || storeId === 'default' || storeId === '(default)' || failedDatabases.has(storeId)) {
+    return collection(db, 'stores', storeId || 'default', collectionName);
+  }
+  const storeDb = getDbForStore(storeId);
+  if (storeDb === db) {
+    return collection(db, 'stores', storeId, collectionName);
+  }
+  return collection(storeDb, collectionName);
+}
+
+export function getStoreDocRef(storeId: string, collectionName: string, docId: string) {
+  if (!storeId || storeId === 'default' || storeId === '(default)' || failedDatabases.has(storeId)) {
+    return doc(db, 'stores', storeId || 'default', collectionName, docId);
+  }
+  const storeDb = getDbForStore(storeId);
+  if (storeDb === db) {
+    return doc(db, 'stores', storeId, collectionName, docId);
+  }
+  return doc(storeDb, collectionName, docId);
+}
 
 export { db, analytics, auth, googleProvider };

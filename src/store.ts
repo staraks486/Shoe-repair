@@ -15,7 +15,7 @@ import {
   Message
 } from './types';
 import { NotificationService } from './services/NotificationService';
-import { db, auth } from './services/firebase';
+import { db, auth, getDbForStore, getStoreCollectionRef, getStoreDocRef, markDatabaseAsFailed, isDatabaseFailed } from './services/firebase';
 import { User } from 'firebase/auth';
 import { format, parseISO } from 'date-fns';
 import { 
@@ -323,8 +323,10 @@ export const useAppStore = create<AppState>()(
               docRef = doc(db, 'notifications', op.docId);
             } else if (op.collectionName === 'messages') {
               docRef = doc(db, 'messages', op.docId);
+            } else if (op.collectionName === 'stores') {
+              docRef = doc(db, 'stores', op.docId);
             } else {
-              docRef = doc(db, 'stores', op.storeId, op.collectionName, op.docId);
+              docRef = getStoreDocRef(op.storeId, op.collectionName, op.docId);
             }
 
             if (op.action === 'set') {
@@ -374,8 +376,10 @@ export const useAppStore = create<AppState>()(
               docRef = doc(db, 'notifications', docId);
             } else if (collectionName === 'messages') {
               docRef = doc(db, 'messages', docId);
+            } else if (collectionName === 'stores') {
+              docRef = doc(db, 'stores', docId);
             } else {
-              docRef = doc(db, 'stores', storeId, collectionName, docId);
+              docRef = getStoreDocRef(storeId, collectionName, docId);
             }
 
             if (action === 'set') {
@@ -481,8 +485,56 @@ export const useAppStore = create<AppState>()(
 
           // 2. Set up real-time subcollection listeners for this active store
           const activeStoreId = storeId;
+          const activeFallbackUnsubs: Record<string, () => void> = {};
+          
+          const setupStoreListener = (
+            colName: string, 
+            onNext: (snapshot: any) => void, 
+            onError: (err: any) => void
+          ) => {
+            const useSeparateDb = activeStoreId && activeStoreId !== 'default' && activeStoreId !== '(default)' && !isDatabaseFailed(activeStoreId);
+            
+            if (useSeparateDb) {
+              const storeDb = getDbForStore(activeStoreId);
+              let hasFailed = false;
+              let currentUnsub: (() => void) | null = null;
+              
+              const unsub = onSnapshot(collection(storeDb, colName), onNext, (error: any) => {
+                const isUnavailable = error.code === 'unavailable' || 
+                                      error.code === 'permission-denied' || 
+                                      error.message?.includes('database') || 
+                                      error.message?.includes('not found') || 
+                                      error.message?.includes('Could not reach Cloud Firestore backend');
+                if (!hasFailed && isUnavailable) {
+                  hasFailed = true;
+                  markDatabaseAsFailed(activeStoreId);
+                  console.warn(`[FIREBASE] Separate database for "${activeStoreId}" is unavailable (${error.message}). Falling back to default database subcollection for "${colName}".`);
+                  
+                  if (currentUnsub) currentUnsub();
+                  
+                  const fallbackUnsub = onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, (fallbackError) => {
+                    onError(fallbackError);
+                  });
+                  activeFallbackUnsubs[colName] = fallbackUnsub;
+                } else {
+                  onError(error);
+                }
+              });
+              
+              currentUnsub = unsub;
+              return () => {
+                if (currentUnsub) currentUnsub();
+                if (activeFallbackUnsubs[colName]) {
+                  activeFallbackUnsubs[colName]();
+                  delete activeFallbackUnsubs[colName];
+                }
+              };
+            } else {
+              return onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, onError);
+            }
+          };
 
-          const unsubRepairs = onSnapshot(collection(db, 'stores', activeStoreId, 'repairs'), (snapshot) => {
+          const unsubRepairs = setupStoreListener('repairs', (snapshot) => {
             const repairsList: ShoeRepairRequest[] = [];
             snapshot.forEach((doc) => {
               repairsList.push(doc.data() as ShoeRepairRequest);
@@ -494,7 +546,7 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync repairs:", error);
           });
 
-          const unsubCustomers = onSnapshot(collection(db, 'stores', activeStoreId, 'customers'), (snapshot) => {
+          const unsubCustomers = setupStoreListener('customers', (snapshot) => {
             const customersList: Customer[] = [];
             snapshot.forEach((doc) => {
               customersList.push(doc.data() as Customer);
@@ -504,7 +556,7 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync customers:", error);
           });
 
-          const unsubInventory = onSnapshot(collection(db, 'stores', activeStoreId, 'inventory'), (snapshot) => {
+          const unsubInventory = setupStoreListener('inventory', (snapshot) => {
             const inventoryList: InventoryItem[] = [];
             snapshot.forEach((doc) => {
               inventoryList.push(doc.data() as InventoryItem);
@@ -516,7 +568,7 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync inventory:", error);
           });
 
-          const unsubInsurance = onSnapshot(collection(db, 'stores', activeStoreId, 'insurance'), (snapshot) => {
+          const unsubInsurance = setupStoreListener('insurance', (snapshot) => {
             const insuranceList: ShoeInsurance[] = [];
             snapshot.forEach((doc) => {
               insuranceList.push(doc.data() as ShoeInsurance);
@@ -526,7 +578,7 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync insurance:", error);
           });
 
-          const unsubAppointments = onSnapshot(collection(db, 'stores', activeStoreId, 'appointments'), (snapshot) => {
+          const unsubAppointments = setupStoreListener('appointments', (snapshot) => {
             const appointmentsList: Appointment[] = [];
             snapshot.forEach((doc) => {
               appointmentsList.push(doc.data() as Appointment);
@@ -536,7 +588,7 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync appointments:", error);
           });
 
-          const unsubSettings = onSnapshot(collection(db, 'stores', activeStoreId, 'settings'), (snapshot) => {
+          const unsubSettings = setupStoreListener('settings', (snapshot) => {
             let settingsObj: Settings | null = null;
             snapshot.forEach((doc) => {
               if (doc.id === 'global_settings') {
@@ -1297,7 +1349,8 @@ export const useAppStore = create<AppState>()(
 
         if (updatedRepair && db) {
           const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note add failed", e));
+          const storeDb = getDbForStore(storeId);
+          safeSetDoc(doc(storeDb, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note add failed", e));
         }
       },
 
@@ -1317,7 +1370,8 @@ export const useAppStore = create<AppState>()(
 
         if (updatedRepair && db) {
           const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
+          const storeDb = getDbForStore(storeId);
+          safeSetDoc(doc(storeDb, 'repairs', repairId), updatedRepair).catch(e => console.error("Firestore voice note delete failed", e));
         }
       },
 
@@ -1370,7 +1424,8 @@ export const useAppStore = create<AppState>()(
           hours: storeData.hours,
           phone: storeData.phone || ''
         };
-        await safeSetDoc(doc(db, 'stores', id, 'settings', 'global_settings'), storeSettings);
+        const storeDb = getDbForStore(id);
+        await safeSetDoc(doc(storeDb, 'settings', 'global_settings'), storeSettings);
 
         set((state) => ({
           stores: [...state.stores, newStore]
@@ -1490,12 +1545,12 @@ export const useAppStore = create<AppState>()(
             appointmentsSnapshot,
             settingsSnapshot
           ] = await Promise.all([
-            getDocs(collection(db, 'stores', storeId, 'repairs')),
-            getDocs(collection(db, 'stores', storeId, 'customers')),
-            getDocs(collection(db, 'stores', storeId, 'inventory')),
-            getDocs(collection(db, 'stores', storeId, 'insurance')),
-            getDocs(collection(db, 'stores', storeId, 'appointments')),
-            getDocs(collection(db, 'stores', storeId, 'settings'))
+            getDocs(getStoreCollectionRef(storeId, 'repairs')),
+            getDocs(getStoreCollectionRef(storeId, 'customers')),
+            getDocs(getStoreCollectionRef(storeId, 'inventory')),
+            getDocs(getStoreCollectionRef(storeId, 'insurance')),
+            getDocs(getStoreCollectionRef(storeId, 'appointments')),
+            getDocs(getStoreCollectionRef(storeId, 'settings'))
           ]);
 
           const repairsList: any[] = [];
@@ -1634,24 +1689,24 @@ export const useAppStore = create<AppState>()(
               writePromises.push(safeSetDoc(doc(db, 'stores', stId), st.storeDetails));
 
               st.repairs?.forEach((rep: any) => {
-                if (rep.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'repairs', rep.id), rep));
+                if (rep.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'repairs', rep.id), rep));
               });
               st.customers?.forEach((cust: any) => {
-                if (cust.phoneNumber) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'customers', cust.phoneNumber), cust));
+                if (cust.phoneNumber) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'customers', cust.phoneNumber), cust));
               });
               st.inventory?.forEach((inv: any) => {
-                if (inv.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'inventory', inv.id), inv));
+                if (inv.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'inventory', inv.id), inv));
               });
               st.insurance?.forEach((ins: any) => {
-                if (ins.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'insurance', ins.id), ins));
+                if (ins.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'insurance', ins.id), ins));
               });
               st.appointments?.forEach((app: any) => {
-                if (app.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'appointments', app.id), app));
+                if (app.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'appointments', app.id), app));
               });
               st.settings?.forEach((setObj: any) => {
                 if (setObj.id) {
                   const { id, ...data } = setObj;
-                  writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'settings', id), data));
+                  writePromises.push(safeSetDoc(getStoreDocRef(stId, 'settings', id), data));
                 }
               });
             }
@@ -1661,24 +1716,24 @@ export const useAppStore = create<AppState>()(
               writePromises.push(safeSetDoc(doc(db, 'stores', stId), backupData.storeDetails));
 
               backupData.repairs?.forEach((rep: any) => {
-                if (rep.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'repairs', rep.id), rep));
+                if (rep.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'repairs', rep.id), rep));
               });
               backupData.customers?.forEach((cust: any) => {
-                if (cust.phoneNumber) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'customers', cust.phoneNumber), cust));
+                if (cust.phoneNumber) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'customers', cust.phoneNumber), cust));
               });
               backupData.inventory?.forEach((inv: any) => {
-                if (inv.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'inventory', inv.id), inv));
+                if (inv.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'inventory', inv.id), inv));
               });
               backupData.insurance?.forEach((ins: any) => {
-                if (ins.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'insurance', ins.id), ins));
+                if (ins.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'insurance', ins.id), ins));
               });
               backupData.appointments?.forEach((app: any) => {
-                if (app.id) writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'appointments', app.id), app));
+                if (app.id) writePromises.push(safeSetDoc(getStoreDocRef(stId, 'appointments', app.id), app));
               });
               backupData.settings?.forEach((setObj: any) => {
                 if (setObj.id) {
                   const { id, ...data } = setObj;
-                  writePromises.push(safeSetDoc(doc(db, 'stores', stId, 'settings', id), data));
+                  writePromises.push(safeSetDoc(getStoreDocRef(stId, 'settings', id), data));
                 }
               });
             }

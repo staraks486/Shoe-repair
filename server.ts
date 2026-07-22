@@ -3,18 +3,34 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import webpush from "web-push";
+import fs from "fs";
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 dotenv.config();
 
+// Load static config file if environment variables are not present
+let staticConfig: any = {};
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    staticConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    console.log("[SERVER] Loaded static Firebase applet config from file");
+  }
+} catch (e) {
+  console.warn("[SERVER] Failed to load static config from file:", e);
+}
+
+const firebaseProjectId = process.env.VITE_FIREBASE_PROJECT_ID || staticConfig.projectId;
+const firebaseDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || staticConfig.firestoreDatabaseId;
+
 // Initialize Firebase Admin
-if (!getApps().length) {
+if (!getApps().length && firebaseProjectId) {
   try {
     initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      projectId: firebaseProjectId,
     });
-    console.log("[SERVER] Firebase Admin initialized");
+    console.log("[SERVER] Firebase Admin initialized with project:", firebaseProjectId);
   } catch (error) {
     console.error("[SERVER] Firebase Admin initialization error:", error);
   }
@@ -52,14 +68,14 @@ async function startServer() {
   // Dynamic Firebase config endpoint for client-side runtime loading
   app.get("/api/firebase-config", (req, res) => {
     res.json({
-      apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
-      authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
-      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID,
-      measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID,
-      firestoreDatabaseId: process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID
+      apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || staticConfig.apiKey,
+      authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || staticConfig.authDomain,
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || staticConfig.projectId,
+      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || staticConfig.storageBucket,
+      messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || staticConfig.messagingSenderId,
+      appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || staticConfig.appId,
+      measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID || staticConfig.measurementId,
+      firestoreDatabaseId: process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID || staticConfig.firestoreDatabaseId
     });
   });
 
