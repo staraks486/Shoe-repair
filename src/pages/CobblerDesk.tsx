@@ -40,12 +40,62 @@ import { sendPushNotification } from '../lib/notifications';
 import PhotoManager from '../components/PhotoManager';
 
 export default function CobblerDesk() {
-  const { repairs, updateRepairStatus, updateRepair, addVoiceNote, deleteVoiceNote, settings, updateSettings } = useAppStore();
+  const { repairs, updateRepairStatus, updateRepair, addVoiceNote, deleteVoiceNote, settings, updateSettings, user, userProfile } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<RepairStatus | 'All'>('All');
   const [selectedRepair, setSelectedRepair] = useState<ShoeRepairRequest | null>(null);
   const [activeTab, setActiveTab] = useState<'assigned' | 'in-progress' | 'completed'>('assigned');
   const [currentView, setCurrentView] = useState<'repairs' | 'cobblers' | 'payments'>('repairs');
+
+  // Artisan Text Comments states
+  const [newCommentText, setNewCommentText] = useState('');
+  const [selectedCommentAuthor, setSelectedCommentAuthor] = useState('');
+
+  // Sync default author
+  useEffect(() => {
+    if (userProfile?.displayName) {
+      setSelectedCommentAuthor(userProfile.displayName);
+    } else if (settings?.employees && settings.employees.length > 0) {
+      setSelectedCommentAuthor(settings.employees[0].name);
+    } else if (settings?.cobblers && settings.cobblers.length > 0) {
+      setSelectedCommentAuthor(settings.cobblers[0].name);
+    } else {
+      setSelectedCommentAuthor('Artisan Staff');
+    }
+  }, [userProfile, settings]);
+
+  const handleAddComment = () => {
+    if (!newCommentText.trim() || !selectedRepair) return;
+    
+    const newComment = {
+      id: 'cmt-' + Math.floor(Math.random() * 1000000),
+      author: selectedCommentAuthor || 'Workshop',
+      text: newCommentText.trim(),
+      timestamp: new Date().toISOString()
+    };
+    
+    const existingComments = selectedRepair.comments || [];
+    const updatedComments = [...existingComments, newComment];
+    
+    updateRepair(selectedRepair.id, { comments: updatedComments });
+    
+    // Update local state for details view
+    setSelectedRepair(prev => prev ? { ...prev, comments: updatedComments } : null);
+    
+    setNewCommentText('');
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!selectedRepair) return;
+    
+    const existingComments = selectedRepair.comments || [];
+    const updatedComments = existingComments.filter(c => c.id !== commentId);
+    
+    updateRepair(selectedRepair.id, { comments: updatedComments });
+    
+    // Update local state for details view
+    setSelectedRepair(prev => prev ? { ...prev, comments: updatedComments } : null);
+  };
 
   // Cobbler management states
   const [isAddCobblerModalOpen, setIsAddCobblerModalOpen] = useState(false);
@@ -867,13 +917,117 @@ export default function CobblerDesk() {
 
                 <div className="space-y-2">
                   <p className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Requirement Detail</p>
-                  <div className="bg-white p-4 rounded-2xl border border-brand-border shadow-sm text-sm text-brand-dark leading-relaxed">
-                    {selectedRepair.repairType.join(', ')} - Deep cleaning and sole replacement requested. Focus on the stitching around the toe box.
+                  <div className="bg-white p-4 rounded-2xl border border-brand-border shadow-sm text-sm text-brand-dark leading-relaxed whitespace-pre-line font-medium">
+                    {selectedRepair.description || `${selectedRepair.repairType.join(', ')} - Deep cleaning and premium restoration requested.`}
                   </div>
                 </div>
 
+                {/* Artisan Comments Section */}
+                <section className="space-y-4 pt-2 border-t border-brand-border/40">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-brand-muted uppercase tracking-widest font-display">Artisan Work Logs & comments</h3>
+                    <span className="bg-brand-bg text-brand-dark text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-brand-border">
+                      {selectedRepair.comments?.length || 0} Logs
+                    </span>
+                  </div>
+
+                  {/* Add Comment controls */}
+                  <div className="bg-brand-light/50 p-3 rounded-2xl border border-brand-border space-y-2.5">
+                    <p className="text-[9px] font-black text-brand-muted uppercase tracking-widest">Log an update</p>
+                    {(() => {
+                      const list: { id: string; name: string; role: string }[] = [];
+                      if (settings?.employees) {
+                        settings.employees.forEach((emp: any) => list.push({ id: emp.id, name: emp.name, role: emp.role }));
+                      }
+                      if (settings?.cobblers) {
+                        settings.cobblers.forEach((cob: any) => list.push({ id: cob.id, name: cob.name, role: cob.specialty + ' Cobbler' }));
+                      }
+                      return (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <select
+                              value={selectedCommentAuthor}
+                              onChange={(e) => setSelectedCommentAuthor(e.target.value)}
+                              className="bg-[#FAF9F5] border border-brand-border rounded-xl px-3 py-2 text-[10px] font-bold text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-olive/20"
+                            >
+                              <option value="">Select Sign-off...</option>
+                              {list.map(member => (
+                                <option key={member.id} value={member.name}>
+                                  {member.name}
+                                </option>
+                              ))}
+                              <option value="Anonymous Cobbler">Anonymous Cobbler</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={newCommentText}
+                              onChange={(e) => setNewCommentText(e.target.value)}
+                              placeholder="Type a progress update or issue..."
+                              className="flex-1 bg-[#FAF9F5] border border-brand-border rounded-xl px-3 py-2 text-[10px] font-medium text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-olive/20"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddComment();
+                              }}
+                            />
+                            <button
+                              onClick={handleAddComment}
+                              disabled={!newCommentText.trim()}
+                              className="px-4 bg-brand-dark hover:bg-brand-olive text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:hover:bg-brand-dark shadow-sm hover:scale-102 active:scale-98"
+                              title="Post Log"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* List comments */}
+                  <div className="space-y-3">
+                    {selectedRepair.comments && selectedRepair.comments.length > 0 ? (
+                      <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                        {selectedRepair.comments.map((comment) => (
+                          <div key={comment.id} className="bg-white p-4 rounded-xl border border-brand-border flex items-start justify-between gap-3 shadow-sm animate-fade-in">
+                            <div className="space-y-1 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-extrabold text-brand-dark">{comment.author}</span>
+                                <span className="bg-amber-100/70 text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                  Artisan
+                                </span>
+                                <span className="text-[10px] text-brand-muted font-medium">
+                                  {(() => {
+                                    try {
+                                      return format(new Date(comment.timestamp), 'dd MMM, hh:mm a');
+                                    } catch {
+                                      return 'Recently';
+                                    }
+                                  })()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-brand-dark/95 leading-relaxed font-medium">
+                                {comment.text}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-brand-muted hover:text-red-500 p-1 rounded-lg transition-colors shrink-0"
+                              title="Delete Log"
+                            >
+                              <TrashIcon className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-center text-brand-muted uppercase font-bold tracking-widest py-4 border border-dashed border-brand-border rounded-2xl bg-brand-light/30">
+                        No progress comments logged yet
+                      </p>
+                    )}
+                  </div>
+                </section>
+
                 {/* Voice Notes Section */}
-                <section className="space-y-4">
+                <section className="space-y-4 pt-2 border-t border-brand-border/40">
                   <h3 className="text-xs font-black text-brand-muted uppercase tracking-widest font-display">Voice Notes</h3>
                   
                   <VoiceNoteRecorder 

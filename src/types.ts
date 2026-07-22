@@ -109,6 +109,15 @@ export interface ShoeRepairRequest {
   assignedCobblerName?: string;
   payments?: PaymentRecord[];
   voiceNotes?: VoiceNote[];
+  artisanNotes?: string;
+  comments?: WorkComment[];
+}
+
+export interface WorkComment {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: string;
 }
 
 export interface VoiceNote {
