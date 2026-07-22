@@ -539,9 +539,13 @@ export default function Settings() {
   const { 
     settings, 
     updateSettings, 
-    repairs, 
+    repairs = [], 
     customers = [],
     inventory = [],
+    appointments = [],
+    offlineQueue = [],
+    profiles = [],
+    messages = [],
     syncAllPending, 
     syncErrorLogs = [], 
     lastSyncStatus = 'idle', 
@@ -558,9 +562,11 @@ export default function Settings() {
     updateUserCredential,
     backups = [],
     createAppBackup,
+    createStoreBackup,
     importBackup,
     deleteBackupRecord,
-    currentStoreId
+    currentStoreId,
+    setCurrentStoreId
   } = useAppStore();
   const [activeTab, setActiveTab] = useState('Store');
   const [localFields, setLocalFields] = useState<Record<string, string>>({});
@@ -1051,7 +1057,7 @@ export default function Settings() {
           <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3 text-center">Configure artisan studio parameters</p>
         </div>
         <div className="flex bg-white/60 p-1.5 rounded-2xl md:rounded-full border border-brand-border backdrop-blur-sm justify-start md:justify-center overflow-x-auto max-w-full gap-1.5 w-full scrollbar-none">
-          {['Store', 'Stores', 'Staff', 'Users', 'Integrations', 'Notifications', 'Backup'].map(tab => (
+          {['Store', 'Stores', 'Store DB', 'Staff', 'Users', 'Integrations', 'Notifications', 'Backup'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1465,10 +1471,253 @@ export default function Settings() {
                           )}
                         </div>
                       )}
+
+                      {/* Store Database Details */}
+                      <div className="pt-3 border-t border-brand-border/40 bg-brand-bg/20 p-3 rounded-xl space-y-1.5">
+                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-brand-dark">
+                          <span className="flex items-center gap-1">
+                            <Database className="w-3 h-3 text-brand-olive" /> Firestore Document Path:
+                          </span>
+                          <span className="font-mono text-brand-accent">/stores/{store.id}</span>
+                        </div>
+                        <p className="text-[9px] text-brand-muted font-medium">
+                          Subcollections: <span className="font-mono text-brand-dark">repairs, customers, inventory, appointments, staff</span>
+                        </p>
+                        <div className="flex items-center justify-between pt-1 text-[9px] font-bold">
+                          <span className={store.id === currentStoreId ? "text-emerald-700 font-black" : "text-brand-muted"}>
+                            {store.id === currentStoreId ? "● Active Loaded Database Context" : "Isolated DB Node"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => createStoreBackup(store.id)}
+                            className="text-[9px] font-black text-brand-olive hover:text-brand-dark uppercase tracking-wider underline cursor-pointer"
+                          >
+                            Export DB Backup
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </SwipeToDelete>
               ))}
+            </div>
+          </fieldset>
+        )}
+
+        {activeTab === 'Store DB' && (
+          <fieldset disabled={!isAdmin} className="space-y-10 animate-in fade-in duration-300 w-full block border-none p-0 m-0">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-brand-border pb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-dark text-white flex items-center justify-center shadow-md">
+                  <Database className="w-5 h-5 text-brand-accent" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-brand-dark uppercase tracking-[0.2em]">Store Database & Firestore Specs</h3>
+                  <p className="text-[10px] text-brand-muted font-bold uppercase tracking-wider mt-0.5">
+                    Live store database documents, collections schema, and real-time sync metrics
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => syncAllPending()}
+                  className="inline-flex items-center gap-2 bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full hover:bg-brand-olive transition-all cursor-pointer shadow-premium"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Sync Firestore DB
+                </button>
+              </div>
+            </div>
+
+            {/* Firestore Global Config Specs */}
+            <div className="bg-gradient-to-br from-brand-bg/80 via-white to-brand-bg/40 p-6 md:p-8 rounded-[32px] border border-brand-border/80 shadow-sm space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-4 border-b border-brand-border/40 pb-4">
+                <div>
+                  <span className="text-[9px] font-black text-brand-accent uppercase tracking-[0.25em] block">Firestore Target Project DB</span>
+                  <p className="text-xs md:text-sm font-mono font-black text-brand-dark mt-0.5 break-all">
+                    ai-studio-shoerepaircobble-4df45754-d7c2-4b18-965d-93834f094599
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-full border border-emerald-200">
+                  <Wifi className="w-4 h-4 text-emerald-600 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Real-Time Sync Online</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-brand-border/60 space-y-1">
+                  <span className="text-[9px] font-black text-brand-muted uppercase tracking-wider block">Active Store DB Path</span>
+                  <p className="text-xs font-mono font-bold text-brand-dark truncate">/stores/{currentStoreId}</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-brand-border/60 space-y-1">
+                  <span className="text-[9px] font-black text-brand-muted uppercase tracking-wider block">Default Store DB</span>
+                  <p className="text-xs font-bold text-amber-800 flex items-center gap-1 truncate">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
+                    {defaultStoreObj?.storeName || 'Cordwainers Studio'}
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-brand-border/60 space-y-1">
+                  <span className="text-[9px] font-black text-brand-muted uppercase tracking-wider block">Offline Queue Buffer</span>
+                  <p className="text-xs font-black text-brand-dark">{offlineQueue.length} pending writes</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-brand-border/60 space-y-1">
+                  <span className="text-[9px] font-black text-brand-muted uppercase tracking-wider block">Last DB Sync</span>
+                  <p className="text-xs font-bold text-brand-dark">
+                    {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Live'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Store Collection Documents Metrics */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Database className="w-4 h-4 text-brand-olive" />
+                  Active Store Database Subcollections (/stores/{currentStoreId})
+                </h4>
+                <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+                  Store: <strong className="text-brand-dark">{activeStoreObj?.storeName}</strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{repairs.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Repairs</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../repairs</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{customers.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Customers</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../customers</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{inventory.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Inventory</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../inventory</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{appointments.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Bookings</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../appointments</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{profiles.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Staff / Team</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../staff</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-brand-border text-center space-y-2 hover:border-brand-olive transition-colors shadow-sm">
+                  <span className="text-2xl font-black text-brand-dark block">{messages.length}</span>
+                  <div>
+                    <span className="text-[10px] font-black text-brand-dark uppercase tracking-wider block">Messages</span>
+                    <span className="text-[8px] font-mono text-brand-muted">.../messages</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All Registered Store Locations in Database */}
+            <div className="space-y-4 pt-4 border-t border-brand-border">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <h4 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Registered Stores Collection (/stores)</h4>
+                  <p className="text-[10px] text-brand-muted font-bold uppercase tracking-wider mt-0.5">
+                    {stores.length} store location documents configured in Firestore database
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-brand-border rounded-2xl bg-white shadow-sm">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-brand-bg/60 border-b border-brand-border text-[9px] font-black text-brand-muted uppercase tracking-widest">
+                      <th className="p-4">Store Name</th>
+                      <th className="p-4">Document ID</th>
+                      <th className="p-4">Firestore Path</th>
+                      <th className="p-4">DB Role</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-border/40 font-medium">
+                    {stores.map((s: any) => {
+                      const isActive = s.id === currentStoreId;
+                      return (
+                        <tr key={s.id} className={isActive ? 'bg-amber-50/40 font-bold' : 'hover:bg-brand-bg/30'}>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-brand-dark">{s.storeName}</span>
+                              {s.isDefault && (
+                                <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-800 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-300">
+                                  <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> Default
+                                </span>
+                              )}
+                              {isActive && (
+                                <span className="bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300">
+                                  Active Context
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 font-mono text-[10px] text-brand-muted">{s.id}</td>
+                          <td className="p-4 font-mono text-[10px] text-brand-dark">/stores/{s.id}</td>
+                          <td className="p-4 text-[10px]">
+                            {s.isDefault ? 'Primary Default Store' : 'Isolated Branch Store'}
+                          </td>
+                          <td className="p-4 text-right space-x-2">
+                            {!isActive && (
+                              <button
+                                type="button"
+                                onClick={() => setCurrentStoreId(s.id)}
+                                className="bg-brand-dark text-white text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg hover:bg-brand-olive transition-all cursor-pointer"
+                              >
+                                Load DB
+                              </button>
+                            )}
+                            {!s.isDefault && (
+                              <button
+                                type="button"
+                                onClick={() => setDefaultStore(s.id)}
+                                className="bg-amber-50 text-amber-900 border border-amber-300 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all cursor-pointer"
+                              >
+                                Make Default DB
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => createStoreBackup(s.id)}
+                              className="bg-brand-bg border border-brand-border text-brand-dark text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg hover:bg-white transition-all cursor-pointer"
+                            >
+                              Export JSON
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </fieldset>
         )}
