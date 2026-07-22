@@ -2,20 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore, collection, doc } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import appletConfigRaw from '../../firebase-applet-config.json';
 
-// Support both JSON file (for AI Studio) and Environment Variables (for Render/GitHub)
-let aiStudioConfig: any = {};
-try {
-  // @ts-ignore - Vite specific glob
-  const configs = import.meta.glob('../../firebase-applet-config.json', { eager: true });
-  // Find the config file in the glob results
-  const configKey = Object.keys(configs).find(k => k.includes('firebase-applet-config.json'));
-  if (configKey) {
-    aiStudioConfig = (configs[configKey] as any)?.default || configs[configKey] || {};
-  }
-} catch (e) {
-  console.warn('Firebase config file not found or failed to load. Falling back to env vars.');
-}
+// Support both JSON file (for AI Studio & static builds) and Environment Variables (for Render/GitHub)
+let aiStudioConfig: any = appletConfigRaw || {};
 
 // Support runtime fallback from the server's environment variables (e.g. Render.com dynamic updates)
 let serverConfig: any = {};

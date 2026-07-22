@@ -149,7 +149,7 @@ function cleanUndefined<T>(obj: T): T {
 const safeSetDoc = async (docRef: any, data: any) => {
   const cleaned = cleanUndefined(data);
   try {
-    return await setDoc(docRef, cleaned);
+    return await setDoc(docRef, cleaned, { merge: true });
   } catch (err) {
     console.warn("[safeSetDoc Warning] Direct write failed, attempting extreme deep clean of undefined values:", err);
     // Extreme defensive check: iterate keys on the cleaned object and delete any undefineds
@@ -160,7 +160,7 @@ const safeSetDoc = async (docRef: any, data: any) => {
         }
       });
     }
-    return await setDoc(docRef, cleaned);
+    return await setDoc(docRef, cleaned, { merge: true });
   }
 };
 
@@ -312,10 +312,10 @@ export const useAppStore = create<AppState>()(
         if (ops.length === 0) return;
 
         set({ lastSyncStatus: 'syncing' });
-        console.log(`Processing offline sync queue of ${ops.length} operations...`);
+        console.log(`Processing offline sync queue of ${ops.length} operations concurrently...`);
 
         let successCount = 0;
-        for (const op of ops) {
+        const promises = ops.map(async (op) => {
           try {
             let docRef;
             if (op.collectionName === 'profiles') {
@@ -341,7 +341,6 @@ export const useAppStore = create<AppState>()(
           } catch (err: any) {
             console.error(`Error syncing offline operation ${op.id} (${op.description}):`, err);
 
-            // If separate database failed, mark as failed and retry immediately with default database subcollection fallback
             const isSeparateDbActive = op.storeId && op.storeId !== 'default' && op.storeId !== '(default)' && !isDatabaseFailed(op.storeId);
             if (isSeparateDbActive && op.collectionName !== 'profiles' && op.collectionName !== 'notifications' && op.collectionName !== 'messages' && op.collectionName !== 'stores') {
               markDatabaseAsFailed(op.storeId);
@@ -354,7 +353,7 @@ export const useAppStore = create<AppState>()(
                 }
                 await removeQueuedWrite(op.id);
                 successCount++;
-                continue; // Move to next operation successfully!
+                return;
               } catch (retryErr) {
                 console.error(`Error retrying synced operation with fallback default database:`, retryErr);
               }
@@ -368,7 +367,9 @@ export const useAppStore = create<AppState>()(
               await removeQueuedWrite(op.id);
             }
           }
-        }
+        });
+
+        await Promise.allSettled(promises);
 
         await get().loadOfflineQueue();
         set({ lastSyncStatus: 'success', lastSyncTime: new Date().toISOString() });
@@ -495,14 +496,8 @@ export const useAppStore = create<AppState>()(
             const repairsList: ShoeRepairRequest[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as ShoeRepairRequest;
-              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
-                repairsList.push(item);
-              }
+              repairsList.push(item);
             });
-            if (repairsList.length === 0 && get().repairs.length > 0 && !snapshot.metadata.fromCache) {
-              // Keep existing local repairs if snapshot is empty from server
-              return;
-            }
             repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             set({ repairs: repairsList, lastSyncTime: new Date().toISOString() });
           }, (error) => {
@@ -513,13 +508,8 @@ export const useAppStore = create<AppState>()(
             const customersList: Customer[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as Customer;
-              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
-                customersList.push(item);
-              }
+              customersList.push(item);
             });
-            if (customersList.length === 0 && get().customers.length > 0 && !snapshot.metadata.fromCache) {
-              return;
-            }
             set({ customers: customersList });
           }, (error) => {
             console.error("Failed to sync customers:", error);
@@ -529,13 +519,8 @@ export const useAppStore = create<AppState>()(
             const inventoryList: InventoryItem[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as InventoryItem;
-              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
-                inventoryList.push(item);
-              }
+              inventoryList.push(item);
             });
-            if (inventoryList.length === 0 && get().inventory.length > 0 && !snapshot.metadata.fromCache) {
-              return;
-            }
             set({ inventory: inventoryList });
           }, (error) => {
             console.error("Failed to sync inventory:", error);
@@ -545,13 +530,8 @@ export const useAppStore = create<AppState>()(
             const insuranceList: ShoeInsurance[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as ShoeInsurance;
-              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
-                insuranceList.push(item);
-              }
+              insuranceList.push(item);
             });
-            if (insuranceList.length === 0 && get().insurance.length > 0 && !snapshot.metadata.fromCache) {
-              return;
-            }
             set({ insurance: insuranceList });
           }, (error) => {
             console.error("Failed to sync insurance:", error);
@@ -561,13 +541,8 @@ export const useAppStore = create<AppState>()(
             const appointmentsList: Appointment[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as Appointment;
-              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
-                appointmentsList.push(item);
-              }
+              appointmentsList.push(item);
             });
-            if (appointmentsList.length === 0 && get().appointments.length > 0 && !snapshot.metadata.fromCache) {
-              return;
-            }
             set({ appointments: appointmentsList });
           }, (error) => {
             console.error("Failed to sync appointments:", error);
@@ -1449,6 +1424,11 @@ export const useAppStore = create<AppState>()(
         const targetStore = get().stores.find(s => s.id === storeId);
         set((state) => ({
           currentStoreId: storeId,
+          repairs: [],
+          customers: [],
+          inventory: [],
+          insurance: [],
+          appointments: [],
           settings: {
             ...state.settings,
             storeName: targetStore?.storeName || state.settings.storeName,
