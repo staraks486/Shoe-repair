@@ -1131,7 +1131,7 @@ export const useAppStore = create<AppState>()(
             isAdmin: isAdminEmail
           };
 
-          if (user.uid.startsWith('mock-') || !db) {
+          if (!db) {
             set({ userProfile: defaultProfile });
             return;
           }

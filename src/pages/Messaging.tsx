@@ -218,7 +218,7 @@ export default function Messaging() {
         subtitle="Artisan Studio Real-time Coordination Hub" 
       />
 
-      <div className="bg-white border border-brand-bg/60 rounded-3xl shadow-xl overflow-hidden flex h-[680px] relative">
+      <div className="bg-white border border-brand-bg/60 rounded-3xl shadow-xl overflow-hidden flex h-[calc(100vh-14rem)] min-h-[500px] md:h-[680px] relative">
         
         {/* SIDEBAR: Chats List */}
         <div className={clsx(
