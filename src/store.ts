@@ -495,11 +495,14 @@ export const useAppStore = create<AppState>()(
             const repairsList: ShoeRepairRequest[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as ShoeRepairRequest;
-              if (!item.storeId || item.storeId === activeStoreId) {
+              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
                 repairsList.push(item);
               }
             });
-            // Sort repairs by createdAt descending
+            if (repairsList.length === 0 && get().repairs.length > 0 && !snapshot.metadata.fromCache) {
+              // Keep existing local repairs if snapshot is empty from server
+              return;
+            }
             repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             set({ repairs: repairsList, lastSyncTime: new Date().toISOString() });
           }, (error) => {
@@ -510,10 +513,13 @@ export const useAppStore = create<AppState>()(
             const customersList: Customer[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as Customer;
-              if (!item.storeId || item.storeId === activeStoreId) {
+              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
                 customersList.push(item);
               }
             });
+            if (customersList.length === 0 && get().customers.length > 0 && !snapshot.metadata.fromCache) {
+              return;
+            }
             set({ customers: customersList });
           }, (error) => {
             console.error("Failed to sync customers:", error);
@@ -523,10 +529,13 @@ export const useAppStore = create<AppState>()(
             const inventoryList: InventoryItem[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as InventoryItem;
-              if (!item.storeId || item.storeId === activeStoreId) {
+              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
                 inventoryList.push(item);
               }
             });
+            if (inventoryList.length === 0 && get().inventory.length > 0 && !snapshot.metadata.fromCache) {
+              return;
+            }
             set({ inventory: inventoryList });
           }, (error) => {
             console.error("Failed to sync inventory:", error);
@@ -536,10 +545,13 @@ export const useAppStore = create<AppState>()(
             const insuranceList: ShoeInsurance[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as ShoeInsurance;
-              if (!item.storeId || item.storeId === activeStoreId) {
+              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
                 insuranceList.push(item);
               }
             });
+            if (insuranceList.length === 0 && get().insurance.length > 0 && !snapshot.metadata.fromCache) {
+              return;
+            }
             set({ insurance: insuranceList });
           }, (error) => {
             console.error("Failed to sync insurance:", error);
@@ -549,10 +561,13 @@ export const useAppStore = create<AppState>()(
             const appointmentsList: Appointment[] = [];
             snapshot.forEach((doc) => {
               const item = doc.data() as Appointment;
-              if (!item.storeId || item.storeId === activeStoreId) {
+              if (!item.storeId || item.storeId === activeStoreId || activeStoreId === 'default' || item.storeId === 'default') {
                 appointmentsList.push(item);
               }
             });
+            if (appointmentsList.length === 0 && get().appointments.length > 0 && !snapshot.metadata.fromCache) {
+              return;
+            }
             set({ appointments: appointmentsList });
           }, (error) => {
             console.error("Failed to sync appointments:", error);
@@ -1434,11 +1449,6 @@ export const useAppStore = create<AppState>()(
         const targetStore = get().stores.find(s => s.id === storeId);
         set((state) => ({
           currentStoreId: storeId,
-          repairs: [],
-          customers: [],
-          inventory: [],
-          insurance: [],
-          appointments: [],
           settings: {
             ...state.settings,
             storeName: targetStore?.storeName || state.settings.storeName,
