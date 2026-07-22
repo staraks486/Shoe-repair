@@ -606,7 +606,10 @@ export const useAppStore = create<AppState>()(
           const unsubRepairs = setupStoreListener('repairs', (snapshot) => {
             const repairsList: ShoeRepairRequest[] = [];
             snapshot.forEach((doc) => {
-              repairsList.push(doc.data() as ShoeRepairRequest);
+              const item = doc.data() as ShoeRepairRequest;
+              if (!item.storeId || item.storeId === activeStoreId) {
+                repairsList.push(item);
+              }
             });
             // Sort repairs by createdAt descending
             repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -618,7 +621,10 @@ export const useAppStore = create<AppState>()(
           const unsubCustomers = setupStoreListener('customers', (snapshot) => {
             const customersList: Customer[] = [];
             snapshot.forEach((doc) => {
-              customersList.push(doc.data() as Customer);
+              const item = doc.data() as Customer;
+              if (!item.storeId || item.storeId === activeStoreId) {
+                customersList.push(item);
+              }
             });
             set({ customers: customersList });
           }, (error) => {
@@ -628,11 +634,12 @@ export const useAppStore = create<AppState>()(
           const unsubInventory = setupStoreListener('inventory', (snapshot) => {
             const inventoryList: InventoryItem[] = [];
             snapshot.forEach((doc) => {
-              inventoryList.push(doc.data() as InventoryItem);
+              const item = doc.data() as InventoryItem;
+              if (!item.storeId || item.storeId === activeStoreId) {
+                inventoryList.push(item);
+              }
             });
-            if (inventoryList.length > 0) {
-              set({ inventory: inventoryList });
-            }
+            set({ inventory: inventoryList });
           }, (error) => {
             console.error("Failed to sync inventory:", error);
           });
@@ -640,7 +647,10 @@ export const useAppStore = create<AppState>()(
           const unsubInsurance = setupStoreListener('insurance', (snapshot) => {
             const insuranceList: ShoeInsurance[] = [];
             snapshot.forEach((doc) => {
-              insuranceList.push(doc.data() as ShoeInsurance);
+              const item = doc.data() as ShoeInsurance;
+              if (!item.storeId || item.storeId === activeStoreId) {
+                insuranceList.push(item);
+              }
             });
             set({ insurance: insuranceList });
           }, (error) => {
@@ -650,7 +660,10 @@ export const useAppStore = create<AppState>()(
           const unsubAppointments = setupStoreListener('appointments', (snapshot) => {
             const appointmentsList: Appointment[] = [];
             snapshot.forEach((doc) => {
-              appointmentsList.push(doc.data() as Appointment);
+              const item = doc.data() as Appointment;
+              if (!item.storeId || item.storeId === activeStoreId) {
+                appointmentsList.push(item);
+              }
             });
             set({ appointments: appointmentsList });
           }, (error) => {
@@ -767,10 +780,12 @@ export const useAppStore = create<AppState>()(
         let createdRepair: ShoeRepairRequest | null = null;
         let newCustomers: Customer[] = [];
         let updatedInventoryItems: { id: string, item: InventoryItem }[] = [];
+        const currentStoreId = get().currentStoreId || 'default';
         set((state) => {
           createdRepair = {
             ...repairData,
             id: generateId(),
+            storeId: currentStoreId,
             isSynced: false,
             createdAt: new Date().toISOString(),
             invoiceNumber: generateInvoice(),
@@ -787,12 +802,14 @@ export const useAppStore = create<AppState>()(
           if (existingCustomerIndex >= 0) {
             newCustomers[existingCustomerIndex] = {
               ...newCustomers[existingCustomerIndex],
+              storeId: currentStoreId,
               totalOrders: newCustomers[existingCustomerIndex].totalOrders + 1,
               lastVisit: new Date().toISOString()
             };
           } else {
             newCustomers.push({
               phoneNumber: repairData.phoneNumber,
+              storeId: currentStoreId,
               name: repairData.customerName,
               email: repairData.email,
               totalOrders: 1,
@@ -1029,10 +1046,12 @@ export const useAppStore = create<AppState>()(
       clearSyncErrorLogs: () => set({ syncErrorLogs: [] }),
       
       addCustomer: (customer) => {
+        const storeId = get().currentStoreId || 'default';
+        const customerWithStore = { ...customer, storeId };
         set((state) => ({
-          customers: [...state.customers, customer]
+          customers: [...state.customers, customerWithStore]
         }));
-        get().performWrite('customers', customer.phoneNumber, 'set', customer, `Add Customer ${customer.name}`);
+        get().performWrite('customers', customer.phoneNumber, 'set', customerWithStore, `Add Customer ${customer.name}`);
       },
       
       updateCustomer: (phone, data) => {
@@ -1061,7 +1080,8 @@ export const useAppStore = create<AppState>()(
       
       addInventoryItem: (item) => {
         const id = generateId();
-        const newItem = { ...item, id };
+        const storeId = get().currentStoreId || 'default';
+        const newItem = { ...item, id, storeId };
         set((state) => ({
           inventory: [...state.inventory, newItem]
         }));
@@ -1095,7 +1115,8 @@ export const useAppStore = create<AppState>()(
       addInsurance: (policy) => {
         const id = generateId();
         const createdAt = new Date().toISOString();
-        const newPolicy = { ...policy, id, createdAt };
+        const storeId = get().currentStoreId || 'default';
+        const newPolicy = { ...policy, id, storeId, createdAt };
         set((state) => ({
           insurance: [...state.insurance, newPolicy]
         }));
@@ -1129,9 +1150,11 @@ export const useAppStore = create<AppState>()(
       addAppointment: async (appointmentData) => {
         const id = appointmentData.id || generateId();
         const createdAt = new Date().toISOString();
+        const storeId = get().currentStoreId || 'default';
         const newAppointment: Appointment = {
           ...appointmentData,
           id,
+          storeId,
           status: 'Pending',
           createdAt
         };
@@ -1475,29 +1498,30 @@ export const useAppStore = create<AppState>()(
 
       setCurrentStoreId: async (storeId) => {
         const targetStore = get().stores.find(s => s.id === storeId);
-        if (targetStore) {
-          set((state) => ({
-            currentStoreId: storeId,
-            settings: {
-              ...state.settings,
-              storeName: targetStore.storeName || state.settings.storeName,
-              address: targetStore.address || state.settings.address,
-              hours: targetStore.hours || state.settings.hours,
-              phone: targetStore.phone || (state.settings as any).phone || '',
-              logoUrl: targetStore.logoUrl || state.settings.logoUrl || '',
-              paymentLink: targetStore.paymentLink || state.settings.paymentLink || '',
-              qrCode: targetStore.qrCode || state.settings.qrCode || '',
-              instagramLink: targetStore.instagramLink || state.settings.instagramLink || '',
-              facebookLink: targetStore.facebookLink || state.settings.facebookLink || '',
-              twitterLink: targetStore.twitterLink || state.settings.twitterLink || '',
-              linkedinLink: targetStore.linkedinLink || (state.settings as any).linkedinLink || '',
-              websiteLink: targetStore.websiteLink || state.settings.websiteLink || '',
-              whatsappLink: targetStore.whatsappLink || (state.settings as any).whatsappLink || ''
-            }
-          }));
-        } else {
-          set({ currentStoreId: storeId });
-        }
+        set((state) => ({
+          currentStoreId: storeId,
+          repairs: [],
+          customers: [],
+          inventory: [],
+          insurance: [],
+          appointments: [],
+          settings: {
+            ...state.settings,
+            storeName: targetStore?.storeName || state.settings.storeName,
+            address: targetStore?.address || state.settings.address,
+            hours: targetStore?.hours || state.settings.hours,
+            phone: targetStore?.phone || (state.settings as any).phone || '',
+            logoUrl: targetStore?.logoUrl || state.settings.logoUrl || '',
+            paymentLink: targetStore?.paymentLink || state.settings.paymentLink || '',
+            qrCode: targetStore?.qrCode || state.settings.qrCode || '',
+            instagramLink: targetStore?.instagramLink || state.settings.instagramLink || '',
+            facebookLink: targetStore?.facebookLink || state.settings.facebookLink || '',
+            twitterLink: targetStore?.twitterLink || state.settings.twitterLink || '',
+            linkedinLink: targetStore?.linkedinLink || (state.settings as any).linkedinLink || '',
+            websiteLink: targetStore?.websiteLink || state.settings.websiteLink || '',
+            whatsappLink: targetStore?.whatsappLink || (state.settings as any).whatsappLink || ''
+          }
+        }));
         await get().fetchFromFirestore();
       },
 
@@ -1719,15 +1743,35 @@ export const useAppStore = create<AppState>()(
         const storeName = storeToBackup?.storeName || 'Unnamed Store';
         const updatedStores = get().stores.filter(s => s.id !== id);
         let nextStoreId = get().currentStoreId;
-        if (get().currentStoreId === id) {
+        const wasActive = get().currentStoreId === id;
+        if (wasActive) {
           nextStoreId = updatedStores[0]?.id || 'default';
         }
+        const activeNextStore = updatedStores.find(s => s.id === nextStoreId) || updatedStores[0];
 
         // Immediately update local state
-        set({
+        set((state) => ({
           stores: updatedStores,
-          currentStoreId: nextStoreId
-        });
+          currentStoreId: nextStoreId,
+          ...(wasActive && activeNextStore ? {
+            settings: {
+              ...state.settings,
+              storeName: activeNextStore.storeName || state.settings.storeName,
+              address: activeNextStore.address || state.settings.address,
+              hours: activeNextStore.hours || state.settings.hours,
+              phone: activeNextStore.phone || (state.settings as any).phone || '',
+              logoUrl: activeNextStore.logoUrl || state.settings.logoUrl || '',
+              paymentLink: activeNextStore.paymentLink || state.settings.paymentLink || '',
+              qrCode: activeNextStore.qrCode || state.settings.qrCode || '',
+              instagramLink: activeNextStore.instagramLink || state.settings.instagramLink || '',
+              facebookLink: activeNextStore.facebookLink || state.settings.facebookLink || '',
+              twitterLink: activeNextStore.twitterLink || state.settings.twitterLink || '',
+              linkedinLink: activeNextStore.linkedinLink || (state.settings as any).linkedinLink || '',
+              websiteLink: activeNextStore.websiteLink || state.settings.websiteLink || '',
+              whatsappLink: activeNextStore.whatsappLink || (state.settings as any).whatsappLink || ''
+            }
+          } : {})
+        }));
 
         if (db) {
           try {
@@ -1766,6 +1810,8 @@ export const useAppStore = create<AppState>()(
             console.error("Firestore store delete failed, removed locally:", error);
           }
         }
+
+        await get().fetchFromFirestore();
       },
 
       createStoreBackup: async (storeId) => {

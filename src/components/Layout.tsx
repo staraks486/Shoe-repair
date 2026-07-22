@@ -36,6 +36,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import clsx from 'clsx';
+import ShoeFactsLoader from './ShoeFactsLoader';
 import { auth, db } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import AuthObserver from './AuthObserver';
@@ -850,15 +851,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           )}
           <div className="flex-1 overflow-y-auto custom-scrollbar md:p-8 p-4 pt-6 pb-24 md:pb-8 relative flex flex-col justify-between">
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-full min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-brand-accent" />
-              </div>
-            }>
+            <Suspense fallback={<ShoeFactsLoader message="Loading Craft Modules..." />}>
               {children}
             </Suspense>
-            <footer className="mt-12 pt-4 border-t border-brand-border/30 text-center text-[9px] font-bold text-brand-muted/70 uppercase tracking-widest select-none">
-              Cordwainers Studio • App Version v2.4.0
+            <footer className="mt-12 pt-4 border-t border-brand-border/30 text-center text-[10px] font-bold text-brand-muted/80 uppercase tracking-widest select-none space-y-1">
+              <div>Cordwainers Studio • App Version v2.4.0</div>
+              <div className="text-brand-dark font-black tracking-[0.2em]">Design by Arvind Kumar Shukla</div>
             </footer>
           </div>
         </main>

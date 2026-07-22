@@ -3,6 +3,7 @@ export type PriorityLevel = 'Low' | 'Medium' | 'High';
 
 export interface Appointment {
   id: string;
+  storeId?: string;
   customerName: string;
   email: string;
   phone: string;
@@ -140,6 +141,7 @@ export interface PaymentRecord {
 
 export interface Customer {
   phoneNumber: string; // Primary Key
+  storeId?: string;
   name: string;
   email: string;
   totalOrders: number;
@@ -148,6 +150,7 @@ export interface Customer {
 
 export interface InventoryItem {
   id: string;
+  storeId?: string;
   name: string;
   category: string; // 'Soles' | 'Heels' | 'Polish' | 'Laces' | 'Other'
   quantity: number;
@@ -159,6 +162,7 @@ export interface InventoryItem {
 
 export interface ShoeInsurance {
   id: string;
+  storeId?: string;
   customerPhone: string;
   shoeId: string;
   planName: string;

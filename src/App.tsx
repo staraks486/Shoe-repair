@@ -22,6 +22,8 @@ const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Messaging = lazy(() => import('./pages/Messaging'));
 
+import ShoeFactsLoader from './components/ShoeFactsLoader';
+
 // Page transition component
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -34,11 +36,9 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-// Simple loading fallback
+// Page loading fallback with shoe facts
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
-  </div>
+  <ShoeFactsLoader message="Preparing Artisan Studio..." />
 );
 
 export default function App() {
