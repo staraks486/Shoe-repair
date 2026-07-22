@@ -28,6 +28,7 @@ import {
   Twitter,
   Linkedin,
   Globe,
+  Phone,
   GripVertical,
   Download,
   Upload,
@@ -589,7 +590,36 @@ export default function Settings() {
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    updateSettings({ [e.target.name]: e.target.value });
+    const fieldName = e.target.name;
+    const fieldValue = e.target.value;
+    updateSettings({ [fieldName]: fieldValue });
+
+    const storeFields = ['storeName', 'address', 'hours', 'phone', 'logoUrl', 'paymentLink', 'qrCode', 'instagramLink', 'facebookLink', 'twitterLink', 'linkedinLink', 'websiteLink', 'whatsappLink'];
+    if (storeFields.includes(fieldName) && currentStoreId) {
+      updateStore(currentStoreId, { [fieldName]: fieldValue });
+    }
+  };
+
+  const activeStoreObj = stores.find((s: any) => s.id === currentStoreId) || stores.find((s: any) => s.isDefault) || stores[0];
+  const defaultStoreObj = stores.find((s: any) => s.isDefault) || stores[0];
+
+  const handleSyncFromDefaultStore = async () => {
+    if (defaultStoreObj) {
+      await setDefaultStore(defaultStoreObj.id);
+      setLocalFields(prev => ({
+        ...prev,
+        storeName: defaultStoreObj.storeName || '',
+        address: defaultStoreObj.address || '',
+        hours: defaultStoreObj.hours || '',
+        logoUrl: defaultStoreObj.logoUrl || '',
+        instagramLink: defaultStoreObj.instagramLink || '',
+        facebookLink: defaultStoreObj.facebookLink || '',
+        twitterLink: defaultStoreObj.twitterLink || '',
+        linkedinLink: defaultStoreObj.linkedinLink || '',
+        websiteLink: defaultStoreObj.websiteLink || '',
+        whatsappLink: defaultStoreObj.whatsappLink || ''
+      }));
+    }
   };
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
@@ -665,7 +695,13 @@ export default function Settings() {
     logoUrl: '',
     paymentLink: '',
     qrCode: '',
-    isDefault: false
+    isDefault: false,
+    instagramLink: '',
+    facebookLink: '',
+    twitterLink: '',
+    linkedinLink: '',
+    websiteLink: '',
+    whatsappLink: ''
   });
 
   const isAdmin = !userProfile || userProfile.role === 'Admin' || userProfile.isAdmin === true;
@@ -1072,7 +1108,13 @@ export default function Settings() {
                     logoUrl: '',
                     paymentLink: '',
                     qrCode: '',
-                    isDefault: stores.length === 0
+                    isDefault: stores.length === 0,
+                    instagramLink: '',
+                    facebookLink: '',
+                    twitterLink: '',
+                    linkedinLink: '',
+                    websiteLink: '',
+                    whatsappLink: ''
                   });
                 }}
                 className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive transition-all shadow-premium"
@@ -1163,6 +1205,94 @@ export default function Settings() {
                           placeholder="https://..."
                           className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
                         />
+                      </div>
+
+                      {/* Store Social Network Links Section */}
+                      <div className="md:col-span-2 pt-3 border-t border-brand-border/40 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-brand-olive" />
+                          <label className="block text-[10px] font-black text-brand-dark uppercase tracking-widest">Store Social Network Links</label>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Instagram className="w-3 h-3 text-pink-600" /> Instagram Profile
+                            </label>
+                            <input 
+                              type="url" 
+                              value={storeForm.instagramLink}
+                              onChange={(e) => setStoreForm({ ...storeForm, instagramLink: e.target.value })}
+                              placeholder="https://instagram.com/yourstore"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Facebook className="w-3 h-3 text-blue-600" /> Facebook Page
+                            </label>
+                            <input 
+                              type="url" 
+                              value={storeForm.facebookLink}
+                              onChange={(e) => setStoreForm({ ...storeForm, facebookLink: e.target.value })}
+                              placeholder="https://facebook.com/yourstore"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Twitter className="w-3 h-3 text-sky-500" /> Twitter / X Profile
+                            </label>
+                            <input 
+                              type="url" 
+                              value={storeForm.twitterLink}
+                              onChange={(e) => setStoreForm({ ...storeForm, twitterLink: e.target.value })}
+                              placeholder="https://x.com/yourstore"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Linkedin className="w-3 h-3 text-indigo-600" /> LinkedIn Profile
+                            </label>
+                            <input 
+                              type="url" 
+                              value={storeForm.linkedinLink || ''}
+                              onChange={(e) => setStoreForm({ ...storeForm, linkedinLink: e.target.value })}
+                              placeholder="https://linkedin.com/company/yourstore"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-emerald-600" /> Website / Shop Link
+                            </label>
+                            <input 
+                              type="url" 
+                              value={storeForm.websiteLink}
+                              onChange={(e) => setStoreForm({ ...storeForm, websiteLink: e.target.value })}
+                              placeholder="https://yourstore.com"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1 sm:col-span-2">
+                            <label className="block text-[9px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-green-600" /> WhatsApp Line / Link
+                            </label>
+                            <input 
+                              type="text" 
+                              value={storeForm.whatsappLink}
+                              onChange={(e) => setStoreForm({ ...storeForm, whatsappLink: e.target.value })}
+                              placeholder="https://wa.me/919876543210 or +91 98765 43210"
+                              className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Default Store Toggle Option */}
@@ -1261,7 +1391,13 @@ export default function Settings() {
                               logoUrl: store.logoUrl || '',
                               paymentLink: store.paymentLink || '',
                               qrCode: store.qrCode || '',
-                              isDefault: store.isDefault === true
+                              isDefault: store.isDefault === true,
+                              instagramLink: store.instagramLink || '',
+                              facebookLink: store.facebookLink || '',
+                              twitterLink: store.twitterLink || '',
+                              linkedinLink: store.linkedinLink || '',
+                              websiteLink: store.websiteLink || '',
+                              whatsappLink: store.whatsappLink || ''
                             });
                           }}
                           className="text-[10px] font-black text-brand-olive uppercase tracking-widest hover:text-brand-dark cursor-pointer"
@@ -1292,6 +1428,43 @@ export default function Settings() {
                           <span className="font-bold text-brand-muted">Phone:</span> {store.phone}
                         </p>
                       )}
+
+                      {/* Store Social Links Display */}
+                      {(store.instagramLink || store.facebookLink || store.twitterLink || store.linkedinLink || store.websiteLink || store.whatsappLink) && (
+                        <div className="pt-3 border-t border-brand-border/30 flex flex-wrap items-center gap-2">
+                          <span className="text-[9px] font-black text-brand-muted uppercase tracking-wider block w-full sm:w-auto mr-1">Social Links:</span>
+                          {store.instagramLink && (
+                            <a href={store.instagramLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-pink-50 text-pink-700 hover:bg-pink-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-pink-200">
+                              <Instagram className="w-3 h-3 text-pink-600" /> Instagram
+                            </a>
+                          )}
+                          {store.facebookLink && (
+                            <a href={store.facebookLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-blue-200">
+                              <Facebook className="w-3 h-3 text-blue-600" /> Facebook
+                            </a>
+                          )}
+                          {store.twitterLink && (
+                            <a href={store.twitterLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 hover:bg-sky-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-sky-200">
+                              <Twitter className="w-3 h-3 text-sky-500" /> X / Twitter
+                            </a>
+                          )}
+                          {store.linkedinLink && (
+                            <a href={store.linkedinLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-indigo-200">
+                              <Linkedin className="w-3 h-3 text-indigo-600" /> LinkedIn
+                            </a>
+                          )}
+                          {store.websiteLink && (
+                            <a href={store.websiteLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-emerald-200">
+                              <Globe className="w-3 h-3 text-emerald-600" /> Website
+                            </a>
+                          )}
+                          {store.whatsappLink && (
+                            <a href={store.whatsappLink.startsWith('http') ? store.whatsappLink : `https://wa.me/${store.whatsappLink.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border border-green-200">
+                              <Phone className="w-3 h-3 text-green-600" /> WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </SwipeToDelete>
@@ -1304,11 +1477,35 @@ export default function Settings() {
           <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             {/* Store Details */}
             <div className="space-y-8">
-              <div className="flex items-center gap-3 border-b border-brand-border pb-4">
-                <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
-                  <Database className="w-4 h-4 text-brand-olive" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <Database className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Identity & Locale</h3>
+                    <p className="text-[10px] text-brand-muted font-bold uppercase tracking-wider mt-0.5">
+                      Active Store: <span className="text-brand-dark font-black">{activeStoreObj?.storeName || 'Cordwainers Studio'}</span>
+                      {activeStoreObj?.isDefault && (
+                        <span className="ml-2 inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-300">
+                          <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                          Default Store
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Identity & Locale</h3>
+
+                {defaultStoreObj && defaultStoreObj.id !== currentStoreId && (
+                  <button
+                    type="button"
+                    onClick={handleSyncFromDefaultStore}
+                    className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm"
+                  >
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    Load Default Store Details
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

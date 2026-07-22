@@ -170,7 +170,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     logoUrl: '',
     paymentLink: '',
     qrCode: '',
-    isDefault: false
+    isDefault: false,
+    instagramLink: '',
+    facebookLink: '',
+    twitterLink: '',
+    websiteLink: '',
+    whatsappLink: ''
   });
 
   useEffect(() => {
@@ -251,6 +256,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       paymentLink: newStoreForm.paymentLink || undefined,
       qrCode: newStoreForm.qrCode || undefined,
       isDefault: newStoreForm.isDefault,
+      instagramLink: newStoreForm.instagramLink || undefined,
+      facebookLink: newStoreForm.facebookLink || undefined,
+      twitterLink: newStoreForm.twitterLink || undefined,
+      websiteLink: newStoreForm.websiteLink || undefined,
+      whatsappLink: newStoreForm.whatsappLink || undefined,
       createdAt: new Date().toISOString()
     });
     setIsAddStoreOpen(false);
@@ -262,7 +272,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       logoUrl: '',
       paymentLink: '',
       qrCode: '',
-      isDefault: false
+      isDefault: false,
+      instagramLink: '',
+      facebookLink: '',
+      twitterLink: '',
+      websiteLink: '',
+      whatsappLink: ''
     });
   };
 

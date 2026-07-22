@@ -492,6 +492,11 @@ export const useAppStore = create<AppState>()(
               paymentLink: data.paymentLink || '',
               qrCode: data.qrCode || '',
               isDefault: data.isDefault === true,
+              instagramLink: data.instagramLink || '',
+              facebookLink: data.facebookLink || '',
+              twitterLink: data.twitterLink || '',
+              websiteLink: data.websiteLink || '',
+              whatsappLink: data.whatsappLink || '',
               createdAt: data.createdAt || new Date().toISOString()
             });
           });
@@ -518,10 +523,33 @@ export const useAppStore = create<AppState>()(
 
           // Resolve active store ID (prefer explicit default store if currentStoreId is empty)
           let storeId = get().currentStoreId;
+          const defaultStoreObj = fetchedStores.find(s => s.isDefault);
           if (!storeId || !fetchedStores.some(s => s.id === storeId)) {
-            const defaultStoreObj = fetchedStores.find(s => s.isDefault);
             storeId = defaultStoreObj ? defaultStoreObj.id : fetchedStores[0].id;
             set({ currentStoreId: storeId });
+          }
+
+          // Sync global settings details with the active/default store's fields
+          const activeStoreObj = fetchedStores.find(s => s.id === storeId) || defaultStoreObj || fetchedStores[0];
+          if (activeStoreObj) {
+            set((state) => ({
+              settings: {
+                ...state.settings,
+                storeName: activeStoreObj.storeName || state.settings.storeName,
+                address: activeStoreObj.address || state.settings.address,
+                hours: activeStoreObj.hours || state.settings.hours,
+                phone: activeStoreObj.phone || (state.settings as any).phone || '',
+                logoUrl: activeStoreObj.logoUrl || state.settings.logoUrl || '',
+                paymentLink: activeStoreObj.paymentLink || state.settings.paymentLink || '',
+                qrCode: activeStoreObj.qrCode || state.settings.qrCode || '',
+                instagramLink: activeStoreObj.instagramLink || state.settings.instagramLink || '',
+                facebookLink: activeStoreObj.facebookLink || state.settings.facebookLink || '',
+                twitterLink: activeStoreObj.twitterLink || state.settings.twitterLink || '',
+                linkedinLink: activeStoreObj.linkedinLink || (state.settings as any).linkedinLink || '',
+                websiteLink: activeStoreObj.websiteLink || state.settings.websiteLink || '',
+                whatsappLink: activeStoreObj.whatsappLink || (state.settings as any).whatsappLink || ''
+              }
+            }));
           }
 
           // 2. Set up real-time subcollection listeners for this active store
@@ -664,6 +692,11 @@ export const useAppStore = create<AppState>()(
                 paymentLink: data.paymentLink || '',
                 qrCode: data.qrCode || '',
                 isDefault: data.isDefault === true,
+                instagramLink: data.instagramLink || '',
+                facebookLink: data.facebookLink || '',
+                twitterLink: data.twitterLink || '',
+                websiteLink: data.websiteLink || '',
+                whatsappLink: data.whatsappLink || '',
                 createdAt: data.createdAt || new Date().toISOString()
               });
             });
@@ -1441,7 +1474,30 @@ export const useAppStore = create<AppState>()(
       },
 
       setCurrentStoreId: async (storeId) => {
-        set({ currentStoreId: storeId });
+        const targetStore = get().stores.find(s => s.id === storeId);
+        if (targetStore) {
+          set((state) => ({
+            currentStoreId: storeId,
+            settings: {
+              ...state.settings,
+              storeName: targetStore.storeName || state.settings.storeName,
+              address: targetStore.address || state.settings.address,
+              hours: targetStore.hours || state.settings.hours,
+              phone: targetStore.phone || (state.settings as any).phone || '',
+              logoUrl: targetStore.logoUrl || state.settings.logoUrl || '',
+              paymentLink: targetStore.paymentLink || state.settings.paymentLink || '',
+              qrCode: targetStore.qrCode || state.settings.qrCode || '',
+              instagramLink: targetStore.instagramLink || state.settings.instagramLink || '',
+              facebookLink: targetStore.facebookLink || state.settings.facebookLink || '',
+              twitterLink: targetStore.twitterLink || state.settings.twitterLink || '',
+              linkedinLink: targetStore.linkedinLink || (state.settings as any).linkedinLink || '',
+              websiteLink: targetStore.websiteLink || state.settings.websiteLink || '',
+              whatsappLink: targetStore.whatsappLink || (state.settings as any).whatsappLink || ''
+            }
+          }));
+        } else {
+          set({ currentStoreId: storeId });
+        }
         await get().fetchFromFirestore();
       },
 
@@ -1464,15 +1520,33 @@ export const useAppStore = create<AppState>()(
         };
 
         // If new store is default, update existing stores to not be default
-        const updatedStores = shouldBeDefault 
-          ? existingStores.map(s => ({ ...s, isDefault: false })).concat(newStore)
+        const updatedStores: StoreDetails[] = shouldBeDefault 
+          ? [...existingStores.map(s => ({ ...s, isDefault: false })), newStore]
           : [...existingStores.filter(s => s.id !== id), newStore];
 
+        const targetStoreId = shouldBeDefault || !get().currentStoreId ? id : get().currentStoreId;
+
         // Synchronously update local state so the store is instantly visible
-        set({
+        set((state) => ({
           stores: updatedStores,
-          currentStoreId: (!get().currentStoreId || shouldBeDefault) ? id : get().currentStoreId
-        });
+          currentStoreId: targetStoreId,
+          settings: shouldBeDefault ? {
+            ...state.settings,
+            storeName: newStore.storeName,
+            address: newStore.address,
+            hours: newStore.hours,
+            phone: newStore.phone || '',
+            logoUrl: newStore.logoUrl || '',
+            paymentLink: newStore.paymentLink || '',
+            qrCode: newStore.qrCode || '',
+            instagramLink: newStore.instagramLink || '',
+            facebookLink: newStore.facebookLink || '',
+            twitterLink: newStore.twitterLink || '',
+            linkedinLink: newStore.linkedinLink || '',
+            websiteLink: newStore.websiteLink || '',
+            whatsappLink: newStore.whatsappLink || ''
+          } : state.settings
+        }));
 
         if (db) {
           try {
@@ -1506,6 +1580,8 @@ export const useAppStore = create<AppState>()(
             console.error("Firestore store write failed, kept in local state:", err);
           }
         }
+
+        await get().fetchFromFirestore();
       },
 
       updateStore: async (id, storeData) => {
@@ -1532,17 +1608,32 @@ export const useAppStore = create<AppState>()(
         });
 
         const updatedStore = updatedStores.find(s => s.id === id)!;
+        const newCurrentStoreId = isBecomingDefault ? id : get().currentStoreId;
+        const isCurrentActive = id === get().currentStoreId || isBecomingDefault;
 
-        // Immediately update local state
-        set({ stores: updatedStores });
-
-        if (id === get().currentStoreId) {
-          get().updateSettings({
-            storeName: updatedStore.storeName,
-            address: updatedStore.address,
-            hours: updatedStore.hours,
-          });
-        }
+        // Immediately update local state & settings
+        set((state) => ({
+          stores: updatedStores,
+          currentStoreId: newCurrentStoreId,
+          ...(isCurrentActive ? {
+            settings: {
+              ...state.settings,
+              storeName: updatedStore.storeName || state.settings.storeName,
+              address: updatedStore.address || state.settings.address,
+              hours: updatedStore.hours || state.settings.hours,
+              phone: updatedStore.phone || (state.settings as any).phone || '',
+              logoUrl: updatedStore.logoUrl || state.settings.logoUrl || '',
+              paymentLink: updatedStore.paymentLink || state.settings.paymentLink || '',
+              qrCode: updatedStore.qrCode || state.settings.qrCode || '',
+              instagramLink: updatedStore.instagramLink || state.settings.instagramLink || '',
+              facebookLink: updatedStore.facebookLink || state.settings.facebookLink || '',
+              twitterLink: updatedStore.twitterLink || state.settings.twitterLink || '',
+              linkedinLink: updatedStore.linkedinLink || (state.settings as any).linkedinLink || '',
+              websiteLink: updatedStore.websiteLink || state.settings.websiteLink || '',
+              whatsappLink: updatedStore.whatsappLink || (state.settings as any).whatsappLink || ''
+            }
+          } : {})
+        }));
 
         if (db) {
           try {
@@ -1556,6 +1647,10 @@ export const useAppStore = create<AppState>()(
           } catch (err) {
             console.error("Firestore store update failed, kept in local state:", err);
           }
+        }
+
+        if (isBecomingDefault || id === get().currentStoreId) {
+          await get().fetchFromFirestore();
         }
       },
 
@@ -1575,7 +1670,26 @@ export const useAppStore = create<AppState>()(
           isDefault: s.id === id
         }));
 
-        set({ stores: updatedStores });
+        set((state) => ({
+          stores: updatedStores,
+          currentStoreId: id,
+          settings: {
+            ...state.settings,
+            storeName: targetStore.storeName || state.settings.storeName,
+            address: targetStore.address || state.settings.address,
+            hours: targetStore.hours || state.settings.hours,
+            phone: targetStore.phone || (state.settings as any).phone || '',
+            logoUrl: targetStore.logoUrl || state.settings.logoUrl || '',
+            paymentLink: targetStore.paymentLink || state.settings.paymentLink || '',
+            qrCode: targetStore.qrCode || state.settings.qrCode || '',
+            instagramLink: targetStore.instagramLink || state.settings.instagramLink || '',
+            facebookLink: targetStore.facebookLink || state.settings.facebookLink || '',
+            twitterLink: targetStore.twitterLink || state.settings.twitterLink || '',
+            linkedinLink: targetStore.linkedinLink || (state.settings as any).linkedinLink || '',
+            websiteLink: targetStore.websiteLink || state.settings.websiteLink || '',
+            whatsappLink: targetStore.whatsappLink || (state.settings as any).whatsappLink || ''
+          }
+        }));
 
         if (db) {
           try {
@@ -1586,6 +1700,8 @@ export const useAppStore = create<AppState>()(
             console.error("Firestore update for default store failed:", err);
           }
         }
+
+        await get().fetchFromFirestore();
       },
 
       deleteStore: async (id) => {

@@ -267,6 +267,12 @@ export interface StoreDetails {
   paymentLink?: string;
   qrCode?: string;
   isDefault?: boolean;
+  instagramLink?: string;
+  facebookLink?: string;
+  twitterLink?: string;
+  linkedinLink?: string;
+  websiteLink?: string;
+  whatsappLink?: string;
   createdAt?: string;
 }
 
