@@ -1160,8 +1160,9 @@ export const useAppStore = create<AppState>()(
       
       updateSettings: (newSettings) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
-          console.warn("[SECURITY] Blocked updateSettings from guest/demo user profile:", profile.email);
+        // Block only if explicitly logged in under a restricted Staff profile
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked updateSettings from restricted Staff user profile:", profile.email);
           return;
         }
 
@@ -1207,14 +1208,16 @@ export const useAppStore = create<AppState>()(
         if (user) {
           const credentials = get().settings?.userCredentials || [];
           const matchedCred = credentials.find(c => c.email.toLowerCase() === user.email?.toLowerCase());
+          const isExplicitStaff = matchedCred?.role === 'Staff';
           const isAdminEmail = user.email === 'star.aks486@gmail.com' || 
                                user.email === 'admin@cordwainers.local' || 
-                               matchedCred?.role === 'Admin';
+                               matchedCred?.role === 'Admin' ||
+                               !isExplicitStaff;
           
           const defaultProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
-            displayName: matchedCred?.displayName || user.displayName || user.email?.split('@')[0] || 'Artisan',
+            displayName: matchedCred?.displayName || user.displayName || user.email?.split('@')[0] || 'Artisan Studio Owner',
             createdAt: new Date().toISOString(),
             role: isAdminEmail ? 'Admin' : 'Staff',
             isAdmin: isAdminEmail
@@ -1439,8 +1442,8 @@ export const useAppStore = create<AppState>()(
 
       addStore: async (storeData) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
-          console.warn("[SECURITY] Blocked addStore from guest/demo user profile");
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked addStore from restricted Staff user profile");
           return;
         }
         if (!db) return;
@@ -1478,8 +1481,8 @@ export const useAppStore = create<AppState>()(
 
       updateStore: async (id, storeData) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
-          console.warn("[SECURITY] Blocked updateStore from guest/demo user profile");
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked updateStore from restricted Staff user profile");
           return;
         }
         if (!db) return;
@@ -1507,8 +1510,8 @@ export const useAppStore = create<AppState>()(
 
       deleteStore: async (id) => {
         const profile = get().userProfile;
-        if (!profile || (profile.role !== 'Admin' && !profile.isAdmin)) {
-          console.warn("[SECURITY] Blocked deleteStore from guest/demo user profile");
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked deleteStore from restricted Staff user profile");
           return;
         }
         if (!db) return;

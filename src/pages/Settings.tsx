@@ -125,7 +125,7 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
   }, [emp]);
 
   const handleBlur = (field: string, value: string) => {
-    const newItems = [...settings.employees];
+    const newItems = [...(settings.employees || [])];
     newItems[index] = { ...newItems[index], [field]: value };
     updateSettings({ employees: newItems });
   };
@@ -141,51 +141,61 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
     ];
     const avatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
     setAvatarUrl(avatar);
-    const newItems = [...settings.employees];
+    const newItems = [...(settings.employees || [])];
     newItems[index] = { ...newItems[index], avatarUrl: avatar };
     updateSettings({ employees: newItems });
   };
 
   return (
-    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
-      <button 
-        type="button"
-        onClick={() => {
-          if (window.confirm(`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`)) {
-            const newItems = settings.employees.filter((_, i: number) => i !== index);
-            updateSettings({ employees: newItems });
-          }
-        }}
-        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
-        title="Dismiss personnel"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+    <div className="bg-white/90 backdrop-blur-sm p-4 sm:p-6 md:p-8 rounded-[28px] border border-brand-border/80 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative w-full">
+      {/* Header with dismiss button */}
+      <div className="md:col-span-2 flex justify-between items-center pb-3 border-b border-brand-border/40">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-brand-olive" />
+          <span className="text-[10px] font-black text-brand-dark uppercase tracking-widest">
+            {name ? name : `Personnel Member #${index + 1}`}
+          </span>
+        </div>
+        <button 
+          type="button"
+          onClick={() => {
+            if (window.confirm(`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`)) {
+              const newItems = (settings.employees || []).filter((_: any, i: number) => i !== index);
+              updateSettings({ employees: newItems });
+            }
+          }}
+          className="p-2 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-full border border-red-200/80 transition-all text-xs flex items-center gap-1 font-bold"
+          title="Dismiss personnel"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span className="text-[9px] uppercase tracking-wider hidden sm:inline">Dismiss</span>
+        </button>
+      </div>
       
       {/* Avatar preview and URL input */}
-      <div className="md:col-span-2 flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-brand-border/40">
-        <div className="w-20 h-20 rounded-full border border-brand-border overflow-hidden bg-brand-bg flex-shrink-0 flex items-center justify-center shadow-inner">
+      <div className="md:col-span-2 flex flex-col sm:flex-row items-center gap-4 pb-4 border-b border-brand-border/40">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border border-brand-border overflow-hidden bg-brand-bg flex-shrink-0 flex items-center justify-center shadow-inner">
           {avatarUrl ? (
             <img src={avatarUrl} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           ) : (
-            <User className="w-8 h-8 text-brand-muted" />
+            <User className="w-7 h-7 text-brand-muted" />
           )}
         </div>
         <div className="flex-1 w-full space-y-2">
-          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Profile Photo / Avatar URL</label>
-          <div className="flex gap-2">
+          <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Profile Photo / Avatar URL</label>
+          <div className="flex flex-col sm:flex-row gap-2">
             <input 
               type="text" 
               value={avatarUrl} 
-              placeholder="https://images.unsplash.com/... or paste any image URL" 
+              placeholder="https://images.unsplash.com/... or paste image link" 
               onChange={(e) => setAvatarUrl(e.target.value)} 
               onBlur={() => handleBlur('avatarUrl', avatarUrl)}
-              className="flex-1 bg-white border border-brand-border rounded-full px-6 py-2.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+              className="flex-1 bg-white border border-brand-border rounded-full px-5 py-2.5 text-xs focus:ring-2 focus:ring-brand-accent/20 outline-none w-full" 
             />
             <button
               type="button"
               onClick={handleAutoPhoto}
-              className="px-4 py-2 bg-brand-bg hover:bg-brand-dark hover:text-white text-brand-dark border border-brand-border rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
+              className="px-4 py-2 bg-brand-bg hover:bg-brand-dark hover:text-white text-brand-dark border border-brand-border rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap"
             >
               Auto Photo
             </button>
@@ -193,50 +203,52 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
         </div>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Full Name</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Full Name</label>
         <input 
           type="text" 
           value={name} 
           onChange={(e) => setName(e.target.value)} 
           onBlur={() => handleBlur('name', name)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
+          placeholder="e.g. Anand Sharma"
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-bold" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Role</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Artisan Role</label>
         <input 
           type="text" 
           value={role} 
           onChange={(e) => setRole(e.target.value)} 
           onBlur={() => handleBlur('role', role)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="e.g. Concierge Lead"
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Contact Mobile</label>
         <input 
           type="tel" 
           value={mobile} 
           onChange={(e) => setMobile(e.target.value)} 
           onBlur={() => handleBlur('mobile', mobile)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
-          placeholder="+1 555-0100" 
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="+91 98765 43210" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Email Address</label>
         <input 
           type="email" 
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
           onBlur={() => handleBlur('email', email)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
           placeholder="name@artisan.com" 
         />
       </div>
 
-      <div className="md:col-span-2 flex items-center justify-between pt-4 border-t border-brand-border/40 mt-2">
+      <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-brand-border/40 mt-2">
         <span className="text-[10px] font-bold uppercase tracking-wider h-5 flex items-center">
           {saved && (
             <motion.span 
@@ -244,14 +256,14 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
               animate={{ opacity: 1, x: 0 }}
               className="text-brand-olive flex items-center gap-1"
             >
-              <CheckCircle className="w-3.5 h-3.5" /> Saved Successfully!
+              <CheckCircle className="w-3.5 h-3.5" /> Saved Personnel Profile!
             </motion.span>
           )}
         </span>
         <button
           type="button"
           onClick={() => {
-            const newItems = [...settings.employees];
+            const newItems = [...(settings.employees || [])];
             newItems[index] = {
               ...newItems[index],
               avatarUrl,
@@ -264,10 +276,10 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
           }}
-          className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+          className="w-full sm:w-auto bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3.5 rounded-full hover:bg-brand-olive active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Save className="w-3.5 h-3.5" />
-          Save Personnel
+          Save Personnel Profile
         </button>
       </div>
     </div>
@@ -289,70 +301,82 @@ function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: an
   }, [cobbler]);
 
   const handleBlur = (field: string, value: string) => {
-    const newItems = [...settings.cobblers];
+    const newItems = [...(settings.cobblers || [])];
     newItems[index] = { ...newItems[index], [field]: value };
     updateSettings({ cobblers: newItems });
   };
 
   return (
-    <div className="bg-white p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative w-full">
-      <button 
-        type="button"
-        onClick={() => {
-          if (window.confirm(`Are you sure you want to dismiss "${cobbler.name || 'this cobbler'}" from the enlisted artisans?`)) {
-            const newItems = settings.cobblers.filter((_, i: number) => i !== index);
-            updateSettings({ cobblers: newItems });
-          }
-        }}
-        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full border border-red-200 transition-all z-20"
-        title="Dismiss cobbler"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Name</label>
+    <div className="bg-white/90 backdrop-blur-sm p-4 sm:p-6 md:p-8 rounded-[28px] border border-brand-border/80 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative w-full">
+      <div className="md:col-span-2 flex justify-between items-center pb-3 border-b border-brand-border/40">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-brand-accent" />
+          <span className="text-[10px] font-black text-brand-dark uppercase tracking-widest">
+            {name ? name : `Master Artisan #${index + 1}`}
+          </span>
+        </div>
+        <button 
+          type="button"
+          onClick={() => {
+            if (window.confirm(`Are you sure you want to dismiss "${cobbler.name || 'this cobbler'}" from the enlisted artisans?`)) {
+              const newItems = (settings.cobblers || []).filter((_: any, i: number) => i !== index);
+              updateSettings({ cobblers: newItems });
+            }
+          }}
+          className="p-2 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-full border border-red-200/80 transition-all text-xs flex items-center gap-1 font-bold"
+          title="Dismiss cobbler"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span className="text-[9px] uppercase tracking-wider hidden sm:inline">Dismiss</span>
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Artisan Name</label>
         <input 
           type="text" 
           value={name} 
           onChange={(e) => setName(e.target.value)} 
           onBlur={() => handleBlur('name', name)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-display font-bold" 
+          placeholder="e.g. Master Rajesh"
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none font-display font-bold" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Artisan Specialty</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Artisan Specialty</label>
         <input 
           type="text" 
           value={specialty} 
           onChange={(e) => setSpecialty(e.target.value)} 
           onBlur={() => handleBlur('specialty', specialty)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="e.g. Goodyear Welt Specialist"
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Contact Mobile</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Contact Mobile</label>
         <input 
           type="tel" 
           value={mobile} 
           onChange={(e) => setMobile(e.target.value)} 
           onBlur={() => handleBlur('mobile', mobile)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
-          placeholder="+1 555-0155" 
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          placeholder="+91 98765 00000" 
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest ml-4">Email Address</label>
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black text-brand-muted uppercase tracking-widest block">Email Address</label>
         <input 
           type="email" 
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
           onBlur={() => handleBlur('email', email)}
-          className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
+          className="w-full bg-white border border-brand-border rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
           placeholder="artisan@cordwainers.com" 
         />
       </div>
 
-      <div className="md:col-span-2 flex items-center justify-between pt-4 border-t border-brand-border/40 mt-2">
+      <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-brand-border/40 mt-2">
         <span className="text-[10px] font-bold uppercase tracking-wider h-5 flex items-center">
           {saved && (
             <motion.span 
@@ -360,14 +384,14 @@ function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: an
               animate={{ opacity: 1, x: 0 }}
               className="text-brand-olive flex items-center gap-1"
             >
-              <CheckCircle className="w-3.5 h-3.5" /> Saved Successfully!
+              <CheckCircle className="w-3.5 h-3.5" /> Saved Artisan Profile!
             </motion.span>
           )}
         </span>
         <button
           type="button"
           onClick={() => {
-            const newItems = [...settings.cobblers];
+            const newItems = [...(settings.cobblers || [])];
             newItems[index] = {
               ...newItems[index],
               name,
@@ -379,10 +403,10 @@ function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: an
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
           }}
-          className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+          className="w-full sm:w-auto bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3.5 rounded-full hover:bg-brand-olive active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Save className="w-3.5 h-3.5" />
-          Save Artisan
+          Save Artisan Details
         </button>
       </div>
     </div>
@@ -987,16 +1011,16 @@ export default function Settings() {
           <h2 className="font-display text-4xl font-black text-brand-dark tracking-tighter uppercase leading-none text-center">Settings</h2>
           <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mt-3 text-center">Configure artisan studio parameters</p>
         </div>
-        <div className="flex bg-white/50 p-1.5 rounded-full border border-brand-border backdrop-blur-sm justify-center flex-wrap gap-1">
+        <div className="flex bg-white/60 p-1.5 rounded-2xl md:rounded-full border border-brand-border backdrop-blur-sm justify-start md:justify-center overflow-x-auto max-w-full gap-1.5 w-full scrollbar-none">
           {['Store', 'Stores', 'Staff', 'Users', 'Integrations', 'Notifications', 'Backup'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={clsx(
-                "px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                "shrink-0 px-4 md:px-6 py-2.5 rounded-xl md:rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                 activeTab === tab 
                   ? "bg-brand-dark text-white shadow-premium" 
-                  : "text-brand-muted hover:text-brand-dark"
+                  : "text-brand-muted hover:text-brand-dark bg-white/40 md:bg-transparent"
               )}
             >
               {tab}
@@ -1006,18 +1030,20 @@ export default function Settings() {
       </header>
 
       {!isAdmin && (
-        <div className="bg-amber-50/60 backdrop-blur-sm border border-amber-200/50 rounded-[28px] p-6 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div className="space-y-1 flex-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800">Guest / Demo Mode Active</h4>
-            <p className="text-xs font-semibold leading-relaxed text-amber-900/80">You are logged in under a guest or staff preview profile. Read-only permissions are enforced across all studio configurations, staff tables, integrations, and backup modules.</p>
+        <div className="bg-amber-50/80 backdrop-blur-sm border border-amber-200/60 rounded-[28px] p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800">Guest / Staff Preview Profile</h4>
+              <p className="text-xs font-semibold leading-relaxed text-amber-900/80">Logged in with preview permissions. Read-only limits are active for studio configs and staff management.</p>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-[40px] border border-brand-border p-8 md:p-12 shadow-premium relative overflow-hidden">
+      <div className="bg-white rounded-[28px] sm:rounded-[36px] md:rounded-[40px] border border-brand-border p-4 sm:p-8 md:p-12 shadow-premium relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-olive to-brand-accent opacity-20" />
         
         {activeTab === 'Stores' && (
@@ -1127,8 +1153,9 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button
+                    type="button"
                     onClick={async () => {
                       if (!storeForm.storeName || !storeForm.address) {
                         alert('Please fill out Store Name and Address');
@@ -1141,13 +1168,14 @@ export default function Settings() {
                       }
                       setEditingStoreId(null);
                     }}
-                    className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-olive transition-all shadow-premium"
+                    className="w-full sm:w-auto bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-olive active:scale-[0.98] transition-all shadow-premium"
                   >
                     Save Store Setup
                   </button>
                   <button
+                    type="button"
                     onClick={() => setEditingStoreId(null)}
-                    className="border border-brand-border text-brand-dark text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-bg transition-all"
+                    className="w-full sm:w-auto border border-brand-border text-brand-dark text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-bg transition-all"
                   >
                     Cancel
                   </button>
@@ -1437,22 +1465,29 @@ export default function Settings() {
           <fieldset disabled={!isAdmin} className="space-y-12 w-full block border-none p-0 m-0">
             {/* Employees */}
             <div className="space-y-8">
-              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-brand-border pb-4 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
                     <Database className="w-4 h-4 text-brand-olive" />
                   </div>
-                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Concierge Team</h3>
+                  <div>
+                    <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Concierge Team</h3>
+                    <p className="text-[10px] text-brand-muted uppercase font-bold tracking-wider mt-0.5">Front desk and intake specialists</p>
+                  </div>
                 </div>
                 <button 
+                  type="button"
                   onClick={() => {
                     updateSettings({
-                      employees: [...(settings.employees || []), { id: Math.random().toString(), name: 'New Staff', role: 'Concierge', mobile: '', email: '' }]
+                      employees: [...(settings.employees || []), { id: Date.now().toString(), name: 'New Concierge Staff', role: 'Concierge Specialist', mobile: '', email: '' }]
                     });
+                    setTimeout(() => {
+                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }, 100);
                   }} 
-                  className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all"
+                  className="w-full sm:w-auto px-6 py-3 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
-                  Deploy Personnel
+                  + Deploy Personnel
                 </button>
               </div>
 
@@ -1462,7 +1497,7 @@ export default function Settings() {
                     key={emp.id}
                     itemName={emp.name || 'this staff member'}
                     onDelete={() => {
-                      const newItems = settings.employees.filter((_, i) => i !== index);
+                      const newItems = (settings.employees || []).filter((_: any, i: number) => i !== index);
                       updateSettings({ employees: newItems });
                     }}
                     confirmMessage={`Are you sure you want to dismiss "${emp.name || 'this staff member'}" from the concierge team?`}
@@ -1475,22 +1510,29 @@ export default function Settings() {
 
             {/* Cobblers */}
             <div className="space-y-8">
-              <div className="flex items-center justify-between border-b border-brand-border pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-brand-border pb-4 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
                     <Database className="w-4 h-4 text-brand-olive" />
                   </div>
-                  <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Master Cobblers</h3>
+                  <div>
+                    <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Master Cobblers</h3>
+                    <p className="text-[10px] text-brand-muted uppercase font-bold tracking-wider mt-0.5">Restoration and cordwainer artisans</p>
+                  </div>
                 </div>
                 <button 
+                  type="button"
                   onClick={() => {
                     updateSettings({
-                      cobblers: [...(settings.cobblers || []), { id: Math.random().toString(), name: 'New Cobbler', specialty: 'General Artisan', mobile: '', email: '' }]
+                      cobblers: [...(settings.cobblers || []), { id: Date.now().toString(), name: 'New Master Artisan', specialty: 'General Cordwainer', mobile: '', email: '' }]
                     });
+                    setTimeout(() => {
+                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }, 100);
                   }} 
-                  className="px-6 py-2 bg-brand-bg border border-brand-border rounded-full text-[10px] font-black text-brand-dark uppercase tracking-widest hover:bg-brand-dark hover:text-white transition-all"
+                  className="w-full sm:w-auto px-6 py-3 bg-brand-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand-olive active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
-                  Enlist Artisan
+                  + Enlist Artisan
                 </button>
               </div>
 
