@@ -95,6 +95,7 @@ interface AppState {
   setCurrentStoreId: (storeId: string) => Promise<void>;
   addStore: (store: Omit<StoreDetails, 'id'>) => Promise<void>;
   updateStore: (id: string, store: Partial<StoreDetails>) => Promise<void>;
+  setDefaultStore: (id: string) => Promise<void>;
   deleteStore: (id: string) => Promise<void>;
   
   addUserCredential: (credential: UserCredential) => void;
@@ -490,6 +491,7 @@ export const useAppStore = create<AppState>()(
               logoUrl: data.logoUrl || '',
               paymentLink: data.paymentLink || '',
               qrCode: data.qrCode || '',
+              isDefault: data.isDefault === true,
               createdAt: data.createdAt || new Date().toISOString()
             });
           });
@@ -505,6 +507,7 @@ export const useAppStore = create<AppState>()(
               logoUrl: '',
               paymentLink: '',
               qrCode: '',
+              isDefault: true,
               createdAt: new Date().toISOString()
             };
             await safeSetDoc(doc(db, 'stores', 'default'), defaultStore);
@@ -513,10 +516,11 @@ export const useAppStore = create<AppState>()(
 
           set({ stores: fetchedStores });
 
-          // Resolve active store ID
+          // Resolve active store ID (prefer explicit default store if currentStoreId is empty)
           let storeId = get().currentStoreId;
           if (!storeId || !fetchedStores.some(s => s.id === storeId)) {
-            storeId = fetchedStores[0].id;
+            const defaultStoreObj = fetchedStores.find(s => s.isDefault);
+            storeId = defaultStoreObj ? defaultStoreObj.id : fetchedStores[0].id;
             set({ currentStoreId: storeId });
           }
 
@@ -659,6 +663,7 @@ export const useAppStore = create<AppState>()(
                 logoUrl: data.logoUrl || '',
                 paymentLink: data.paymentLink || '',
                 qrCode: data.qrCode || '',
+                isDefault: data.isDefault === true,
                 createdAt: data.createdAt || new Date().toISOString()
               });
             });
@@ -1448,24 +1453,36 @@ export const useAppStore = create<AppState>()(
         }
         
         const id = generateId();
+        const existingStores = get().stores;
+        const shouldBeDefault = storeData.isDefault === true || existingStores.length === 0;
+
         const newStore: StoreDetails = {
           ...storeData,
           id,
+          isDefault: shouldBeDefault,
           createdAt: new Date().toISOString()
         };
 
-        // Synchronously update local state so the store is instantly visible
-        set((state) => ({
-          stores: [...state.stores.filter(s => s.id !== id), newStore]
-        }));
+        // If new store is default, update existing stores to not be default
+        const updatedStores = shouldBeDefault 
+          ? existingStores.map(s => ({ ...s, isDefault: false })).concat(newStore)
+          : [...existingStores.filter(s => s.id !== id), newStore];
 
-        if (!get().currentStoreId) {
-          set({ currentStoreId: id });
-        }
+        // Synchronously update local state so the store is instantly visible
+        set({
+          stores: updatedStores,
+          currentStoreId: (!get().currentStoreId || shouldBeDefault) ? id : get().currentStoreId
+        });
 
         if (db) {
           try {
-            await safeSetDoc(doc(db, 'stores', id), newStore);
+            if (shouldBeDefault) {
+              for (const st of updatedStores) {
+                await safeSetDoc(doc(db, 'stores', st.id), st);
+              }
+            } else {
+              await safeSetDoc(doc(db, 'stores', id), newStore);
+            }
 
             // Save custom settings for this new store using active defaults
             const defaultSettings = get().settings;
@@ -1498,18 +1515,26 @@ export const useAppStore = create<AppState>()(
           return;
         }
 
-        const existingStore = get().stores.find(s => s.id === id);
+        const existingStores = get().stores;
+        const existingStore = existingStores.find(s => s.id === id);
         if (!existingStore) return;
 
-        const updatedStore = {
-          ...existingStore,
-          ...storeData
-        };
+        const isBecomingDefault = storeData.isDefault === true;
+
+        const updatedStores = existingStores.map(s => {
+          if (s.id === id) {
+            return { ...s, ...storeData };
+          }
+          if (isBecomingDefault) {
+            return { ...s, isDefault: false };
+          }
+          return s;
+        });
+
+        const updatedStore = updatedStores.find(s => s.id === id)!;
 
         // Immediately update local state
-        set((state) => ({
-          stores: state.stores.map(s => s.id === id ? updatedStore : s)
-        }));
+        set({ stores: updatedStores });
 
         if (id === get().currentStoreId) {
           get().updateSettings({
@@ -1521,9 +1546,44 @@ export const useAppStore = create<AppState>()(
 
         if (db) {
           try {
-            await safeSetDoc(doc(db, 'stores', id), updatedStore);
+            if (isBecomingDefault) {
+              for (const st of updatedStores) {
+                await safeSetDoc(doc(db, 'stores', st.id), st);
+              }
+            } else {
+              await safeSetDoc(doc(db, 'stores', id), updatedStore);
+            }
           } catch (err) {
             console.error("Firestore store update failed, kept in local state:", err);
+          }
+        }
+      },
+
+      setDefaultStore: async (id: string) => {
+        const profile = get().userProfile;
+        if (profile && profile.role === 'Staff' && !profile.isAdmin) {
+          console.warn("[SECURITY] Blocked setDefaultStore from restricted Staff user profile");
+          return;
+        }
+
+        const stores = get().stores;
+        const targetStore = stores.find(s => s.id === id);
+        if (!targetStore) return;
+
+        const updatedStores = stores.map(s => ({
+          ...s,
+          isDefault: s.id === id
+        }));
+
+        set({ stores: updatedStores });
+
+        if (db) {
+          try {
+            for (const st of updatedStores) {
+              await safeSetDoc(doc(db, 'stores', st.id), st);
+            }
+          } catch (err) {
+            console.error("Firestore update for default store failed:", err);
           }
         }
       },

@@ -169,7 +169,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     phone: '',
     logoUrl: '',
     paymentLink: '',
-    qrCode: ''
+    qrCode: '',
+    isDefault: false
   });
 
   useEffect(() => {
@@ -249,6 +250,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       logoUrl: newStoreForm.logoUrl || undefined,
       paymentLink: newStoreForm.paymentLink || undefined,
       qrCode: newStoreForm.qrCode || undefined,
+      isDefault: newStoreForm.isDefault,
       createdAt: new Date().toISOString()
     });
     setIsAddStoreOpen(false);
@@ -259,7 +261,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       phone: '',
       logoUrl: '',
       paymentLink: '',
-      qrCode: ''
+      qrCode: '',
+      isDefault: false
     });
   };
 
@@ -451,7 +454,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                 style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 11px) calc(1em + 2px)', backgroundSize: '4px 4px, 4px 4px', backgroundRepeat: 'no-repeat' }}
               >
                 {stores?.map(store => (
-                  <option key={store.id} value={store.id}>{store.storeName}</option>
+                  <option key={store.id} value={store.id}>
+                    {store.storeName} {store.isDefault ? '★ (Default)' : ''}
+                  </option>
                 ))}
                 <option value="new">+ Add Store</option>
               </select>
@@ -686,7 +691,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                       style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 11px) calc(1em + 2px)', backgroundSize: '4px 4px, 4px 4px', backgroundRepeat: 'no-repeat' }}
                     >
                       {stores?.map(store => (
-                        <option key={store.id} value={store.id}>{store.storeName}</option>
+                        <option key={store.id} value={store.id}>
+                          {store.storeName} {store.isDefault ? '★ (Default)' : ''}
+                        </option>
                       ))}
                       <option value="new">+ Add Store</option>
                     </select>
@@ -1053,6 +1060,22 @@ export default function Layout({ children }: { children: ReactNode }) {
                       required
                     />
                   </div>
+                </div>
+
+                <div className="bg-brand-bg/60 p-3.5 rounded-xl border border-brand-border flex items-center justify-between cursor-pointer hover:bg-brand-bg transition-colors" onClick={() => setNewStoreForm({ ...newStoreForm, isDefault: !newStoreForm.isDefault })}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-500 font-bold">★</span>
+                    <div>
+                      <span className="text-xs font-bold text-brand-dark uppercase tracking-wider block">Set as Default Store</span>
+                      <p className="text-[10px] text-brand-muted">Auto-selects on application startup</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newStoreForm.isDefault}
+                    onChange={(e) => setNewStoreForm({ ...newStoreForm, isDefault: e.target.checked })}
+                    className="w-4 h-4 accent-brand-dark rounded cursor-pointer"
+                  />
                 </div>
 
                 <div className="pt-4 flex gap-3">

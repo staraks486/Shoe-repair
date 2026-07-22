@@ -266,6 +266,7 @@ export interface StoreDetails {
   logoUrl?: string;
   paymentLink?: string;
   qrCode?: string;
+  isDefault?: boolean;
   createdAt?: string;
 }
 

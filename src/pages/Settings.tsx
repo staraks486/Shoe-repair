@@ -7,6 +7,7 @@ import {
   XCircle, 
   Copy, 
   Check, 
+  Star,
   Loader2, 
   HelpCircle,
   FileSpreadsheet,
@@ -549,6 +550,7 @@ export default function Settings() {
     stores = [],
     addStore,
     updateStore,
+    setDefaultStore,
     deleteStore,
     addUserCredential,
     deleteUserCredential,
@@ -662,7 +664,8 @@ export default function Settings() {
     phone: '',
     logoUrl: '',
     paymentLink: '',
-    qrCode: ''
+    qrCode: '',
+    isDefault: false
   });
 
   const isAdmin = !userProfile || userProfile.role === 'Admin' || userProfile.isAdmin === true;
@@ -1068,7 +1071,8 @@ export default function Settings() {
                     phone: '',
                     logoUrl: '',
                     paymentLink: '',
-                    qrCode: ''
+                    qrCode: '',
+                    isDefault: stores.length === 0
                   });
                 }}
                 className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive transition-all shadow-premium"
@@ -1160,6 +1164,25 @@ export default function Settings() {
                           className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
                         />
                       </div>
+
+                      {/* Default Store Toggle Option */}
+                      <div className="md:col-span-2 bg-[#F5F3EC]/60 p-4 rounded-2xl border border-brand-border flex items-center justify-between cursor-pointer hover:bg-[#F5F3EC] transition-all" onClick={() => setStoreForm({ ...storeForm, isDefault: !storeForm.isDefault })}>
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${storeForm.isDefault ? 'bg-amber-100 text-amber-700' : 'bg-brand-bg text-brand-muted'}`}>
+                            <Star className={`w-4 h-4 ${storeForm.isDefault ? 'fill-amber-500 text-amber-500' : ''}`} />
+                          </div>
+                          <div>
+                            <span className="text-xs font-black text-brand-dark uppercase tracking-wider block">Set as Default Store Location</span>
+                            <p className="text-[10px] text-brand-muted font-medium">Auto-selects this store workspace whenever the application launches</p>
+                          </div>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={storeForm.isDefault}
+                          onChange={(e) => setStoreForm({ ...storeForm, isDefault: e.target.checked })}
+                          className="w-5 h-5 accent-brand-dark rounded cursor-pointer"
+                        />
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-brand-border mt-6">
@@ -1202,13 +1225,31 @@ export default function Settings() {
                   itemName={store.storeName}
                   onDelete={() => handleInitiateStoreDelete(store)}
                 >
-                  <div className="bg-white p-6 space-y-4 relative overflow-hidden animate-in fade-in duration-300 w-full">
-                    <div className="flex justify-between items-start">
+                  <div className={`bg-white p-6 space-y-4 relative overflow-hidden animate-in fade-in duration-300 w-full rounded-2xl border ${store.isDefault ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-brand-border'}`}>
+                    <div className="flex justify-between items-start gap-3">
                       <div>
-                        <h4 className="font-display text-lg font-bold text-brand-dark leading-snug">{store.storeName}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-display text-lg font-bold text-brand-dark leading-snug">{store.storeName}</h4>
+                          {store.isDefault && (
+                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-amber-300">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              Default Store
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[9px] font-black text-brand-accent uppercase tracking-widest mt-1">Location ID: {store.id}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
+                        {!store.isDefault && (
+                          <button
+                            onClick={() => setDefaultStore(store.id)}
+                            className="text-[10px] font-black text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors uppercase tracking-widest flex items-center gap-1 cursor-pointer border border-amber-200"
+                            title="Set as Default Store"
+                          >
+                            <Star className="w-3 h-3 text-amber-500" />
+                            Make Default
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setEditingStoreId(store.id);
@@ -1219,17 +1260,18 @@ export default function Settings() {
                               phone: store.phone || '',
                               logoUrl: store.logoUrl || '',
                               paymentLink: store.paymentLink || '',
-                              qrCode: store.qrCode || ''
+                              qrCode: store.qrCode || '',
+                              isDefault: store.isDefault === true
                             });
                           }}
-                          className="text-[10px] font-black text-brand-olive uppercase tracking-widest hover:text-brand-dark"
+                          className="text-[10px] font-black text-brand-olive uppercase tracking-widest hover:text-brand-dark cursor-pointer"
                         >
                           Edit details
                         </button>
                         {stores.length > 1 && (
                           <button
                             onClick={() => handleInitiateStoreDelete(store)}
-                            className="text-[10px] font-black text-red-600 hover:text-red-800 uppercase tracking-widest flex items-center gap-1"
+                            className="text-[10px] font-black text-red-600 hover:text-red-800 uppercase tracking-widest flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             Delete
