@@ -111,6 +111,8 @@ export default function Settings() {
     settings, 
     updateSettings, 
     repairs, 
+    customers = [],
+    inventory = [],
     syncAllPending, 
     syncErrorLogs = [], 
     lastSyncStatus = 'idle', 
@@ -306,6 +308,111 @@ export default function Settings() {
       console.error(err);
       setBackupStatus('error');
       setBackupMessage(err.message || 'Failed to export application backup.');
+    }
+  };
+
+  const handleExportCSV = (collectionName: 'Customers' | 'Repairs' | 'Inventory') => {
+    setBackupStatus('exporting');
+    setBackupMessage(`Generating ${collectionName} spreadsheet (.CSV)...`);
+    try {
+      const convertToCSV = (headers: string[], rows: any[][]): string => {
+        const escapeField = (val: any) => {
+          if (val === null || val === undefined) return '';
+          let str = String(val);
+          str = str.replace(/"/g, '""');
+          if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
+            return `"${str}"`;
+          }
+          return str;
+        };
+
+        const headerLine = headers.map(escapeField).join(',');
+        const rowLines = rows.map(row => row.map(escapeField).join(','));
+        return [headerLine, ...rowLines].join('\n');
+      };
+
+      let headers: string[] = [];
+      let rows: any[][] = [];
+      const timestamp = new Date().toISOString().split('T')[0];
+
+      if (collectionName === 'Customers') {
+        headers = ['Phone Number', 'Name', 'Email', 'Total Orders', 'Last Visit'];
+        rows = (customers || []).map(c => [
+          c.phoneNumber || '',
+          c.name || '',
+          c.email || '',
+          c.totalOrders || 0,
+          c.lastVisit || ''
+        ]);
+      } else if (collectionName === 'Inventory') {
+        headers = ['ID', 'Name', 'Category', 'Quantity', 'Price (INR)', 'Unit', 'Min Threshold', 'Barcode'];
+        rows = (inventory || []).map(i => [
+          i.id || '',
+          i.name || '',
+          i.category || '',
+          i.quantity || 0,
+          i.price || 0,
+          i.unit || '',
+          i.minThreshold || 0,
+          i.barcode || ''
+        ]);
+      } else if (collectionName === 'Repairs') {
+        headers = [
+          'ID', 'Invoice Number', 'Customer Name', 'Phone Number', 'Email',
+          'Shoe Model', 'Color', 'Size', 'Status', 'Priority', 'Price (INR)',
+          'Advance Paid (INR)', 'Balance (INR)', 'Due Date', 'Created At',
+          'Received By', 'Payment Status', 'Payment Method', 'Transaction ID',
+          'Assigned Cobbler', 'Services', 'Addons Description', 'Addon Price (INR)',
+          'Has Insurance', 'Insurance Type', 'Insurance Price (INR)', 'Applied Offer'
+        ];
+        rows = (repairs || []).map(r => [
+          r.id || '',
+          r.invoiceNumber || '',
+          r.customerName || '',
+          r.phoneNumber || '',
+          r.email || '',
+          r.shoeModel || '',
+          r.shoeColor || '',
+          r.shoeSize || '',
+          r.status || '',
+          r.priority || '',
+          r.price || 0,
+          r.advance || 0,
+          r.balance || 0,
+          r.dueDate || '',
+          r.createdAt || '',
+          r.receivedBy || '',
+          r.paymentStatus || 'Unpaid',
+          r.paymentMethod || 'None',
+          r.transactionId || '',
+          r.assignedCobblerName || '',
+          (r.repairType || []).join('; '),
+          r.addonType || '',
+          r.addonPrice || 0,
+          r.hasInsurance ? 'Yes' : 'No',
+          r.insuranceType || '',
+          r.insurancePrice || 0,
+          r.appliedOfferCode || ''
+        ]);
+      }
+
+      const csvContent = convertToCSV(headers, rows);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `cordwainers_${collectionName.toLowerCase()}_${timestamp}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setBackupStatus('success');
+      setBackupMessage(`${collectionName} collection exported successfully!`);
+    } catch (err: any) {
+      console.error(err);
+      setBackupStatus('error');
+      setBackupMessage(err.message || `Failed to export ${collectionName} collection.`);
     }
   };
 
@@ -1660,6 +1767,63 @@ export default function Settings() {
                       <p className="text-xs font-bold text-brand-dark">Drag and drop or select backup file</p>
                       <p className="text-[9px] text-brand-muted font-black uppercase tracking-widest">Supported formats: JSON archive only</p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Manual CSV Export */}
+                <div className="bg-brand-bg/30 p-8 rounded-[32px] border border-brand-border/40 space-y-6">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-brand-dark flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                      Export Collections to CSV
+                    </h4>
+                    <p className="text-[9px] text-brand-muted font-bold uppercase tracking-widest leading-relaxed">
+                      Download modular CSV spreadsheets of individual database collections for custom reporting, spreadsheet analysis, or manual record-keeping.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => handleExportCSV('Customers')}
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 bg-white hover:bg-brand-bg border border-brand-border hover:border-brand-dark rounded-2xl transition-all group shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[10px] font-black uppercase tracking-widest text-brand-dark">Customers</span>
+                        <span className="block text-[8px] font-bold text-brand-muted uppercase mt-0.5">{(customers || []).length} Records</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleExportCSV('Repairs')}
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 bg-white hover:bg-brand-bg border border-brand-border hover:border-brand-dark rounded-2xl transition-all group shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[10px] font-black uppercase tracking-widest text-brand-dark">Repairs</span>
+                        <span className="block text-[8px] font-bold text-brand-muted uppercase mt-0.5">{(repairs || []).length} Orders</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleExportCSV('Inventory')}
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 bg-white hover:bg-brand-bg border border-brand-border hover:border-brand-dark rounded-2xl transition-all group shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[10px] font-black uppercase tracking-widest text-brand-dark">Inventory</span>
+                        <span className="block text-[8px] font-bold text-brand-muted uppercase mt-0.5">{(inventory || []).length} Items</span>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
