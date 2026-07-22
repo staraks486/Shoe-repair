@@ -8,7 +8,7 @@ export default function FloatingActionMenu() {
   const navigate = useNavigate();
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end md:hidden">
+    <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end md:hidden">
       {isOpen && (
         <div className="flex flex-col items-end space-y-3 mb-4 animate-in slide-in-from-bottom-2 fade-in duration-200">
           <button 

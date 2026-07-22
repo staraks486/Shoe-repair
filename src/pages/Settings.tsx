@@ -33,7 +33,8 @@ import {
   Archive,
   X,
   AlertTriangle,
-  User
+  User,
+  Save
 } from 'lucide-react';
 import { checkNotificationPermission, requestNotificationPermission } from '../lib/notifications';
 import { db } from '../services/firebase';
@@ -113,6 +114,7 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
   const [role, setRole] = useState(emp.role || '');
   const [mobile, setMobile] = useState(emp.mobile || '');
   const [email, setEmail] = useState(emp.email || '');
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setAvatarUrl(emp.avatarUrl || '');
@@ -233,6 +235,41 @@ function EmployeeCard({ emp, index, settings, updateSettings }: { emp: any; inde
           placeholder="name@artisan.com" 
         />
       </div>
+
+      <div className="md:col-span-2 flex items-center justify-between pt-4 border-t border-brand-border/40 mt-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider h-5 flex items-center">
+          {saved && (
+            <motion.span 
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-brand-olive flex items-center gap-1"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Saved Successfully!
+            </motion.span>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            const newItems = [...settings.employees];
+            newItems[index] = {
+              ...newItems[index],
+              avatarUrl,
+              name,
+              role,
+              mobile,
+              email
+            };
+            updateSettings({ employees: newItems });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+          }}
+          className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+        >
+          <Save className="w-3.5 h-3.5" />
+          Save Personnel
+        </button>
+      </div>
     </div>
   );
 }
@@ -242,6 +279,7 @@ function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: an
   const [specialty, setSpecialty] = useState(cobbler.specialty || '');
   const [mobile, setMobile] = useState(cobbler.mobile || '');
   const [email, setEmail] = useState(cobbler.email || '');
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setName(cobbler.name || '');
@@ -312,6 +350,40 @@ function CobblerCard({ cobbler, index, settings, updateSettings }: { cobbler: an
           className="w-full bg-white border border-brand-border rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none" 
           placeholder="artisan@cordwainers.com" 
         />
+      </div>
+
+      <div className="md:col-span-2 flex items-center justify-between pt-4 border-t border-brand-border/40 mt-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider h-5 flex items-center">
+          {saved && (
+            <motion.span 
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-brand-olive flex items-center gap-1"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Saved Successfully!
+            </motion.span>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            const newItems = [...settings.cobblers];
+            newItems[index] = {
+              ...newItems[index],
+              name,
+              specialty,
+              mobile,
+              email
+            };
+            updateSettings({ cobblers: newItems });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+          }}
+          className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-brand-olive hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+        >
+          <Save className="w-3.5 h-3.5" />
+          Save Artisan
+        </button>
       </div>
     </div>
   );
@@ -465,6 +537,7 @@ export default function Settings() {
   } = useAppStore();
   const [activeTab, setActiveTab] = useState('Store');
   const [localFields, setLocalFields] = useState<Record<string, string>>({});
+  const [storeSaved, setStoreSaved] = useState(false);
 
   useEffect(() => {
     setLocalFields({
@@ -1330,6 +1403,32 @@ export default function Settings() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Save Button Container */}
+            <div className="flex items-center gap-4 pt-8 border-t border-brand-border/40 mt-12">
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings(localFields);
+                  setStoreSaved(true);
+                  setTimeout(() => setStoreSaved(false), 3000);
+                }}
+                className="bg-brand-dark text-white text-xs font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-olive hover:scale-[1.02] active:scale-[0.98] transition-all shadow-premium flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Store Details
+              </button>
+              {storeSaved && (
+                <motion.span 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-xs font-bold text-brand-olive uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Store details saved successfully!
+                </motion.span>
+              )}
             </div>
           </fieldset>
         )}

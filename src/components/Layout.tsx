@@ -281,13 +281,14 @@ export default function Layout({ children }: { children: ReactNode }) {
     { to: '/appointments', icon: Calendar, label: 'Schedule' },
   ];
 
-  const renderNavItems = (items: typeof primaryNavItems) => {
+  const renderNavItems = (items: typeof primaryNavItems, onItemClick?: () => void) => {
     return items.map((item) => {
       if ((item as any).adminOnly && !isAdmin) return null;
       return (
         <NavLink
           key={item.to}
           to={item.to}
+          onClick={onItemClick}
           className={({ isActive }) => clsx(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 relative group",
             isActive 
@@ -692,12 +693,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
                   <nav className="space-y-1 mb-8">
                     <p className="px-3 text-[10px] font-black text-brand-muted/60 uppercase tracking-[0.2em] mb-3">Core Operations</p>
-                    {renderNavItems(primaryNavItems)}
+                    {renderNavItems(primaryNavItems, () => setIsMobileMenuOpen(false))}
                   </nav>
 
                   <nav className="space-y-1">
                     <p className="px-3 text-[10px] font-black text-brand-muted/60 uppercase tracking-[0.2em] mb-3">Management</p>
-                    {renderNavItems(secondaryNavItems)}
+                    {renderNavItems(secondaryNavItems, () => setIsMobileMenuOpen(false))}
                   </nav>
 
                   <div className="mt-8 px-3">
