@@ -613,9 +613,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               </button>
             </div>
 
-            {/* Design Credit */}
-            <div className="mt-3.5 text-center text-[8px] font-black text-brand-muted/50 uppercase tracking-[0.15em] select-none pointer-events-none">
-              App design by Arvind Kumar Shukla
+            {/* Design Credit & Version */}
+            <div className="mt-3.5 text-center text-[8px] font-black text-brand-muted/60 uppercase tracking-[0.15em] select-none pointer-events-none space-y-0.5">
+              <div>App design by Arvind Kumar Shukla</div>
+              <div className="text-brand-accent/80 font-bold">v2.4.0</div>
             </div>
           </div>
         </aside>
@@ -760,9 +761,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </button>
                   </div>
 
-                  {/* Design Credit */}
-                  <div className="mt-3.5 text-center text-[8px] font-black text-brand-muted/50 uppercase tracking-[0.15em] select-none pointer-events-none">
-                    App design by Arvind Kumar Shukla
+                  {/* Design Credit & Version */}
+                  <div className="mt-3.5 text-center text-[8px] font-black text-brand-muted/60 uppercase tracking-[0.15em] select-none pointer-events-none space-y-0.5">
+                    <div>App design by Arvind Kumar Shukla</div>
+                    <div className="text-brand-accent/80 font-bold">v2.4.0</div>
                   </div>
                 </div>
               </motion.div>
@@ -825,7 +827,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
             </div>
           )}
-          <div className="flex-1 overflow-y-auto custom-scrollbar md:p-8 p-4 pt-6 pb-24 md:pb-8 relative">
+          <div className="flex-1 overflow-y-auto custom-scrollbar md:p-8 p-4 pt-6 pb-24 md:pb-8 relative flex flex-col justify-between">
             <Suspense fallback={
               <div className="flex items-center justify-center h-full min-h-[400px]">
                 <Loader2 className="w-8 h-8 animate-spin text-brand-accent" />
@@ -833,6 +835,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             }>
               {children}
             </Suspense>
+            <footer className="mt-12 pt-4 border-t border-brand-border/30 text-center text-[9px] font-bold text-brand-muted/70 uppercase tracking-widest select-none">
+              Cordwainers Studio • App Version v2.4.0
+            </footer>
           </div>
         </main>
 
