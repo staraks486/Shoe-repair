@@ -66,6 +66,11 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const isChatRoute = location.pathname === '/chat';
+  const { messages } = useAppStore();
+  const unreadMessagesCount = user ? (messages || []).filter(
+    m => m.senderId !== user.uid && (!m.readBy || !m.readBy.includes(user.uid))
+  ).length : 0;
 
   // System Uptime Clock
   useEffect(() => {
@@ -1311,6 +1316,33 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* CW Chat Flotation Icon */}
+      <AnimatePresence>
+        {user && !isChatRoute && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 50 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/chat')}
+            className="fixed bottom-24 right-6 md:bottom-8 md:right-8 z-40 bg-brand-dark hover:bg-brand-dark/95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl border border-brand-accent/30 group transition-all"
+            title="CW Chat - Team Coordination"
+            id="chat-flotation-button"
+          >
+            <div className="relative">
+              <MessageSquare className="w-6 h-6 text-[#FAF9F5] group-hover:rotate-6 transition-transform" />
+              
+              {unreadMessagesCount > 0 && (
+                <span className="absolute -top-3.5 -right-3.5 bg-brand-accent text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-brand-dark shadow-md animate-bounce">
+                  {unreadMessagesCount}
+                </span>
+              )}
+            </div>
+          </motion.button>
         )}
       </AnimatePresence>
     </NotificationToastProvider>
