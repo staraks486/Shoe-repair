@@ -554,53 +554,13 @@ export const useAppStore = create<AppState>()(
 
           // 2. Set up real-time subcollection listeners for this active store
           const activeStoreId = storeId;
-          const activeFallbackUnsubs: Record<string, () => void> = {};
           
           const setupStoreListener = (
             colName: string, 
             onNext: (snapshot: any) => void, 
             onError: (err: any) => void
           ) => {
-            const useSeparateDb = activeStoreId && activeStoreId !== 'default' && activeStoreId !== '(default)' && !isDatabaseFailed(activeStoreId);
-            
-            if (useSeparateDb) {
-              const storeDb = getDbForStore(activeStoreId);
-              let hasFailed = false;
-              let currentUnsub: (() => void) | null = null;
-              
-              const unsub = onSnapshot(collection(storeDb, colName), onNext, (error: any) => {
-                const isUnavailable = error.code === 'unavailable' || 
-                                      error.code === 'permission-denied' || 
-                                      error.message?.includes('database') || 
-                                      error.message?.includes('not found') || 
-                                      error.message?.includes('Could not reach Cloud Firestore backend');
-                if (!hasFailed && isUnavailable) {
-                  hasFailed = true;
-                  markDatabaseAsFailed(activeStoreId);
-                  console.warn(`[FIREBASE] Separate database for "${activeStoreId}" is unavailable (${error.message}). Falling back to default database subcollection for "${colName}".`);
-                  
-                  if (currentUnsub) currentUnsub();
-                  
-                  const fallbackUnsub = onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, (fallbackError) => {
-                    onError(fallbackError);
-                  });
-                  activeFallbackUnsubs[colName] = fallbackUnsub;
-                } else {
-                  onError(error);
-                }
-              });
-              
-              currentUnsub = unsub;
-              return () => {
-                if (currentUnsub) currentUnsub();
-                if (activeFallbackUnsubs[colName]) {
-                  activeFallbackUnsubs[colName]();
-                  delete activeFallbackUnsubs[colName];
-                }
-              };
-            } else {
-              return onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, onError);
-            }
+            return onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, onError);
           };
 
           const unsubRepairs = setupStoreListener('repairs', (snapshot) => {

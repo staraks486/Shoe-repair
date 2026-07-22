@@ -33,10 +33,12 @@ import {
   HardDrive,
   Eye,
   EyeOff,
+  MapPin,
   MessageSquare
 } from 'lucide-react';
 import clsx from 'clsx';
 import ShoeFactsLoader from './ShoeFactsLoader';
+import { getLocationName } from '../utils';
 import { auth, db } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import AuthObserver from './AuthObserver';
@@ -53,6 +55,7 @@ import ProfileOverlay from './ProfileOverlay';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { settings, updateSettings, syncAllPending, repairs, lastSyncStatus, user, userProfile, stores = [], currentStoreId, setCurrentStoreId, addStore, setUser, offlineQueue = [], processOfflineQueue, isPrivacyMasked, togglePrivacyMask } = useAppStore();
+  const activeStoreObj = stores?.find(s => s.id === currentStoreId);
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -399,11 +402,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             </button>
             <div>
               <div className="flex items-center gap-1">
-                <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-sm">Cordwainers</h1>
-                <Sparkles className="w-3 h-3 text-brand-accent animate-pulse" />
+                <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-sm">Cordwainers Studio</h1>
+                <Sparkles className="w-3 h-3 text-brand-accent animate-pulse shrink-0" />
               </div>
-              <p className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-muted mt-0.5">
-                Studio
+              <p className="text-[9px] font-bold text-brand-accent mt-0.5 flex items-center gap-1">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate max-w-[120px]">{getLocationName(activeStoreObj?.address || settings.address, activeStoreObj?.storeName)}</span>
               </p>
             </div>
           </div>
@@ -444,11 +448,12 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-lg group-hover/logo:text-brand-accent transition-colors">Cordwainers</h1>
+                  <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-lg group-hover/logo:text-brand-accent transition-colors">Cordwainers Studio</h1>
                   <Sparkles className="w-3.5 h-3.5 text-brand-accent animate-pulse shrink-0" />
                 </div>
-                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-brand-muted mt-1 flex items-center gap-1">
-                  Studio <span className="text-brand-accent/75 font-bold tracking-normal normal-case font-sans">• Artisan Portal</span>
+                <p className="text-[11px] font-bold text-brand-accent mt-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-brand-accent shrink-0" />
+                  <span className="truncate max-w-[170px]">{getLocationName(activeStoreObj?.address || settings.address, activeStoreObj?.storeName)}</span>
                 </p>
               </div>
             </div>
@@ -674,11 +679,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-lg">Cordwainers</h1>
-                        <Sparkles className="w-3.5 h-3.5 text-brand-accent animate-pulse" />
+                        <h1 className="font-display font-black text-brand-dark tracking-tight leading-none text-lg">Cordwainers Studio</h1>
+                        <Sparkles className="w-3.5 h-3.5 text-brand-accent animate-pulse shrink-0" />
                       </div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-brand-muted mt-1">
-                        Studio <span className="text-brand-accent/75 font-bold tracking-normal normal-case font-sans">• Artisan Portal</span>
+                      <p className="text-[11px] font-bold text-brand-accent mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-brand-accent shrink-0" />
+                        <span className="truncate max-w-[170px]">{getLocationName(activeStoreObj?.address || settings.address, activeStoreObj?.storeName)}</span>
                       </p>
                     </div>
                   </div>
