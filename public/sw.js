@@ -39,3 +39,17 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 });
+
+// Background Sync Listener
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-offline-data') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+        windowClients.forEach((client) => {
+          client.postMessage({ type: 'SYNC_OFFLINE_DATA' });
+        });
+      })
+    );
+  }
+});
+

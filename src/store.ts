@@ -24,8 +24,16 @@ import {
   getDocs, 
   deleteDoc, 
   getDoc,
-  writeBatch
+  writeBatch,
+  onSnapshot
 } from 'firebase/firestore';
+import {
+  OfflineOperation,
+  queueOfflineWrite,
+  getQueuedWrites,
+  removeQueuedWrite,
+  clearQueue
+} from './lib/offlineDb';
 
 interface AppState {
   user: User | null;
@@ -41,10 +49,16 @@ interface AppState {
   lastSyncTime: string | null;
   stores: StoreDetails[];
   currentStoreId: string;
+  unsubscribers: (() => void)[];
+  offlineQueue: OfflineOperation[];
   
   setUser: (user: User | null) => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   fetchFromFirestore: () => Promise<void>;
+  loadOfflineQueue: () => Promise<void>;
+  processOfflineQueue: () => Promise<void>;
+  performWrite: (collectionName: string, docId: string, action: 'set' | 'delete', data?: any, description?: string) => Promise<void>;
+
   addRepair: (repair: Omit<ShoeRepairRequest, 'id' | 'isSynced' | 'createdAt' | 'invoiceNumber'>) => ShoeRepairRequest;
   updateRepairStatus: (id: string, status: ShoeRepairRequest['status']) => void;
   updateRepair: (id: string, data: Partial<ShoeRepairRequest>) => void;
@@ -126,6 +140,7 @@ export const useAppStore = create<AppState>()(
       stores: [],
       currentStoreId: '',
       backups: [],
+      unsubscribers: [],
       inventory: [
         { id: '1', name: 'Premium Leather Soles', category: 'Soles', quantity: 50, unit: 'pairs', minThreshold: 10 },
         { id: '2', name: 'Rubber Heels', category: 'Heels', quantity: 5, unit: 'pairs', minThreshold: 20 },
@@ -239,15 +254,148 @@ export const useAppStore = create<AppState>()(
       syncErrorLogs: [],
       lastSyncStatus: 'idle',
       lastSyncTime: null,
+      offlineQueue: [],
+
+      loadOfflineQueue: async () => {
+        try {
+          const ops = await getQueuedWrites();
+          set({ offlineQueue: ops });
+        } catch (err) {
+          console.error("Failed to load offline queue:", err);
+        }
+      },
+
+      processOfflineQueue: async () => {
+        if (!navigator.onLine || !db) {
+          console.log("Cannot process offline queue: currently offline or Firestore not ready.");
+          return;
+        }
+
+        const ops = await getQueuedWrites();
+        if (ops.length === 0) return;
+
+        set({ lastSyncStatus: 'syncing' });
+        console.log(`Processing offline sync queue of ${ops.length} operations...`);
+
+        let successCount = 0;
+        for (const op of ops) {
+          try {
+            let docRef;
+            if (op.collectionName === 'profiles') {
+              docRef = doc(db, 'profiles', op.docId);
+            } else if (op.collectionName === 'notifications') {
+              docRef = doc(db, 'notifications', op.docId);
+            } else {
+              docRef = doc(db, 'stores', op.storeId, op.collectionName, op.docId);
+            }
+
+            if (op.action === 'set') {
+              await safeSetDoc(docRef, op.data);
+            } else {
+              await deleteDoc(docRef);
+            }
+
+            await removeQueuedWrite(op.id);
+            successCount++;
+          } catch (err: any) {
+            console.error(`Error syncing offline operation ${op.id} (${op.description}):`, err);
+            const isNetworkError = err.message?.includes('offline') || 
+                                   err.message?.includes('network') || 
+                                   err.code === 'unavailable' || 
+                                   err.code === 'deadline-exceeded';
+            if (!isNetworkError) {
+              await removeQueuedWrite(op.id);
+            }
+          }
+        }
+
+        await get().loadOfflineQueue();
+        set({ lastSyncStatus: 'success', lastSyncTime: new Date().toISOString() });
+
+        if (successCount > 0) {
+          console.log(`Successfully synchronized ${successCount} offline changes to Firebase!`);
+          get().fetchFromFirestore();
+          get().addNotification({
+            title: 'Offline Sync Completed',
+            message: `Successfully synchronized ${successCount} offline changes to Firebase!`,
+            type: 'success'
+          }).catch(() => {});
+        }
+      },
+
+      performWrite: async (collectionName: string, docId: string, action: 'set' | 'delete', data?: any, description: string = '') => {
+        const storeId = get().currentStoreId || 'default';
+        const isOnline = navigator.onLine;
+
+        if (isOnline && db) {
+          try {
+            let docRef;
+            if (collectionName === 'profiles') {
+              docRef = doc(db, 'profiles', docId);
+            } else if (collectionName === 'notifications') {
+              docRef = doc(db, 'notifications', docId);
+            } else {
+              docRef = doc(db, 'stores', storeId, collectionName, docId);
+            }
+
+            if (action === 'set') {
+              await safeSetDoc(docRef, data);
+            } else {
+              await deleteDoc(docRef);
+            }
+            return;
+          } catch (err) {
+            console.error(`Direct Firestore write failed for ${collectionName}/${docId}:`, err);
+          }
+        }
+
+        try {
+          const queuedOp = await queueOfflineWrite({
+            storeId,
+            collectionName,
+            docId,
+            action,
+            data: data ? cleanUndefined(data) : undefined,
+            description: description || `${action === 'set' ? 'Save' : 'Delete'} ${collectionName} item`
+          });
+          console.log("Queued offline write in IndexedDB:", queuedOp);
+          await get().loadOfflineQueue();
+
+          if ('serviceWorker' in navigator) {
+            try {
+              const reg = await navigator.serviceWorker.ready;
+              if ('sync' in reg) {
+                await (reg as any).sync.register('sync-offline-data');
+              }
+            } catch (swErr) {
+              console.warn('SW Sync registration skipped:', swErr);
+            }
+          }
+        } catch (idbErr) {
+          console.error("Failed to queue offline write in IndexedDB:", idbErr);
+        }
+      },
 
       fetchFromFirestore: async () => {
         if (!db) {
           console.warn("Firestore is not initialized. Skipping fetch.");
           return;
         }
+
+        // Unsubscribe from any existing listeners to avoid duplicate subscriptions
+        const currentUnsubscribers = get().unsubscribers || [];
+        currentUnsubscribers.forEach((unsub) => {
+          try {
+            unsub();
+          } catch (e) {
+            console.error("Error unsubscribing:", e);
+          }
+        });
+        set({ unsubscribers: [] });
+
         set({ lastSyncStatus: 'syncing' });
         try {
-          // 1. Fetch all stores from the central "stores" collection
+          // 1. Fetch stores once to resolve currentStoreId
           const storesSnapshot = await getDocs(collection(db, 'stores'));
           const fetchedStores: StoreDetails[] = [];
           storesSnapshot.forEach((doc) => {
@@ -265,7 +413,7 @@ export const useAppStore = create<AppState>()(
             });
           });
 
-          // 2. If no stores exist, create the default store
+          // If no stores exist, create the default store
           if (fetchedStores.length === 0) {
             const defaultStore: StoreDetails = {
               id: 'default',
@@ -284,76 +432,128 @@ export const useAppStore = create<AppState>()(
 
           set({ stores: fetchedStores });
 
-          // 3. Resolve active store ID
+          // Resolve active store ID
           let storeId = get().currentStoreId;
           if (!storeId || !fetchedStores.some(s => s.id === storeId)) {
             storeId = fetchedStores[0].id;
             set({ currentStoreId: storeId });
           }
 
-          // 4. Fetch the specific subcollections for this store!
-          const [
-            repairsSnapshot,
-            customersSnapshot,
-            inventorySnapshot,
-            insuranceSnapshot,
-            appointmentsSnapshot,
-            settingsSnapshot
-          ] = await Promise.all([
-            getDocs(collection(db, 'stores', storeId, 'repairs')),
-            getDocs(collection(db, 'stores', storeId, 'customers')),
-            getDocs(collection(db, 'stores', storeId, 'inventory')),
-            getDocs(collection(db, 'stores', storeId, 'insurance')),
-            getDocs(collection(db, 'stores', storeId, 'appointments')),
-            getDocs(collection(db, 'stores', storeId, 'settings'))
-          ]);
+          // 2. Set up real-time subcollection listeners for this active store
+          const activeStoreId = storeId;
 
-          const repairsList: ShoeRepairRequest[] = [];
-          repairsSnapshot.forEach((doc) => {
-            repairsList.push(doc.data() as ShoeRepairRequest);
+          const unsubRepairs = onSnapshot(collection(db, 'stores', activeStoreId, 'repairs'), (snapshot) => {
+            const repairsList: ShoeRepairRequest[] = [];
+            snapshot.forEach((doc) => {
+              repairsList.push(doc.data() as ShoeRepairRequest);
+            });
+            // Sort repairs by createdAt descending
+            repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            set({ repairs: repairsList, lastSyncTime: new Date().toISOString() });
+          }, (error) => {
+            console.error("Failed to sync repairs:", error);
           });
 
-          const customersList: Customer[] = [];
-          customersSnapshot.forEach((doc) => {
-            customersList.push(doc.data() as Customer);
+          const unsubCustomers = onSnapshot(collection(db, 'stores', activeStoreId, 'customers'), (snapshot) => {
+            const customersList: Customer[] = [];
+            snapshot.forEach((doc) => {
+              customersList.push(doc.data() as Customer);
+            });
+            set({ customers: customersList });
+          }, (error) => {
+            console.error("Failed to sync customers:", error);
           });
 
-          const inventoryList: InventoryItem[] = [];
-          inventorySnapshot.forEach((doc) => {
-            inventoryList.push(doc.data() as InventoryItem);
-          });
-
-          const insuranceList: ShoeInsurance[] = [];
-          insuranceSnapshot.forEach((doc) => {
-            insuranceList.push(doc.data() as ShoeInsurance);
-          });
-
-          const appointmentsList: Appointment[] = [];
-          appointmentsSnapshot.forEach((doc) => {
-            appointmentsList.push(doc.data() as Appointment);
-          });
-
-          let settingsObj: Settings | null = null;
-          settingsSnapshot.forEach((doc) => {
-            if (doc.id === 'global_settings') {
-              settingsObj = doc.data() as Settings;
+          const unsubInventory = onSnapshot(collection(db, 'stores', activeStoreId, 'inventory'), (snapshot) => {
+            const inventoryList: InventoryItem[] = [];
+            snapshot.forEach((doc) => {
+              inventoryList.push(doc.data() as InventoryItem);
+            });
+            if (inventoryList.length > 0) {
+              set({ inventory: inventoryList });
             }
+          }, (error) => {
+            console.error("Failed to sync inventory:", error);
           });
 
-          set((state) => ({
-            repairs: repairsList,
-            customers: customersList,
-            inventory: inventoryList.length > 0 ? inventoryList : state.inventory,
-            insurance: insuranceList,
-            appointments: appointmentsList,
-            settings: settingsObj ? { 
-              ...state.settings, 
-              ...settingsObj,
-              userCredentials: settingsObj.userCredentials || state.settings.userCredentials
-            } : state.settings,
-            lastSyncStatus: 'success',
-            lastSyncTime: new Date().toISOString()
-          }));
+          const unsubInsurance = onSnapshot(collection(db, 'stores', activeStoreId, 'insurance'), (snapshot) => {
+            const insuranceList: ShoeInsurance[] = [];
+            snapshot.forEach((doc) => {
+              insuranceList.push(doc.data() as ShoeInsurance);
+            });
+            set({ insurance: insuranceList });
+          }, (error) => {
+            console.error("Failed to sync insurance:", error);
+          });
+
+          const unsubAppointments = onSnapshot(collection(db, 'stores', activeStoreId, 'appointments'), (snapshot) => {
+            const appointmentsList: Appointment[] = [];
+            snapshot.forEach((doc) => {
+              appointmentsList.push(doc.data() as Appointment);
+            });
+            set({ appointments: appointmentsList });
+          }, (error) => {
+            console.error("Failed to sync appointments:", error);
+          });
+
+          const unsubSettings = onSnapshot(collection(db, 'stores', activeStoreId, 'settings'), (snapshot) => {
+            let settingsObj: Settings | null = null;
+            snapshot.forEach((doc) => {
+              if (doc.id === 'global_settings') {
+                settingsObj = doc.data() as Settings;
+              }
+            });
+            if (settingsObj) {
+              set((state) => ({
+                settings: { 
+                  ...state.settings, 
+                  ...settingsObj,
+                  userCredentials: settingsObj.userCredentials || state.settings.userCredentials
+                }
+              }));
+            }
+          }, (error) => {
+            console.error("Failed to sync settings:", error);
+          });
+
+          // Also set up a listener for the stores collection in real-time
+          const unsubStores = onSnapshot(collection(db, 'stores'), (snapshot) => {
+            const fetchedStores: StoreDetails[] = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              fetchedStores.push({
+                id: doc.id,
+                storeName: data.storeName || 'Cordwainers Studio',
+                address: data.address || '123 Main St, Cityville',
+                hours: data.hours || 'Mon-Sat: 9AM - 6PM',
+                phone: data.phone || '',
+                logoUrl: data.logoUrl || '',
+                paymentLink: data.paymentLink || '',
+                qrCode: data.qrCode || '',
+                createdAt: data.createdAt || new Date().toISOString()
+              });
+            });
+            if (fetchedStores.length > 0) {
+              set({ stores: fetchedStores });
+            }
+          }, (error) => {
+            console.error("Failed to sync stores collection:", error);
+          });
+
+          // Save unsubscribers and set sync state
+          set({
+            unsubscribers: [
+              unsubRepairs,
+              unsubCustomers,
+              unsubInventory,
+              unsubInsurance,
+              unsubAppointments,
+              unsubSettings,
+              unsubStores
+            ],
+            lastSyncStatus: 'success'
+          });
+
         } catch (error: any) {
           const isOffline = error.message?.includes('offline') || 
                             error.message?.includes('network') || 
@@ -430,21 +630,19 @@ export const useAppStore = create<AppState>()(
           };
         });
         
-        // Write to Firestore asynchronously
-        if (createdRepair && db) {
-          const storeId = get().currentStoreId || 'default';
+        // Write to Firestore asynchronously with support for Offline Sync Queue
+        if (createdRepair) {
           const rep = createdRepair as ShoeRepairRequest;
-          safeSetDoc(doc(db, 'stores', storeId, 'repairs', rep.id), rep).catch(e => console.error("Firestore repairs set failed", e));
+          get().performWrite('repairs', rep.id, 'set', rep, `Create Repair Ticket ${rep.invoiceNumber}`);
           
           const cust = newCustomers.find(c => c.phoneNumber === rep.phoneNumber);
           if (cust) {
-            safeSetDoc(doc(db, 'stores', storeId, 'customers', cust.phoneNumber), cust).catch(e => console.error("Firestore customers set failed", e));
+            get().performWrite('customers', cust.phoneNumber, 'set', cust, `Register customer ${cust.name}`);
           }
 
           // Write updated inventory items to Firestore
           updatedInventoryItems.forEach(({ id, item }) => {
-            safeSetDoc(doc(db, 'stores', storeId, 'inventory', id), item)
-              .catch(e => console.error("Firestore inventory update on repair add failed", e));
+            get().performWrite('inventory', id, 'set', item, `Update stock of ${item.name}`);
           });
         }
         
@@ -486,10 +684,8 @@ export const useAppStore = create<AppState>()(
           return { repairs: newRepairs };
         });
 
-        if (updatedRepair && db) {
-          const storeId = get().currentStoreId || 'default';
-          const rep = updatedRepair as ShoeRepairRequest;
-          safeSetDoc(doc(db, 'stores', storeId, 'repairs', id), rep).catch(e => console.error("Firestore repairs update status failed", e));
+        if (updatedRepair) {
+          get().performWrite('repairs', id, 'set', updatedRepair, `Update Repair Status to ${status}`);
         }
 
         if (status === 'Completed' && updatedRepair && settings.autoNotifyPickup) {
@@ -523,9 +719,8 @@ export const useAppStore = create<AppState>()(
           return { repairs: newRepairs };
         });
 
-        if (updatedRepair && db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'repairs', id), updatedRepair).catch(e => console.error("Firestore repairs update failed", e));
+        if (updatedRepair) {
+          get().performWrite('repairs', id, 'set', updatedRepair, `Update Repair Ticket ${updatedRepair.invoiceNumber}`);
         }
 
         // Trigger background sync to Google Sheets
@@ -538,10 +733,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           repairs: state.repairs.filter(r => r.id !== id)
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          deleteDoc(doc(db, 'stores', storeId, 'repairs', id)).catch(e => console.error("Firestore repairs delete failed", e));
-        }
+        get().performWrite('repairs', id, 'delete', undefined, `Delete Repair Ticket`);
       },
       
       syncAllPending: async () => {
@@ -647,10 +839,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           customers: [...state.customers, customer]
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'customers', customer.phoneNumber), customer).catch(e => console.error("Firestore customer add failed", e));
-        }
+        get().performWrite('customers', customer.phoneNumber, 'set', customer, `Add Customer ${customer.name}`);
       },
       
       updateCustomer: (phone, data) => {
@@ -665,9 +854,8 @@ export const useAppStore = create<AppState>()(
           });
           return { customers: newCustomers };
         });
-        if (updatedCustomer && db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'customers', phone), updatedCustomer).catch(e => console.error("Firestore customer update failed", e));
+        if (updatedCustomer) {
+          get().performWrite('customers', phone, 'set', updatedCustomer, `Update Customer ${updatedCustomer.name}`);
         }
       },
 
@@ -675,10 +863,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           customers: state.customers.filter(c => c.phoneNumber !== phone)
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          deleteDoc(doc(db, 'stores', storeId, 'customers', phone)).catch(e => console.error("Firestore customer delete failed", e));
-        }
+        get().performWrite('customers', phone, 'delete', undefined, `Delete Customer`);
       },
       
       addInventoryItem: (item) => {
@@ -687,10 +872,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           inventory: [...state.inventory, newItem]
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'inventory', id), newItem).catch(e => console.error("Firestore inventory add failed", e));
-        }
+        get().performWrite('inventory', id, 'set', newItem, `Add Inventory Item ${newItem.name}`);
       },
       
       updateInventoryItem: (id, data) => {
@@ -705,9 +887,8 @@ export const useAppStore = create<AppState>()(
           });
           return { inventory: newInventory };
         });
-        if (updatedItem && db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'inventory', id), updatedItem).catch(e => console.error("Firestore inventory update failed", e));
+        if (updatedItem) {
+          get().performWrite('inventory', id, 'set', updatedItem, `Update Stock for ${updatedItem.name}`);
         }
       },
       
@@ -715,10 +896,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           inventory: state.inventory.filter(i => i.id !== id)
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          deleteDoc(doc(db, 'stores', storeId, 'inventory', id)).catch(e => console.error("Firestore inventory delete failed", e));
-        }
+        get().performWrite('inventory', id, 'delete', undefined, `Delete Inventory Item`);
       },
       
       addInsurance: (policy) => {
@@ -728,10 +906,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           insurance: [...state.insurance, newPolicy]
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'insurance', id), newPolicy).catch(e => console.error("Firestore insurance add failed", e));
-        }
+        get().performWrite('insurance', id, 'set', newPolicy, `Add Insurance Policy ${newPolicy.planName}`);
       },
 
       updateInsurance: (id, data) => {
@@ -746,9 +921,8 @@ export const useAppStore = create<AppState>()(
           });
           return { insurance: newInsurance };
         });
-        if (updatedInsurance && db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'insurance', id), updatedInsurance).catch(e => console.error("Firestore insurance update failed", e));
+        if (updatedInsurance) {
+          get().performWrite('insurance', id, 'set', updatedInsurance, `Update Insurance Policy ${updatedInsurance.planName}`);
         }
       },
 
@@ -756,10 +930,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           insurance: state.insurance.filter(i => i.id !== id)
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          deleteDoc(doc(db, 'stores', storeId, 'insurance', id)).catch(e => console.error("Firestore insurance delete failed", e));
-        }
+        get().performWrite('insurance', id, 'delete', undefined, `Delete Insurance Policy`);
       },
 
       addAppointment: async (appointmentData) => {
@@ -776,27 +947,23 @@ export const useAppStore = create<AppState>()(
           appointments: [newAppointment, ...state.appointments]
         }));
         
-        if (db) {
+        try {
+          await get().performWrite('appointments', id, 'set', newAppointment, `Book Appointment for ${newAppointment.customerName}`);
+          
+          let dateText = newAppointment.date;
           try {
-            const storeId = get().currentStoreId || 'default';
-            await safeSetDoc(doc(db, 'stores', storeId, 'appointments', id), newAppointment);
-            
-            // Add notification for the artisan
-            let dateText = newAppointment.date;
-            try {
-              dateText = format(parseISO(newAppointment.date), 'MMM dd');
-            } catch (dErr) {
-              console.warn("Date parsing error in appointment notification:", dErr);
-            }
-
-            await get().addNotification({
-              title: 'New Appointment Booked',
-              message: `${newAppointment.customerName} has scheduled a ${newAppointment.serviceType} for ${dateText} at ${newAppointment.time}.`,
-              type: 'info'
-            });
-          } catch (e) {
-            console.error("Firestore appointment add failed", e);
+            dateText = format(parseISO(newAppointment.date), 'MMM dd');
+          } catch (dErr) {
+            console.warn("Date parsing error in appointment notification:", dErr);
           }
+
+          await get().addNotification({
+            title: 'New Appointment Booked',
+            message: `${newAppointment.customerName} has scheduled a ${newAppointment.serviceType} for ${dateText} at ${newAppointment.time}.`,
+            type: 'info'
+          });
+        } catch (e) {
+          console.error("Appointment performWrite failed", e);
         }
       },
 
@@ -812,9 +979,8 @@ export const useAppStore = create<AppState>()(
           });
           return { appointments: newAppointments };
         });
-        if (updatedAppointment && db) {
-          const storeId = get().currentStoreId || 'default';
-          safeSetDoc(doc(db, 'stores', storeId, 'appointments', id), updatedAppointment).catch(e => console.error("Firestore appointment update failed", e));
+        if (updatedAppointment) {
+          get().performWrite('appointments', id, 'set', updatedAppointment, `Update Appointment for ${updatedAppointment.customerName}`);
         }
 
         if (updatedAppointment && data.status) {
@@ -834,10 +1000,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           appointments: state.appointments.filter(a => a.id !== id)
         }));
-        if (db) {
-          const storeId = get().currentStoreId || 'default';
-          deleteDoc(doc(db, 'stores', storeId, 'appointments', id)).catch(e => console.error("Firestore appointment delete failed", e));
-        }
+        get().performWrite('appointments', id, 'delete', undefined, `Cancel Appointment`);
       },
       
       updateSettings: (newSettings) => {
@@ -849,10 +1012,7 @@ export const useAppStore = create<AppState>()(
 
         set((state) => {
           const updatedSettings = { ...state.settings, ...newSettings };
-          if (db) {
-            const storeId = get().currentStoreId || 'default';
-            safeSetDoc(doc(db, 'stores', storeId, 'settings', 'global_settings'), updatedSettings).catch(e => console.error("Firestore settings update failed", e));
-          }
+          get().performWrite('settings', 'global_settings', 'set', updatedSettings, `Update Global Studio Settings`);
           return { settings: updatedSettings };
         });
       },
@@ -1381,6 +1541,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'cobbler-storage',
+      partialize: (state) => {
+        const { unsubscribers, ...rest } = state;
+        return rest;
+      }
     }
   )
 );

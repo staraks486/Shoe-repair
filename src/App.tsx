@@ -10,7 +10,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NewRepair = lazy(() => import('./pages/NewRepair'));
 const Stock = lazy(() => import('./pages/Stock'));
-const Inventory = lazy(() => import('./pages/Inventory'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Insurance = lazy(() => import('./pages/Insurance'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -43,10 +42,56 @@ const PageLoader = () => (
 
 export default function App() {
   const fetchFromFirestore = useAppStore((state) => state.fetchFromFirestore);
+  const user = useAppStore((state) => state.user);
+  const loadOfflineQueue = useAppStore((state) => state.loadOfflineQueue);
+  const processOfflineQueue = useAppStore((state) => state.processOfflineQueue);
   
   useEffect(() => {
     fetchFromFirestore();
-  }, [fetchFromFirestore]);
+  }, [fetchFromFirestore, user]);
+
+  useEffect(() => {
+    // Initial offline queue load
+    loadOfflineQueue();
+
+    // Connection event listeners
+    const handleOnline = () => {
+      console.log('App is online. Processing offline queue...');
+      processOfflineQueue();
+    };
+
+    const handleOffline = () => {
+      console.log('App went offline.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Try processing if we are already online on mount
+    if (navigator.onLine) {
+      processOfflineQueue();
+    }
+
+    // Service Worker communication
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SYNC_OFFLINE_DATA') {
+        console.log('Service Worker triggered offline sync message.');
+        processOfflineQueue();
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, [loadOfflineQueue, processOfflineQueue]);
 
   return (
     <ErrorBoundary>
@@ -62,7 +107,6 @@ export default function App() {
                 <Route path="/dashboard" element={<ProtectedRoute><PageWrapper><Dashboard /></PageWrapper></ProtectedRoute>} />
                 <Route path="/new-repair" element={<ProtectedRoute><PageWrapper><NewRepair /></PageWrapper></ProtectedRoute>} />
                 <Route path="/stock" element={<ProtectedRoute><PageWrapper><Stock /></PageWrapper></ProtectedRoute>} />
-                <Route path="/inventory" element={<ProtectedRoute><PageWrapper><Inventory /></PageWrapper></ProtectedRoute>} />
                 <Route path="/customers" element={<ProtectedRoute><PageWrapper><Customers /></PageWrapper></ProtectedRoute>} />
                 <Route path="/insurance" element={<ProtectedRoute><PageWrapper><Insurance /></PageWrapper></ProtectedRoute>} />
                 <Route path="/cobbler-desk" element={<ProtectedRoute><PageWrapper><CobblerDesk /></PageWrapper></ProtectedRoute>} />

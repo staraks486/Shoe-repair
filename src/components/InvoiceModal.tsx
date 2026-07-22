@@ -89,9 +89,12 @@ export default function InvoiceModal({ invoice, onClose, randomFact }: InvoiceMo
   const basePriceVal = invoice.basePrice || 1500;
   const pickupChargeVal = (invoice as any).pickupCharge || 0;
   const isOldInvoice = total >= (basePriceVal + addonsCost + (hasInsurance ? invoice.insurancePrice : 0) + pickupChargeVal);
-  const packageCost = isOldInvoice
-    ? Math.max(0, total - basePriceVal - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0))
-    : Math.max(0, total - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0));
+  const packageCost = invoice.packagePrice !== undefined
+    ? invoice.packagePrice
+    : (isOldInvoice
+        ? Math.max(0, total - basePriceVal - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0))
+        : Math.max(0, total - addonsCost - (hasInsurance ? invoice.insurancePrice : 0) - pickupChargeVal + (invoice.discountAmount || 0))
+      );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

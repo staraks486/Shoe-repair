@@ -454,6 +454,7 @@ export default function NewRepair() {
       salespersonId: salesperson.id,
       salespersonName: salespersonNameVal,
       basePrice: basePrice,
+      packagePrice: getPackageCost(),
       discountPercentage: selectedOffer.percentage || (customDiscountType === 'percent' ? customDiscountValue : 0),
       advance: advanceAmount,
       balance: Math.max(0, getGrandTotal() - advanceAmount),
@@ -587,9 +588,12 @@ Thank you for trusting Cordwainers Studio!
     const insCost = ticket.hasInsurance ? (ticket.insurancePrice || 0) : 0;
     const pickCost = ticket.pickupCharge || 0;
     const isOldInvoice = ticket.price >= (basePr + addonsPriceSum + insCost + pickCost);
-    const restorationCost = isOldInvoice 
-      ? Math.max(0, ticket.price - basePr - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0))
-      : Math.max(0, ticket.price - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0));
+    const restorationCost = ticket.packagePrice !== undefined 
+      ? ticket.packagePrice 
+      : (isOldInvoice 
+          ? Math.max(0, ticket.price - basePr - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0))
+          : Math.max(0, ticket.price - addonsPriceSum - insCost - pickCost + (ticket.discountAmount || 0))
+        );
 
     const safeFormatDate = (dateVal: any) => {
       try {
@@ -1877,6 +1881,7 @@ Thank you for trusting Cordwainers Studio!
                     shoeSize,
                     repairType: [getPackageName()],
                     basePrice,
+                    packagePrice: getPackageCost(),
                     addons: plusItems,
                     hasInsurance: insurancePlan.id !== 'none',
                     insuranceType: insurancePlan.name,

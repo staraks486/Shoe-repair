@@ -96,6 +96,7 @@ export interface ShoeRepairRequest {
   salespersonName?: string;
   salespersonPhoto?: string;
   basePrice?: number;
+  packagePrice?: number;
   discountPercentage?: number;
   statusHistory: StatusHistory[];
   advance: number;
