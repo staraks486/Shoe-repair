@@ -36,6 +36,7 @@ import {
   User
 } from 'lucide-react';
 import { checkNotificationPermission, requestNotificationPermission } from '../lib/notifications';
+import { db } from '../services/firebase';
 
 interface SwipeToDeleteProps {
   onDelete: () => void;
@@ -1483,7 +1484,11 @@ export default function Settings() {
                   <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Cloud Vault Architecture</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                   {lastSyncStatus === 'success' ? (
+                   {!db ? (
+                     <span className="flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">
+                       Local-Only Mode
+                     </span>
+                   ) : lastSyncStatus === 'success' ? (
                      <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-[9px] font-black uppercase tracking-widest">
                        Vault Online
                      </span>
@@ -1496,6 +1501,37 @@ export default function Settings() {
               </div>
 
               <div className="space-y-6">
+                {!db && (
+                  <div className="bg-amber-50/60 border border-amber-200 rounded-[32px] p-8 space-y-4 shadow-sm animate-fade-in">
+                    <div className="flex items-center gap-2.5 text-amber-800">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <h4 className="text-xs font-black uppercase tracking-widest">Cross-Device Synchronization Guide</h4>
+                    </div>
+                    <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                      Your application is currently running in <strong>Local-Only Mode</strong>. Because local storage is strictly device-specific, updates made on this desktop will not sync to your mobile phone.
+                    </p>
+                    <div className="space-y-3 text-xs text-amber-800 font-medium">
+                      <p className="font-black text-amber-950 uppercase tracking-wider text-[10px]">- Setup Real-Time Sync on Render.com -</p>
+                      <p className="leading-relaxed">To connect your deployed app to the Firebase cloud for instant real-time synchronization between desktop and mobile devices, add these settings on Render:</p>
+                      <ol className="list-decimal pl-5 space-y-2.5 leading-relaxed">
+                        <li>Go to your <strong>Render.com Dashboard</strong> and open your web service.</li>
+                        <li>Navigate to the <strong>Environment</strong> tab.</li>
+                        <li>Add the following environment variables using your Firebase configuration:
+                          <div className="mt-2 font-mono text-[10px] space-y-1.5 text-amber-950 bg-[#FCFAF5] p-4 rounded-2xl border border-amber-200/70 select-all relative group">
+                            <p>VITE_FIREBASE_API_KEY=AIzaSyDrv5C8MUyxbAa0peLRWRxK-EDggN0QvmQ</p>
+                            <p>VITE_FIREBASE_PROJECT_ID=farmer-s-gate-ddbbf</p>
+                            <p>VITE_FIREBASE_AUTH_DOMAIN=farmer-s-gate-ddbbf.firebaseapp.com</p>
+                            <p>VITE_FIREBASE_APP_ID=1:506460132530:web:d7c40c58444a12b50465ab</p>
+                            <p>VITE_FIREBASE_STORAGE_BUCKET=farmer-s-gate-ddbbf.firebasestorage.app</p>
+                            <p>VITE_FIREBASE_MESSAGING_SENDER_ID=506460132530</p>
+                            <p>VITE_FIREBASE_DATABASE_ID=ai-studio-shoerepaircobble-4df45754-d7c2-4b18-965d-93834f094599</p>
+                          </div>
+                        </li>
+                        <li>Click <strong>Save Changes</strong>. Render will rebuild and redeploy your applet. It will now securely connect, sync, and instantly display updates on all devices!</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-brand-bg/30 p-8 rounded-[32px] border border-brand-border/40 space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest ml-6">Google Sheets Web App URL</label>

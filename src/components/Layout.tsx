@@ -35,7 +35,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import clsx from 'clsx';
-import { auth } from '../services/firebase';
+import { auth, db } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import AuthObserver from './AuthObserver';
 import InstallPrompt from './InstallPrompt';
@@ -1263,7 +1263,16 @@ export default function Layout({ children }: { children: ReactNode }) {
                 
                 <div className="flex-1 bg-black/50 p-4 rounded-2xl border border-white/10 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-2.5 h-full scrollbar-thin">
                   <p className="text-green-400">[OK] Zustand state store loaded successfully.</p>
-                  <p className="text-green-400">[OK] Firebase Auth initialized. Service observer connected.</p>
+                  {db ? (
+                    <p className="text-green-400">[OK] Firebase Firestore is connected. Cloud synchronization is active.</p>
+                  ) : (
+                    <p className="text-amber-400 font-bold">[WARN] Firebase is NOT connected. App is in Local-Only Mode. Add VITE_FIREBASE_ env vars on Render.com to enable cross-device sync.</p>
+                  )}
+                  {auth ? (
+                    <p className="text-green-400">[OK] Firebase Auth is initialized and active.</p>
+                  ) : (
+                    <p className="text-amber-400 font-bold">[WARN] Firebase Auth is inactive. Mock-only authentication is running.</p>
+                  )}
                   <p className="text-slate-400">[INFO] Offline Queue SQLite/IndexedDB sync hook checking integrity...</p>
                   <p className="text-green-400">[OK] DB Schema validation: No unmapped fields.</p>
                   <p className="text-slate-400">[INFO] Security inactivity watch started. Timeout: 180s.</p>
