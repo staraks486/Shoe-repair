@@ -1077,111 +1077,122 @@ export default function Settings() {
               </button>
             </div>
 
-            {/* Editing / Adding Store Form */}
-            {editingStoreId && (
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }} 
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-brand-light/30 border border-brand-border/60 rounded-[32px] p-6 md:p-8 space-y-8"
-              >
-                <div className="flex justify-between items-center border-b border-brand-border/40 pb-4">
-                  <h4 className="text-xs font-black text-brand-dark uppercase tracking-widest">
-                    {editingStoreId === 'new' ? 'New Store Setup' : 'Edit Location Details'}
-                  </h4>
-                  <button 
-                    onClick={() => setEditingStoreId(null)}
-                    className="text-[10px] font-black uppercase text-brand-muted hover:text-brand-dark"
+            {/* Editing / Adding Store Modal */}
+            <AnimatePresence>
+              {editingStoreId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ type: "spring", duration: 0.4 }}
+                    className="bg-white w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-brand-border p-5 sm:p-8 md:p-10 relative my-auto scrollbar-thin space-y-6"
                   >
-                    Cancel
-                  </button>
+                    <div className="flex justify-between items-center border-b border-brand-border pb-4 sticky top-0 bg-white z-10 pt-1">
+                      <div>
+                        <h4 className="text-sm sm:text-base font-black text-brand-dark uppercase tracking-widest">
+                          {editingStoreId === 'new' ? 'New Store Setup' : 'Edit Location Details'}
+                        </h4>
+                        <p className="text-[10px] sm:text-xs text-brand-muted font-medium mt-0.5">Configure store information, operating hours, and location contacts</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setEditingStoreId(null)}
+                        className="p-2 hover:bg-brand-bg rounded-full border border-transparent hover:border-brand-border transition-all cursor-pointer"
+                        title="Close modal"
+                      >
+                        <X className="w-5 h-5 text-brand-dark" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Store Name</label>
+                        <input 
+                          type="text" 
+                          value={storeForm.storeName}
+                          onChange={(e) => setStoreForm({ ...storeForm, storeName: e.target.value })}
+                          placeholder="e.g. Cordwainers Studio - Mumbai"
+                          className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Artisan Hours</label>
+                        <input 
+                          type="text" 
+                          value={storeForm.hours}
+                          onChange={(e) => setStoreForm({ ...storeForm, hours: e.target.value })}
+                          placeholder="e.g. Mon-Sat: 9AM - 7PM"
+                          className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Full Address</label>
+                        <input 
+                          type="text" 
+                          value={storeForm.address}
+                          onChange={(e) => setStoreForm({ ...storeForm, address: e.target.value })}
+                          placeholder="e.g. 456, Linking Road, Santacruz West, Mumbai"
+                          className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Phone Contact</label>
+                        <input 
+                          type="text" 
+                          value={storeForm.phone}
+                          onChange={(e) => setStoreForm({ ...storeForm, phone: e.target.value })}
+                          placeholder="e.g. +91 98765 43210"
+                          className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Logo / Photo URL</label>
+                        <input 
+                          type="url" 
+                          value={storeForm.logoUrl}
+                          onChange={(e) => setStoreForm({ ...storeForm, logoUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full bg-[#F5F3EC]/60 border border-brand-border rounded-2xl px-5 py-3 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-brand-border mt-6">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!storeForm.storeName || !storeForm.address) {
+                            alert('Please fill out Store Name and Address');
+                            return;
+                          }
+                          if (editingStoreId === 'new') {
+                            await addStore(storeForm);
+                          } else {
+                            await updateStore(editingStoreId, storeForm);
+                          }
+                          setEditingStoreId(null);
+                        }}
+                        className="w-full sm:w-auto bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-8 py-3.5 rounded-full hover:bg-brand-olive active:scale-[0.98] transition-all shadow-premium cursor-pointer"
+                      >
+                        Save Store Setup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStoreId(null)}
+                        className="w-full sm:w-auto border border-brand-border text-brand-dark text-[10px] font-black uppercase tracking-widest px-8 py-3.5 rounded-full hover:bg-brand-bg transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </motion.div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Store Name</label>
-                    <input 
-                      type="text" 
-                      value={storeForm.storeName}
-                      onChange={(e) => setStoreForm({ ...storeForm, storeName: e.target.value })}
-                      placeholder="e.g. Cordwainers Studio - Mumbai"
-                      className="w-full bg-white border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Artisan Hours</label>
-                    <input 
-                      type="text" 
-                      value={storeForm.hours}
-                      onChange={(e) => setStoreForm({ ...storeForm, hours: e.target.value })}
-                      placeholder="e.g. Mon-Sat: 9AM - 7PM"
-                      className="w-full bg-white border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Full Address</label>
-                    <input 
-                      type="text" 
-                      value={storeForm.address}
-                      onChange={(e) => setStoreForm({ ...storeForm, address: e.target.value })}
-                      placeholder="e.g. 456, Linking Road, Santacruz West, Mumbai"
-                      className="w-full bg-white border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all font-medium"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Phone Contact</label>
-                    <input 
-                      type="text" 
-                      value={storeForm.phone}
-                      onChange={(e) => setStoreForm({ ...storeForm, phone: e.target.value })}
-                      placeholder="e.g. +91 98765 43210"
-                      className="w-full bg-white border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest">Logo URL</label>
-                    <input 
-                      type="url" 
-                      value={storeForm.logoUrl}
-                      onChange={(e) => setStoreForm({ ...storeForm, logoUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full bg-white border border-brand-border rounded-full px-6 py-4 text-sm focus:ring-2 focus:ring-brand-accent/20 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!storeForm.storeName || !storeForm.address) {
-                        alert('Please fill out Store Name and Address');
-                        return;
-                      }
-                      if (editingStoreId === 'new') {
-                        await addStore(storeForm);
-                      } else {
-                        await updateStore(editingStoreId, storeForm);
-                      }
-                      setEditingStoreId(null);
-                    }}
-                    className="w-full sm:w-auto bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-olive active:scale-[0.98] transition-all shadow-premium"
-                  >
-                    Save Store Setup
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingStoreId(null)}
-                    className="w-full sm:w-auto border border-brand-border text-brand-dark text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-full hover:bg-brand-bg transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </motion.div>
-            )}
+              )}
+            </AnimatePresence>
 
             {/* List of Existing Stores */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
@@ -1583,13 +1594,13 @@ export default function Settings() {
                 {/* Add User Modal Dialog */}
                 <AnimatePresence>
                   {showAddUserModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", duration: 0.5 }}
-                        className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-brand-border p-8 md:p-10 relative overflow-hidden"
+                        transition={{ type: "spring", duration: 0.4 }}
+                        className="bg-white w-full max-w-xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-brand-border p-5 sm:p-8 md:p-10 relative my-auto scrollbar-thin space-y-5"
                       >
                         {/* Decorative Background */}
                         <div className="absolute top-0 right-0 w-48 h-48 bg-[#F5F3EC] rounded-full filter blur-3xl opacity-50 -z-10" />
