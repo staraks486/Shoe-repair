@@ -83,6 +83,13 @@ export default function App() {
       processOfflineQueue();
     }
 
+    // High-frequency background sync timer (every 3 seconds) to ensure offline operations are pushed promptly
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        processOfflineQueue();
+      }
+    }, 3000);
+
     // Service Worker communication
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'SYNC_OFFLINE_DATA') {
@@ -96,6 +103,7 @@ export default function App() {
     }
 
     return () => {
+      clearInterval(syncInterval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('focus', handleFocusOrVisibility);

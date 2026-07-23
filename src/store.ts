@@ -1421,6 +1421,12 @@ export const useAppStore = create<AppState>()(
       },
 
       setCurrentStoreId: async (storeId) => {
+        try {
+          await get().processOfflineQueue();
+        } catch (e) {
+          console.warn("Error flushing offline queue before switching stores:", e);
+        }
+
         const targetStore = get().stores.find(s => s.id === storeId);
         set((state) => ({
           currentStoreId: storeId,
