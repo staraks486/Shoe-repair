@@ -494,19 +494,63 @@ export const useAppStore = create<AppState>()(
 
           const setupStoreListener = (
             colName: string, 
-            onNext: (snapshot: any) => void, 
+            onNext: (items: any[]) => void, 
             onError: (err: any) => void
           ) => {
-            return onSnapshot(collection(db, 'stores', activeStoreId, colName), onNext, onError);
+            let storeMap = new Map<string, any>();
+            let rootMap = new Map<string, any>();
+
+            const emitMerged = () => {
+              const combinedMap = new Map<string, any>(rootMap);
+              // Store-specific items take precedence over root items
+              storeMap.forEach((val, key) => combinedMap.set(key, val));
+              onNext(Array.from(combinedMap.values()));
+            };
+
+            const storeRef = collection(db, 'stores', activeStoreId, colName);
+            const unsubStore = onSnapshot(storeRef, (snapshot) => {
+              const newMap = new Map<string, any>();
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const key = String(docSnap.id || data.id || data.phoneNumber || data.code || Math.random());
+                newMap.set(key, data);
+              });
+              storeMap = newMap;
+              emitMerged();
+            }, onError);
+
+            let unsubRoot: (() => void) | null = null;
+            if (activeStoreId === 'default' || activeStoreId === '(default)') {
+              try {
+                const rootRef = collection(db, colName);
+                unsubRoot = onSnapshot(rootRef, (snapshot) => {
+                  const newMap = new Map<string, any>();
+                  snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const key = String(docSnap.id || data.id || data.phoneNumber || data.code || Math.random());
+                    newMap.set(key, data);
+                  });
+                  rootMap = newMap;
+                  emitMerged();
+                }, (err) => {
+                  console.warn(`[onSnapshot] Root listener for ${colName} notice:`, err?.message);
+                });
+              } catch (e) {
+                console.warn(`[onSnapshot] Could not attach root listener for ${colName}:`, e);
+              }
+            }
+
+            return () => {
+              try { unsubStore(); } catch (e) {}
+              if (unsubRoot) {
+                try { unsubRoot(); } catch (e) {}
+              }
+            };
           };
 
-          const unsubRepairs = setupStoreListener('repairs', (snapshot) => {
-            const repairsList: ShoeRepairRequest[] = [];
-            snapshot.forEach((doc) => {
-              const item = doc.data() as ShoeRepairRequest;
-              repairsList.push(item);
-            });
-            repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const unsubRepairs = setupStoreListener('repairs', (rawList) => {
+            const repairsList = rawList as ShoeRepairRequest[];
+            repairsList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
             // Retain any optimistic unsynced local items for activeStoreId
             const cachedRepairs = get().storeDataMap?.[activeStoreId]?.repairs || get().repairs || [];
@@ -534,18 +578,27 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync repairs:", error);
           });
 
-          const unsubCustomers = setupStoreListener('customers', (snapshot) => {
-            const customersList: Customer[] = [];
-            snapshot.forEach((doc) => {
-              const item = doc.data() as Customer;
-              customersList.push(item);
-            });
+          const unsubCustomers = setupStoreListener('customers', (rawList) => {
+            const customersList: Customer[] = rawList.filter(item => item && item.phoneNumber);
+
+            // Retain any pending offline queued customer writes that haven't synced to Firestore yet
+            const pendingQueuedPhones = new Set(
+              (get().offlineQueue || [])
+                .filter(op => op.collectionName === 'customers' && op.action === 'set' && op.storeId === activeStoreId)
+                .map(op => op.docId)
+            );
+
             const cachedCustomers = get().storeDataMap?.[activeStoreId]?.customers || get().customers || [];
-            const unsyncedLocals = cachedCustomers.filter(loc => !customersList.some(c => c.phoneNumber === loc.phoneNumber));
-            const finalCustomers = [...unsyncedLocals, ...customersList];
+            const unsyncedPendingLocals = cachedCustomers.filter(c => 
+              pendingQueuedPhones.has(c.phoneNumber) && !customersList.some(remote => remote.phoneNumber === c.phoneNumber)
+            );
+
+            const finalCustomers = [...unsyncedPendingLocals, ...customersList];
 
             set((st) => ({
               customers: finalCustomers,
+              lastSyncTime: new Date().toISOString(),
+              lastSyncStatus: 'success',
               storeDataMap: {
                 ...(st.storeDataMap || {}),
                 [activeStoreId]: {
@@ -564,12 +617,8 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync customers:", error);
           });
 
-          const unsubInventory = setupStoreListener('inventory', (snapshot) => {
-            const inventoryList: InventoryItem[] = [];
-            snapshot.forEach((doc) => {
-              const item = doc.data() as InventoryItem;
-              inventoryList.push(item);
-            });
+          const unsubInventory = setupStoreListener('inventory', (rawList) => {
+            const inventoryList = rawList as InventoryItem[];
             set((st) => ({
               inventory: inventoryList,
               storeDataMap: {
@@ -590,12 +639,8 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync inventory:", error);
           });
 
-          const unsubInsurance = setupStoreListener('insurance', (snapshot) => {
-            const insuranceList: ShoeInsurance[] = [];
-            snapshot.forEach((doc) => {
-              const item = doc.data() as ShoeInsurance;
-              insuranceList.push(item);
-            });
+          const unsubInsurance = setupStoreListener('insurance', (rawList) => {
+            const insuranceList = rawList as ShoeInsurance[];
             set((st) => ({
               insurance: insuranceList,
               storeDataMap: {
@@ -616,12 +661,8 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync insurance:", error);
           });
 
-          const unsubAppointments = setupStoreListener('appointments', (snapshot) => {
-            const appointmentsList: Appointment[] = [];
-            snapshot.forEach((doc) => {
-              const item = doc.data() as Appointment;
-              appointmentsList.push(item);
-            });
+          const unsubAppointments = setupStoreListener('appointments', (rawList) => {
+            const appointmentsList = rawList as Appointment[];
             set((st) => ({
               appointments: appointmentsList,
               storeDataMap: {
@@ -642,11 +683,11 @@ export const useAppStore = create<AppState>()(
             console.error("Failed to sync appointments:", error);
           });
 
-          const unsubSettings = setupStoreListener('settings', (snapshot) => {
+          const unsubSettings = setupStoreListener('settings', (rawList) => {
             let settingsObj: Settings | null = null;
-            snapshot.forEach((doc) => {
-              if (doc.id === 'global_settings') {
-                settingsObj = doc.data() as Settings;
+            rawList.forEach((item) => {
+              if (item.storeName || item.businessName || item.userCredentials) {
+                settingsObj = item as Settings;
               }
             });
             if (settingsObj) {

@@ -49,6 +49,17 @@ export default function App() {
   
   useEffect(() => {
     fetchFromFirestore();
+
+    return () => {
+      const unsubscribers = useAppStore.getState().unsubscribers || [];
+      unsubscribers.forEach((unsub) => {
+        try {
+          unsub();
+        } catch (e) {
+          console.error("Error unsubscribing Firestore listener:", e);
+        }
+      });
+    };
   }, [fetchFromFirestore, user]);
 
   useEffect(() => {

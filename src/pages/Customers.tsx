@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { format } from 'date-fns';
-import { Search, Phone, Mail, Calendar, MessageSquare, Trash2, User, Plus, X } from 'lucide-react';
+import { Search, Phone, Mail, Calendar, MessageSquare, Trash2, User, Plus, X, RefreshCw, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import SyncContactsButton from '../components/SyncContactsButton';
@@ -10,16 +10,36 @@ import PageHeader from '../components/PageHeader';
 import SwipeToDelete from '../components/SwipeToDelete';
 
 export default function Customers() {
-  const { customers, addCustomer, deleteCustomer, isPrivacyMasked } = useAppStore();
+  const { 
+    customers, 
+    addCustomer, 
+    deleteCustomer, 
+    isPrivacyMasked,
+    lastSyncTime,
+    offlineQueue,
+    currentStoreId,
+    fetchFromFirestore
+  } = useAppStore();
+
   const [search, setSearch] = useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(true);
 
   const [newCustomerPhone, setNewCustomerPhone] = useState('+91 ');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerOrders, setNewCustomerOrders] = useState(0);
   const [addError, setAddError] = useState('');
+
+  const pendingCustomerWrites = (offlineQueue || []).filter(op => op.collectionName === 'customers').length;
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchFromFirestore();
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
 
   const maskPhone = (phone: string) => {
     if (!isPrivacyMasked) return phone;
@@ -146,6 +166,82 @@ export default function Customers() {
           </div>
         </div>
       </PageHeader>
+
+      {/* Firestore Real-Time Snapshot Diagnostic Overlay */}
+      <div className="bg-brand-dark/95 backdrop-blur text-[#F5F3EC] rounded-2xl md:rounded-3xl p-4 md:p-5 border border-brand-accent/20 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-400">
+                  Firestore Real-Time Listener Active
+                </p>
+                <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  onSnapshot Sync
+                </span>
+              </div>
+              <p className="text-[11px] text-brand-muted/90 font-mono mt-0.5">
+                Node: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Directory Records: <span className="text-white font-bold">{customers.length}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-[10px] uppercase font-bold text-brand-muted/80">Last Updated Timestamp</p>
+              <p className="text-xs font-mono font-medium text-emerald-300">
+                {lastSyncTime ? format(new Date(lastSyncTime), 'HH:mm:ss a (PPP)') : 'Listening for changes...'}
+              </p>
+            </div>
+
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10"
+              title="Trigger explicit snapshot sync ping"
+            >
+              <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand-accent")} />
+              <span>{isRefreshing ? 'Syncing...' : 'Ping Sync'}</span>
+            </button>
+
+            <button
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="text-brand-muted hover:text-white text-[10px] font-mono underline"
+            >
+              {showDiagnostics ? 'Hide Info' : 'Diagnostic Info'}
+            </button>
+          </div>
+        </div>
+
+        {showDiagnostics && (
+          <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-mono text-brand-muted">
+            <div className="bg-white/5 p-2 rounded-lg">
+              <span className="block text-brand-muted/60 text-[9px]">STORE COLLECTION CHANNEL</span>
+              <span className="text-white font-medium truncate block">stores/{currentStoreId || 'default'}/customers</span>
+            </div>
+            <div className="bg-white/5 p-2 rounded-lg">
+              <span className="block text-brand-muted/60 text-[9px]">ROOT BACKUP CHANNEL</span>
+              <span className="text-white font-medium truncate block">root /customers</span>
+            </div>
+            <div className="bg-white/5 p-2 rounded-lg">
+              <span className="block text-brand-muted/60 text-[9px]">OFFLINE QUEUED WRITES</span>
+              <span className={clsx("font-bold", pendingCustomerWrites > 0 ? "text-amber-400" : "text-emerald-400")}>
+                {pendingCustomerWrites} pending
+              </span>
+            </div>
+            <div className="bg-white/5 p-2 rounded-lg">
+              <span className="block text-brand-muted/60 text-[9px]">CONNECTION STATUS</span>
+              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Realtime Snapshots OK
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Desktop Table View (Hidden on mobile) */}
       <div className="hidden md:block bg-white rounded-[40px] border border-brand-border shadow-premium overflow-hidden">

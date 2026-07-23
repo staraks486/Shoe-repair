@@ -83,7 +83,8 @@ export function getStoreCollectionRef(storeId: string, collectionName: string) {
 
 export function getStoreDocRef(storeId: string, collectionName: string, docId: string) {
   const targetStoreId = storeId || 'default';
-  return doc(db, 'stores', targetStoreId, collectionName, docId);
+  const safeDocId = (docId || '').trim().replace(/\//g, '_');
+  return doc(db, 'stores', targetStoreId, collectionName, safeDocId);
 }
 
 export enum OperationType {
