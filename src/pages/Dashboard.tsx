@@ -3,7 +3,7 @@ import { useAppStore } from '../store';
 import { RepairStatus, ShoeRepairRequest, Appointment } from '../types';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
-import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles, Check, X } from 'lucide-react';
+import { Phone, History, AlertCircle, ChevronDown, ChevronUp, Trash2, Edit, Search, FileText, Sparkles, Check, X, RefreshCw, Zap, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 import DashboardSummary from '../components/DashboardSummary';
 import AppointmentSummary from '../components/AppointmentSummary';
@@ -25,7 +25,7 @@ const FALLBACK_COBBLERS = [
 ];
 
 export default function Dashboard() {
-  const { repairs, updateRepairStatus, updateRepair, deleteRepair, settings } = useAppStore();
+  const { repairs, updateRepairStatus, updateRepair, deleteRepair, settings, lastSyncTime, fetchFromFirestore, currentStoreId } = useAppStore();
   const activeCobblers = settings?.cobblers?.length > 0 ? settings.cobblers : FALLBACK_COBBLERS;
   const [editingRepair, setEditingRepair] = useState<ShoeRepairRequest | null>(null);
   const [viewingRepair, setViewingRepair] = useState<ShoeRepairRequest | null>(null);
@@ -34,6 +34,13 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<RepairStatus | 'All'>('All');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsRefreshing(true);
+    await fetchFromFirestore();
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
 
   const filteredRepairs = useMemo(() => {
     return repairs.filter(r => {
@@ -92,6 +99,48 @@ export default function Dashboard() {
         <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} onViewAppointment={setViewingAppointment} />
       </section>
       
+      {/* Real-time Firestore Multi-device Sync Status Indicator */}
+      <div className="bg-brand-dark text-white rounded-2xl md:rounded-3xl p-3.5 md:p-4 border border-brand-accent/20 shadow-md flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 fill-emerald-400" /> Multi-Device Realtime Snapshot Sync
+              </span>
+              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
+                Live Firestore Connected
+              </span>
+            </div>
+            <p className="text-[11px] text-brand-muted/80 font-mono mt-0.5">
+              Active Store Node: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Live Active Repairs: <span className="text-white font-bold">{repairs.length}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <span className="text-[9px] uppercase font-bold text-brand-muted/70 block">Last Firestore Snapshot Received</span>
+            <span className="text-xs font-mono font-medium text-emerald-300">
+              {lastSyncTime ? format(new Date(lastSyncTime), 'HH:mm:ss a (PPP)') : 'Listening for live updates...'}
+            </span>
+          </div>
+
+          <button
+            onClick={handleManualSync}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10"
+            title="Ping Firestore Snapshot"
+          >
+            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand-accent")} />
+            <span>{isRefreshing ? 'Syncing...' : 'Ping Sync'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Interactive Status Pills Navigation Bar */}
       <section className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
