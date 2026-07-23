@@ -54,6 +54,14 @@ interface AppState {
   offlineQueue: OfflineOperation[];
   profiles: UserProfile[];
   messages: Message[];
+  storeDataMap?: Record<string, {
+    repairs: ShoeRepairRequest[];
+    customers: Customer[];
+    inventory: InventoryItem[];
+    insurance: ShoeInsurance[];
+    appointments: Appointment[];
+    settings?: Settings;
+  }>;
   
   setUser: (user: User | null) => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -499,7 +507,29 @@ export const useAppStore = create<AppState>()(
               repairsList.push(item);
             });
             repairsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            set({ repairs: repairsList, lastSyncTime: new Date().toISOString() });
+
+            // Retain any optimistic unsynced local items for activeStoreId
+            const cachedRepairs = get().storeDataMap?.[activeStoreId]?.repairs || get().repairs || [];
+            const unsyncedLocals = cachedRepairs.filter(loc => !loc.isSynced && !repairsList.some(r => r.id === loc.id));
+            const finalRepairs = [...unsyncedLocals, ...repairsList];
+
+            set((st) => ({
+              repairs: finalRepairs,
+              lastSyncTime: new Date().toISOString(),
+              storeDataMap: {
+                ...(st.storeDataMap || {}),
+                [activeStoreId]: {
+                  ...(st.storeDataMap?.[activeStoreId] || {
+                    customers: st.customers,
+                    inventory: st.inventory,
+                    insurance: st.insurance,
+                    appointments: st.appointments,
+                    settings: st.settings
+                  }),
+                  repairs: finalRepairs
+                }
+              }
+            }));
           }, (error) => {
             console.error("Failed to sync repairs:", error);
           });
@@ -510,7 +540,26 @@ export const useAppStore = create<AppState>()(
               const item = doc.data() as Customer;
               customersList.push(item);
             });
-            set({ customers: customersList });
+            const cachedCustomers = get().storeDataMap?.[activeStoreId]?.customers || get().customers || [];
+            const unsyncedLocals = cachedCustomers.filter(loc => !customersList.some(c => c.phoneNumber === loc.phoneNumber));
+            const finalCustomers = [...unsyncedLocals, ...customersList];
+
+            set((st) => ({
+              customers: finalCustomers,
+              storeDataMap: {
+                ...(st.storeDataMap || {}),
+                [activeStoreId]: {
+                  ...(st.storeDataMap?.[activeStoreId] || {
+                    repairs: st.repairs,
+                    inventory: st.inventory,
+                    insurance: st.insurance,
+                    appointments: st.appointments,
+                    settings: st.settings
+                  }),
+                  customers: finalCustomers
+                }
+              }
+            }));
           }, (error) => {
             console.error("Failed to sync customers:", error);
           });
@@ -521,7 +570,22 @@ export const useAppStore = create<AppState>()(
               const item = doc.data() as InventoryItem;
               inventoryList.push(item);
             });
-            set({ inventory: inventoryList });
+            set((st) => ({
+              inventory: inventoryList,
+              storeDataMap: {
+                ...(st.storeDataMap || {}),
+                [activeStoreId]: {
+                  ...(st.storeDataMap?.[activeStoreId] || {
+                    repairs: st.repairs,
+                    customers: st.customers,
+                    insurance: st.insurance,
+                    appointments: st.appointments,
+                    settings: st.settings
+                  }),
+                  inventory: inventoryList
+                }
+              }
+            }));
           }, (error) => {
             console.error("Failed to sync inventory:", error);
           });
@@ -532,7 +596,22 @@ export const useAppStore = create<AppState>()(
               const item = doc.data() as ShoeInsurance;
               insuranceList.push(item);
             });
-            set({ insurance: insuranceList });
+            set((st) => ({
+              insurance: insuranceList,
+              storeDataMap: {
+                ...(st.storeDataMap || {}),
+                [activeStoreId]: {
+                  ...(st.storeDataMap?.[activeStoreId] || {
+                    repairs: st.repairs,
+                    customers: st.customers,
+                    inventory: st.inventory,
+                    appointments: st.appointments,
+                    settings: st.settings
+                  }),
+                  insurance: insuranceList
+                }
+              }
+            }));
           }, (error) => {
             console.error("Failed to sync insurance:", error);
           });
@@ -543,7 +622,22 @@ export const useAppStore = create<AppState>()(
               const item = doc.data() as Appointment;
               appointmentsList.push(item);
             });
-            set({ appointments: appointmentsList });
+            set((st) => ({
+              appointments: appointmentsList,
+              storeDataMap: {
+                ...(st.storeDataMap || {}),
+                [activeStoreId]: {
+                  ...(st.storeDataMap?.[activeStoreId] || {
+                    repairs: st.repairs,
+                    customers: st.customers,
+                    inventory: st.inventory,
+                    insurance: st.insurance,
+                    settings: st.settings
+                  }),
+                  appointments: appointmentsList
+                }
+              }
+            }));
           }, (error) => {
             console.error("Failed to sync appointments:", error);
           });
@@ -561,11 +655,38 @@ export const useAppStore = create<AppState>()(
                   ...state.settings, 
                   ...settingsObj,
                   userCredentials: settingsObj.userCredentials || state.settings.userCredentials
+                },
+                storeDataMap: {
+                  ...(state.storeDataMap || {}),
+                  [activeStoreId]: {
+                    ...(state.storeDataMap?.[activeStoreId] || {
+                      repairs: state.repairs,
+                      customers: state.customers,
+                      inventory: state.inventory,
+                      insurance: state.insurance,
+                      appointments: state.appointments
+                    }),
+                    settings: { ...state.settings, ...settingsObj }
+                  }
                 }
               }));
             } else {
-              const currentSettings = get().settings;
-              get().performWrite('settings', 'global_settings', 'set', currentSettings, `Initialize Store Settings for ${activeStoreId}`);
+              const targetStore = get().stores.find(s => s.id === activeStoreId);
+              const storeSpecificSettings: Settings = {
+                ...get().settings,
+                storeName: targetStore?.storeName || 'Cordwainers Studio',
+                address: targetStore?.address || '123 Main St, Cityville',
+                hours: targetStore?.hours || 'Mon-Sat: 9AM - 6PM',
+                phone: targetStore?.phone || '',
+                logoUrl: targetStore?.logoUrl || '',
+                paymentLink: targetStore?.paymentLink || '',
+                qrCode: targetStore?.qrCode || '',
+                instagramLink: targetStore?.instagramLink || '',
+                facebookLink: targetStore?.facebookLink || '',
+                twitterLink: targetStore?.twitterLink || '',
+                websiteLink: targetStore?.websiteLink || ''
+              };
+              get().performWrite('settings', 'global_settings', 'set', storeSpecificSettings, `Initialize Store Settings for ${activeStoreId}`);
             }
           }, (error) => {
             console.error("Failed to sync settings:", error);
@@ -1421,37 +1542,63 @@ export const useAppStore = create<AppState>()(
       },
 
       setCurrentStoreId: async (storeId) => {
+        const state = get();
+        const currentId = state.currentStoreId || 'default';
+
         try {
           await get().processOfflineQueue();
         } catch (e) {
           console.warn("Error flushing offline queue before switching stores:", e);
         }
 
-        const targetStore = get().stores.find(s => s.id === storeId);
-        set((state) => ({
-          currentStoreId: storeId,
-          repairs: [],
-          customers: [],
-          inventory: [],
-          insurance: [],
-          appointments: [],
-          settings: {
-            ...state.settings,
-            storeName: targetStore?.storeName || state.settings.storeName,
-            address: targetStore?.address || state.settings.address,
-            hours: targetStore?.hours || state.settings.hours,
-            phone: targetStore?.phone || (state.settings as any).phone || '',
-            logoUrl: targetStore?.logoUrl || state.settings.logoUrl || '',
-            paymentLink: targetStore?.paymentLink || state.settings.paymentLink || '',
-            qrCode: targetStore?.qrCode || state.settings.qrCode || '',
-            instagramLink: targetStore?.instagramLink || state.settings.instagramLink || '',
-            facebookLink: targetStore?.facebookLink || state.settings.facebookLink || '',
-            twitterLink: targetStore?.twitterLink || state.settings.twitterLink || '',
-            linkedinLink: targetStore?.linkedinLink || (state.settings as any).linkedinLink || '',
-            websiteLink: targetStore?.websiteLink || state.settings.websiteLink || '',
-            whatsappLink: targetStore?.whatsappLink || (state.settings as any).whatsappLink || ''
+        // Cache the outgoing store's dataset before changing currentStoreId
+        const updatedMap = {
+          ...(state.storeDataMap || {}),
+          [currentId]: {
+            repairs: state.repairs,
+            customers: state.customers,
+            inventory: state.inventory,
+            insurance: state.insurance,
+            appointments: state.appointments,
+            settings: state.settings
           }
-        }));
+        };
+
+        const targetStore = state.stores.find(s => s.id === storeId);
+        const cachedForNewStore = updatedMap[storeId];
+
+        const initialRepairs = cachedForNewStore?.repairs || [];
+        const initialCustomers = cachedForNewStore?.customers || [];
+        const initialInventory = cachedForNewStore?.inventory || [];
+        const initialInsurance = cachedForNewStore?.insurance || [];
+        const initialAppointments = cachedForNewStore?.appointments || [];
+
+        const initialSettings = cachedForNewStore?.settings || {
+          ...state.settings,
+          storeName: targetStore?.storeName || 'Cordwainers Studio',
+          address: targetStore?.address || '123 Main St, Cityville',
+          hours: targetStore?.hours || 'Mon-Sat: 9AM - 6PM',
+          phone: targetStore?.phone || '',
+          logoUrl: targetStore?.logoUrl || '',
+          paymentLink: targetStore?.paymentLink || '',
+          qrCode: targetStore?.qrCode || '',
+          instagramLink: targetStore?.instagramLink || '',
+          facebookLink: targetStore?.facebookLink || '',
+          twitterLink: targetStore?.twitterLink || '',
+          websiteLink: targetStore?.websiteLink || ''
+        };
+
+        set({
+          currentStoreId: storeId,
+          storeDataMap: updatedMap,
+          repairs: initialRepairs,
+          customers: initialCustomers,
+          inventory: initialInventory,
+          insurance: initialInsurance,
+          appointments: initialAppointments,
+          settings: initialSettings
+        });
+
         await get().fetchFromFirestore();
       },
 

@@ -56,6 +56,17 @@ async function startServer() {
 
   app.use(express.json());
 
+  // CORS middleware for cross-origin and multi-platform access
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   console.log(`[SERVER] Environment: ${process.env.NODE_ENV}`);
   console.log(`[SERVER] Port: ${PORT}`);
   console.log(`[SERVER] Firebase Project ID: ${process.env.VITE_FIREBASE_PROJECT_ID ? 'Configured' : 'Missing'}`);
@@ -492,8 +503,14 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      etag: true
+    }));
     app.get('*', (req, res) => {
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: `API route ${req.path} not found` });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

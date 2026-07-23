@@ -7,33 +7,31 @@ import appletConfigRaw from '../../firebase-applet-config.json';
 // Support both JSON file (for AI Studio & static builds) and Environment Variables (for Render/GitHub)
 let aiStudioConfig: any = appletConfigRaw || {};
 
-// Support runtime fallback from the server's environment variables (e.g. Render.com dynamic updates)
-let serverConfig: any = {};
-if (typeof window !== 'undefined') {
-  try {
-    const xhr = new XMLHttpRequest();
-    // Synchronous request blocks just long enough to capture runtime settings before SDK init
-    xhr.open('GET', '/api/firebase-config', false);
-    xhr.send(null);
-    if (xhr.status === 200 && xhr.responseText && xhr.responseText.trim().startsWith('{')) {
-      serverConfig = JSON.parse(xhr.responseText);
-      console.log('[FIREBASE] Loaded live runtime configuration from server successfully.');
-    }
-  } catch (err) {
-    console.warn('[FIREBASE] Failed to fetch server config; falling back to static env.', err);
-  }
-}
+let windowConfig: any = (typeof window !== 'undefined' && (window as any).__FIREBASE_CONFIG__) || {};
 
 const firebaseConfig = {
-  apiKey: serverConfig.apiKey || import.meta.env.VITE_FIREBASE_API_KEY || aiStudioConfig.apiKey,
-  authDomain: serverConfig.authDomain || import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || aiStudioConfig.authDomain,
-  projectId: serverConfig.projectId || import.meta.env.VITE_FIREBASE_PROJECT_ID || aiStudioConfig.projectId,
-  storageBucket: serverConfig.storageBucket || import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || aiStudioConfig.storageBucket,
-  messagingSenderId: serverConfig.messagingSenderId || import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || aiStudioConfig.messagingSenderId,
-  appId: serverConfig.appId || import.meta.env.VITE_FIREBASE_APP_ID || aiStudioConfig.appId,
-  measurementId: serverConfig.measurementId || import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || aiStudioConfig.measurementId,
-  firestoreDatabaseId: serverConfig.firestoreDatabaseId || import.meta.env.VITE_FIREBASE_DATABASE_ID || aiStudioConfig.firestoreDatabaseId || '(default)'
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || windowConfig.apiKey || aiStudioConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || windowConfig.authDomain || aiStudioConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || windowConfig.projectId || aiStudioConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || windowConfig.storageBucket || aiStudioConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || windowConfig.messagingSenderId || aiStudioConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || windowConfig.appId || aiStudioConfig.appId,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || windowConfig.measurementId || aiStudioConfig.measurementId,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || windowConfig.firestoreDatabaseId || aiStudioConfig.firestoreDatabaseId || '(default)'
 };
+
+// Async runtime loader if window config wasn't pre-injected
+if (typeof window !== 'undefined' && !firebaseConfig.projectId) {
+  fetch('/api/firebase-config')
+    .then(res => res.json())
+    .then(cfg => {
+      if (cfg && cfg.projectId) {
+        Object.assign(firebaseConfig, cfg);
+        console.log('[FIREBASE] Dynamically populated runtime configuration.');
+      }
+    })
+    .catch(err => console.warn('[FIREBASE] Optional runtime config fetch deferred:', err));
+}
 
 // Only initialize if we have at least a Project ID
 const hasConfig = !!firebaseConfig.projectId;
@@ -44,14 +42,24 @@ const auth = hasConfig ? getAuth(app!) : null as any;
 
 const googleProvider = new GoogleAuthProvider();
 
-const db = hasConfig 
-  ? initializeFirestore(app!, { 
-      experimentalForceLongPolling: true,
+let db: any = null;
+if (hasConfig && app) {
+  try {
+    db = initializeFirestore(app, { 
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
       })
-    }, firebaseConfig.firestoreDatabaseId || '(default)')
-  : null as any;
+    }, firebaseConfig.firestoreDatabaseId || '(default)');
+  } catch (err1) {
+    console.warn('[FIREBASE] Persistent cache initialization failed (e.g. Private Browsing/Webview), falling back to standard memory cache:', err1);
+    try {
+      db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
+    } catch (err2) {
+      console.error('[FIREBASE] Failed to initialize Firestore:', err2);
+      db = null;
+    }
+  }
+}
 
 const dbInstances: Record<string, any> = {};
 const failedDatabases = new Set<string>();

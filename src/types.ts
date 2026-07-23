@@ -217,6 +217,7 @@ export interface UserCredential {
 export interface Settings {
   storeName: string;
   address: string;
+  phone?: string;
   hours: string;
   logo: string;
   logoUrl: string;
@@ -231,6 +232,7 @@ export interface Settings {
   twitterLink?: string;
   linkedinLink?: string;
   websiteLink?: string;
+  whatsappLink?: string;
   isOfflineMode: boolean;
   whatsappTemplate: string;
   whatsappIntakeTemplate?: string;
