@@ -460,27 +460,15 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-            {/* Context Switcher */}
+            {/* Add Store Option */}
             <div className="mb-6 px-2">
-              <select 
-                value={currentStoreId}
-                onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    setIsAddStoreOpen(true);
-                  } else {
-                    setCurrentStoreId(e.target.value);
-                  }
-                }}
-                className="w-full bg-white border border-[#E8E6DF] text-brand-dark text-xs font-bold uppercase tracking-widest rounded-xl py-2.5 px-3 appearance-none cursor-pointer hover:border-brand-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-accent shadow-sm"
-                style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 11px) calc(1em + 2px)', backgroundSize: '4px 4px, 4px 4px', backgroundRepeat: 'no-repeat' }}
+              <button
+                onClick={() => setIsAddStoreOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-white border border-[#E8E6DF] hover:border-brand-accent/50 text-brand-dark hover:text-brand-accent text-xs font-bold uppercase tracking-widest rounded-xl py-2.5 px-3 transition-all active:scale-95 shadow-sm cursor-pointer group"
               >
-                {stores?.map(store => (
-                  <option key={store.id} value={store.id}>
-                    {store.storeName} {store.isDefault ? '★ (Default)' : ''}
-                  </option>
-                ))}
-                <option value="new">+ Add Store</option>
-              </select>
+                <PlusCircle className="w-4 h-4 text-brand-accent group-hover:scale-110 transition-transform" />
+                <span>Add Store</span>
+              </button>
             </div>
 
             <nav className="space-y-1 mb-8">
@@ -697,28 +685,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-1 py-2 custom-scrollbar">
-                  {/* Context Switcher */}
+                  {/* Add Store Option */}
                   <div className="mb-6">
-                    <select 
-                      value={currentStoreId}
-                      onChange={(e) => {
-                        if (e.target.value === 'new') {
-                          setIsAddStoreOpen(true);
-                        } else {
-                          setCurrentStoreId(e.target.value);
-                        }
+                    <button
+                      onClick={() => {
+                        setIsAddStoreOpen(true);
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full bg-white border border-[#E8E6DF] text-brand-dark text-xs font-bold uppercase tracking-widest rounded-xl py-2.5 px-3 appearance-none cursor-pointer hover:border-brand-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-accent shadow-sm"
-                      style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 11px) calc(1em + 2px)', backgroundSize: '4px 4px, 4px 4px', backgroundRepeat: 'no-repeat' }}
+                      className="w-full flex items-center justify-center gap-2 bg-white border border-[#E8E6DF] hover:border-brand-accent/50 text-brand-dark hover:text-brand-accent text-xs font-bold uppercase tracking-widest rounded-xl py-2.5 px-3 transition-all active:scale-95 shadow-sm cursor-pointer group"
                     >
-                      {stores?.map(store => (
-                        <option key={store.id} value={store.id}>
-                          {store.storeName} {store.isDefault ? '★ (Default)' : ''}
-                        </option>
-                      ))}
-                      <option value="new">+ Add Store</option>
-                    </select>
+                      <PlusCircle className="w-4 h-4 text-brand-accent group-hover:scale-110 transition-transform" />
+                      <span>Add Store</span>
+                    </button>
                   </div>
 
                   <nav className="space-y-1 mb-8">
