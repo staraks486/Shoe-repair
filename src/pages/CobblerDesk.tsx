@@ -38,6 +38,7 @@ import { motion } from 'motion/react';
 import { sendPushNotification } from '../lib/notifications';
 
 import PhotoManager from '../components/PhotoManager';
+import RepairStepperTimeline from '../components/RepairStepperTimeline';
 
 export default function CobblerDesk() {
   const { repairs, updateRepairStatus, updateRepair, addVoiceNote, deleteVoiceNote, settings, updateSettings, user, userProfile, isPrivacyMasked } = useAppStore();
@@ -806,25 +807,13 @@ export default function CobblerDesk() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* Status Banner */}
-              <div className={clsx(
-                "p-4 rounded-2xl border flex items-center justify-between",
-                getStatusColor(selectedRepair.status)
-              )}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Current Status</p>
-                    <p className="text-sm font-black">{selectedRepair.status === 'Completed' ? 'Ready for Pickup' : selectedRepair.status}</p>
-                  </div>
-                </div>
-                <button className="bg-white/50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-white transition-colors">
-                  Update
-                </button>
-              </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Interactive Stepper Timeline */}
+              <RepairStepperTimeline 
+                repair={selectedRepair} 
+                onStatusChange={handleStatusUpdate} 
+                showDetails={true} 
+              />
 
               {/* Photos Section */}
               <section className="space-y-12">

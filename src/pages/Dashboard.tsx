@@ -16,6 +16,7 @@ import PhotoManager from '../components/PhotoManager';
 import PageHeader from '../components/PageHeader';
 import IntroBanner from '../components/IntroBanner';
 import DailyShoeCareTip from '../components/DailyShoeCareTip';
+import RepairStepperTimeline from '../components/RepairStepperTimeline';
 
 const FALLBACK_COBBLERS = [
   { id: 'C-001', name: 'Devendra Vishwakarma', specialty: 'Goodyear-Welt Recrafting' },
@@ -360,76 +361,14 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-2 border-b border-brand-border pb-1">Repair Progress</h3>
-                  <div className="relative pl-6 space-y-4 py-2 mt-2">
-                    {/* Vertical line connector */}
-                    <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-gray-150" />
-                    
-                    {[
-                      { key: 'Received', label: 'Received' },
-                      { key: 'In Progress', label: 'In Progress' },
-                      { key: 'Polishing', label: 'Polishing' },
-                      { key: 'Completed', label: 'Ready for Pickup' }
-                    ].map((step, idx) => {
-                      const historyItem = viewingRepair.statusHistory?.find(h => h.status === step.key);
-                      
-                      let stepStatus: 'current' | 'completed' | 'pending' = 'pending';
-                      
-                      const vStep = (() => {
-                        switch (viewingRepair.status) {
-                          case 'Received': return 0;
-                          case 'In Progress': return 1;
-                          case 'Polishing': return 2;
-                          case 'Completed': return 3;
-                          case 'Delivered': return 4;
-                          default: return 0;
-                        }
-                      })();
-                      
-                      if (vStep > idx || (step.key === 'Completed' && viewingRepair.status === 'Delivered')) {
-                        stepStatus = 'completed';
-                      } else if (vStep === idx) {
-                        stepStatus = 'current';
-                      }
-                      
-                      return (
-                        <div key={step.key} className="relative flex items-start gap-3">
-                          {/* Circle dot on vertical line */}
-                          <div className={clsx(
-                            "absolute -left-[23px] w-5 h-5 rounded-full flex items-center justify-center border-2 z-10 transition-all text-[10px]",
-                            stepStatus === 'completed' ? "bg-brand-olive border-brand-olive text-white font-bold" :
-                            stepStatus === 'current' ? "bg-white border-brand-olive text-brand-olive font-extrabold ring-4 ring-brand-olive/15 scale-110" :
-                            "bg-white border-gray-300 text-gray-400"
-                          )}>
-                            {stepStatus === 'completed' ? '✓' : idx + 1}
-                          </div>
-                          
-                          {/* Progress step text info */}
-                          <div className="flex-1">
-                            <p className={clsx(
-                              "text-xs font-bold",
-                              stepStatus === 'current' ? "text-brand-dark" : "text-brand-muted"
-                            )}>
-                              {step.label}
-                            </p>
-                            {historyItem ? (
-                              <p className="text-[10px] text-brand-muted font-mono mt-0.5">
-                                Logged: {format(new Date(historyItem.timestamp), 'MMM d, h:mm a')}
-                              </p>
-                            ) : stepStatus === 'current' ? (
-                              <p className="text-[10px] text-brand-olive font-medium mt-0.5 animate-pulse">
-                                Underway...
-                              </p>
-                            ) : (
-                              <p className="text-[10px] text-gray-400 mt-0.5">
-                                Pending
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <RepairStepperTimeline 
+                    repair={viewingRepair} 
+                    onStatusChange={(id, newStatus) => {
+                      updateRepairStatus(id, newStatus);
+                      setViewingRepair(prev => prev ? { ...prev, status: newStatus } : null);
+                    }} 
+                    showDetails={true} 
+                  />
                 </div>
 
                 <div>
@@ -688,29 +627,24 @@ function RepairCard({
       </div>
 
       <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 border-t border-brand-border/40 mt-4 sm:mt-6">
-        <div className="flex justify-between items-end gap-2">
-          <div className="space-y-3 sm:space-y-4 flex-1 min-w-0">
-            <div className="space-y-1.5 min-w-0">
-              <p className="label-xs text-brand-muted truncate max-w-full">{repair.customerName}</p>
-              <select 
-                value={repair.status} 
-                onChange={handleStatusChange}
-                className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest bg-brand-bg border-none rounded-full px-3 py-1.5 sm:px-4 sm:py-2 cursor-pointer hover:bg-brand-border/40 transition-all max-w-full"
-              >
-                <option value="Received">Received</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Polishing">Polishing</option>
-                <option value="Completed">Ready</option>
-                <option value="Delivered">Delivered</option>
-              </select>
-            </div>
+        {/* Interactive Compact Stepper Timeline */}
+        <RepairStepperTimeline 
+          repair={repair} 
+          onStatusChange={onStatusChange} 
+          compact={true} 
+        />
+
+        <div className="flex justify-between items-end gap-2 pt-1">
+          <div className="space-y-2 flex-1 min-w-0">
+            <p className="label-xs text-brand-muted truncate max-w-full">{repair.customerName}</p>
             
-            <div className="flex items-center gap-4">
-              <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-brand-dark transition-colors">
+            <div className="flex items-center gap-3">
+              <button onClick={() => triggerWhatsApp(repair.status)} className="text-brand-muted hover:text-brand-dark transition-colors" title="Send WhatsApp Update">
                 <Phone className="w-4 h-4" />
               </button>
-              <button onClick={() => setShowTimeline(!showTimeline)} className="text-brand-muted hover:text-brand-dark transition-colors">
+              <button onClick={() => setShowTimeline(!showTimeline)} className={clsx("text-brand-muted hover:text-brand-dark transition-colors flex items-center gap-1 text-[10px] font-mono", showTimeline && "text-brand-dark font-bold")} title="Toggle Detailed Timeline">
                 <History className="w-4 h-4" />
+                <span>{showTimeline ? 'Hide History' : 'Full Log'}</span>
               </button>
             </div>
           </div>
@@ -723,14 +657,14 @@ function RepairCard({
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="pt-2 space-y-1 overflow-hidden"
+            exit={{ opacity: 0, height: 0 }}
+            className="pt-2 overflow-hidden"
           >
-            {repair.statusHistory.slice(-3).map((item, idx) => (
-              <div key={idx} className="flex justify-between text-[8px] text-brand-muted font-bold uppercase tracking-tight">
-                <span>{item.status}</span>
-                <span>{format(new Date(item.timestamp), 'MMM d')}</span>
-              </div>
-            ))}
+            <RepairStepperTimeline 
+              repair={repair} 
+              onStatusChange={onStatusChange} 
+              showDetails={true} 
+            />
           </motion.div>
         )}
       </div>
