@@ -295,6 +295,43 @@ export const useAppStore = create<AppState>()(
         userCredentials: [
           { email: 'admin@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Admin', displayName: 'Admin Studio', username: 'admin', mobile: '9999999999' },
           { email: 'guest@cordwainers.local', password: 'artisan_cobbler_pass', role: 'Staff', displayName: 'Guest Staff', username: 'guest', mobile: '8888888888' }
+        ],
+        appReviews: [
+          {
+            id: 'rev-1',
+            reviewerName: 'Rajesh Malhotra',
+            rating: 5,
+            comment: 'Exceptional Goodyear welt resole on my Allen Edmonds oxfords! The hand-burnished patina finish restored them beyond original state. Worth every rupee.',
+            date: '2026-07-20',
+            location: 'Mumbai, MH',
+            verifiedRepairId: 'REP-1002'
+          },
+          {
+            id: 'rev-2',
+            reviewerName: 'Ananya Iyer',
+            rating: 5,
+            comment: 'The leather conditioning and heel block replacement on my Italian boots turned out flawless. Transparent pricing in ₹ INR and super fast updates on WhatsApp!',
+            date: '2026-07-18',
+            location: 'Bengaluru, KA',
+            verifiedRepairId: 'REP-1005'
+          },
+          {
+            id: 'rev-3',
+            reviewerName: 'Vikramaditya Verma',
+            rating: 5,
+            comment: 'Pristine service! The app makes tracking repair progress and paying online via UPI or card effortless. Cordwainers Studio is top tier.',
+            date: '2026-07-14',
+            location: 'New Delhi, DL',
+            verifiedRepairId: 'REP-1009'
+          },
+          {
+            id: 'rev-4',
+            reviewerName: 'Meera Kulkarni',
+            rating: 4,
+            comment: 'Great craftsmanship on handbag zipper replacement and shoe re-stitching. Very polite staff and honest rates.',
+            date: '2026-07-10',
+            location: 'Pune, MH'
+          }
         ]
       },
       syncErrorLogs: [],

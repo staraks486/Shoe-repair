@@ -249,6 +249,17 @@ export interface Settings {
   introSpeed?: 'slow' | 'standard' | 'fast' | 'off';
   giftCards?: GiftCard[];
   userCredentials?: UserCredential[];
+  appReviews?: AppReview[];
+}
+
+export interface AppReview {
+  id: string;
+  reviewerName: string;
+  rating: number; // 1-5 stars
+  comment: string;
+  date: string;
+  verifiedRepairId?: string;
+  location?: string;
 }
 
 export interface GiftCard {

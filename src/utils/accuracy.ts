@@ -81,3 +81,30 @@ export function validateEmail(email: string): boolean {
   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return re.test(email.trim());
 }
+
+/**
+ * Formats pricing into Indian Rupee (INR - ₹) with standard Indian numbering system
+ */
+export function formatIndianPrice(amount: number | string | undefined | null): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+  if (isNaN(num)) return '₹0';
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(num);
+}
+
+/**
+ * Calculates average rating score and review metrics
+ */
+export function calculateAverageRating(ratings: number[]): { average: number; formatted: string; total: number } {
+  if (!ratings || ratings.length === 0) return { average: 5.0, formatted: '5.0', total: 0 };
+  const sum = ratings.reduce((acc, curr) => acc + curr, 0);
+  const avg = roundCurrency(sum / ratings.length);
+  return {
+    average: avg,
+    formatted: avg.toFixed(1),
+    total: ratings.length
+  };
+}
