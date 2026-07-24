@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, PlusCircle, Shield, Tag, Ruler } from 'lucide-react';
+import { Plus, PlusCircle, Shield, Tag, Ruler, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import ShoeSizeChartModal from './ShoeSizeChartModal';
@@ -9,11 +9,23 @@ export default function FloatingActionMenu() {
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const navigate = useNavigate();
 
+  const handleReplayIntro = () => {
+    setIsOpen(false);
+    window.dispatchEvent(new CustomEvent('open-app-intro'));
+  };
+
   return (
     <>
       <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end md:hidden">
         {isOpen && (
           <div className="flex flex-col items-end space-y-3 mb-4 animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <button 
+              onClick={handleReplayIntro}
+              className="flex items-center space-x-3 bg-brand-dark text-white px-5 py-3 rounded-full shadow-xl border border-brand-accent/40 hover:bg-brand-olive transition-colors"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">App Intro & Slow Sync</span>
+              <Sparkles className="w-5 h-5 text-brand-accent" />
+            </button>
             <button 
               onClick={() => { setIsOpen(false); setIsSizeChartOpen(true); }}
               className="flex items-center space-x-3 bg-brand-dark text-white px-5 py-3 rounded-full shadow-xl border border-brand-accent/30 hover:bg-brand-olive transition-colors"

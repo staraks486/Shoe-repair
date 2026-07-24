@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import ShoeFactsLoader from './ShoeFactsLoader';
+import AppIntroSplash from './AppIntroSplash';
 import { getLocationName } from '../utils';
 import { auth, db } from '../services/firebase';
 import { signOut } from 'firebase/auth';
@@ -59,6 +60,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [syncFeedback, setSyncFeedback] = useState<{ status: 'success' | 'error' | 'syncing', message: string } | null>(null);
   const [currentTime, setCurrentTime] = useState('09:41');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isIntroSplashOpen, setIsIntroSplashOpen] = useState(false);
 
   // Advanced Security & Dev Telemetry states
   const [isLocked, setIsLocked] = useState(false);
@@ -341,6 +343,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <NotificationToastProvider>
+      <AppIntroSplash forceShow={isIntroSplashOpen} onComplete={() => setIsIntroSplashOpen(false)} />
       <div className="min-h-screen bg-[#FDFCFB] flex flex-col md:flex-row relative">
         <AuthObserver />
         <InstallPrompt />
@@ -571,6 +574,24 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </div>
                     <span className="text-[8px] font-black text-brand-muted uppercase bg-slate-100 px-1.5 py-0.5 rounded">
                       ALT+L
+                    </span>
+                  </button>
+
+                  {/* App Intro & Background Sync Button */}
+                  <button
+                    onClick={() => {
+                      setIsIntroSplashOpen(true);
+                      window.dispatchEvent(new CustomEvent('open-app-intro'));
+                    }}
+                    className="w-full flex items-center justify-between p-2 rounded-xl border border-brand-accent/30 bg-brand-dark text-white hover:bg-brand-olive transition-all active:scale-95 font-bold text-xs shadow-sm cursor-pointer"
+                    title="Replay slow app intro with live background update"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-brand-accent" />
+                      <span>Replay App Intro</span>
+                    </div>
+                    <span className="text-[8px] font-black text-brand-accent uppercase bg-brand-accent/20 px-1.5 py-0.5 rounded border border-brand-accent/30">
+                      SLOW SYNC
                     </span>
                   </button>
                 </div>
