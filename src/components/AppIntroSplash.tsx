@@ -1,61 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Sparkles, 
-  Footprints, 
-  RefreshCw, 
-  CheckCircle2, 
-  Lightbulb, 
-  Zap, 
-  ArrowRight,
-  Clock
-} from 'lucide-react';
+import { Footprints, ArrowRight, Quote, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store';
-import { SHOE_FACTS } from './ShoeFactsLoader';
+import { SHOE_INSIGHTS, ShoeInsight } from '../data/shoeFacts';
 
 interface AppIntroSplashProps {
   forceShow?: boolean;
   onComplete?: () => void;
 }
 
-const INTRO_STEPS = [
-  { label: "Initializing Cordwainer Studio Node...", sub: "Verifying secure workshop session & environment" },
-  { label: "Syncing Firestore Database Records...", sub: "Fetching active repairs, customers & store settings in background" },
-  { label: "Processing Offline Queue & Pings...", sub: "Pushing local pending mutations to live Cloud Firestore" },
-  { label: "Optimizing Asset Cache & Soundscape...", sub: "Preloading UI themes, size maps & artisan tools" },
-  { label: "Workshop Workspace Ready!", sub: "Opening Cordwainer Artisan Studio" }
-];
-
 export default function AppIntroSplash({ forceShow = false, onComplete }: AppIntroSplashProps) {
+  const { settings, fetchFromFirestore, processOfflineQueue } = useAppStore();
+  const currentSpeed = settings?.introSpeed || 'slow';
+
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     if (forceShow) return true;
+    const initialSpeed = useAppStore.getState().settings?.introSpeed || 'slow';
+    if (initialSpeed === 'off') return false;
     const alreadyShown = sessionStorage.getItem('cordwainer_intro_shown');
     return !alreadyShown;
   });
 
   const [progress, setProgress] = useState(0);
-  const [factIndex, setFactIndex] = useState(0);
-  const [syncStatusText, setSyncStatusText] = useState('Starting background update...');
-  const [speedMode, setSpeedMode] = useState<'slow' | 'standard'>('slow');
-
-  const { fetchFromFirestore, processOfflineQueue, repairs } = useAppStore();
+  const [insightIndex, setInsightIndex] = useState<number>(() => Math.floor(Math.random() * SHOE_INSIGHTS.length));
 
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  // Derived stepIndex from progress to avoid setState inside setState loop
-  const stepIndex = Math.min(
-    Math.floor((progress / 100) * INTRO_STEPS.length),
-    INTRO_STEPS.length - 1
-  );
-
   // Sync forceShow prop or custom global event trigger
   useEffect(() => {
     if (forceShow) {
       setShowSplash(true);
       setProgress(0);
+      setInsightIndex(Math.floor(Math.random() * SHOE_INSIGHTS.length));
     }
   }, [forceShow]);
 
@@ -63,11 +42,21 @@ export default function AppIntroSplash({ forceShow = false, onComplete }: AppInt
     const handleReplayIntro = () => {
       setShowSplash(true);
       setProgress(0);
+      setInsightIndex(Math.floor(Math.random() * SHOE_INSIGHTS.length));
     };
 
     window.addEventListener('open-app-intro', handleReplayIntro);
     return () => window.removeEventListener('open-app-intro', handleReplayIntro);
   }, []);
+
+  // Rotate fact/quote every 4 seconds if splash stays open for comfortable reading
+  useEffect(() => {
+    if (!showSplash) return;
+    const rotateInterval = setInterval(() => {
+      setInsightIndex((prev) => (prev + 1) % SHOE_INSIGHTS.length);
+    }, 4000);
+    return () => clearInterval(rotateInterval);
+  }, [showSplash]);
 
   // Execute Background Update & Intro Timer
   useEffect(() => {
@@ -75,29 +64,28 @@ export default function AppIntroSplash({ forceShow = false, onComplete }: AppInt
 
     let isMounted = true;
 
-    // Pick random initial shoe fact
-    setFactIndex(Math.floor(Math.random() * SHOE_FACTS.length));
-
-    // 1. Kick off real background application update
+    // Kick off background sync
     const runBackgroundUpdate = async () => {
       try {
-        if (isMounted) setSyncStatusText('Fetching live Firestore data...');
         await fetchFromFirestore();
-        if (isMounted) setSyncStatusText('Processing offline sync queue...');
         await processOfflineQueue();
-        if (isMounted) setSyncStatusText('Background update complete!');
       } catch (err) {
-        console.warn('Background update warning during intro:', err);
-        if (isMounted) setSyncStatusText('Background update ready.');
+        console.warn('Background sync during intro:', err);
       }
     };
 
     runBackgroundUpdate();
 
-    // 2. Smooth Progress Timer
-    const stepDuration = speedMode === 'slow' ? 700 : 400; // ms per step
-    const intervalTime = 50; // update frequency
-    const increment = 100 / ((stepDuration * INTRO_STEPS.length) / intervalTime);
+    // Extended Progress Timer for relaxed presentation and ample reading time
+    const stepDurationMap: Record<string, number> = {
+      slow: 1200,     // ~6.0s total - extended viewing time
+      standard: 800,  // ~4.0s total - balanced viewing time
+      fast: 400,      // ~2.0s total - quick preview
+      off: 60         // instant transition if previewed while off
+    };
+    const stepDuration = stepDurationMap[currentSpeed] || 1200;
+    const intervalTime = 30;
+    const increment = 100 / ((stepDuration * 5) / intervalTime);
 
     const timer = setInterval(() => {
       setProgress((prevProgress) => {
@@ -116,29 +104,18 @@ export default function AppIntroSplash({ forceShow = false, onComplete }: AppInt
               setShowSplash(false);
               if (onCompleteRef.current) onCompleteRef.current();
             }
-          }, 350);
+          }, 200);
           return 100;
         }
         return nextProgress;
       });
     }, intervalTime);
 
-    // Rotate shoe facts every 2.5 seconds
-    const factTimer = setInterval(() => {
-      if (isMounted) {
-        setFactIndex((prev) => (prev + 1) % SHOE_FACTS.length);
-      }
-    }, 2500);
-
     return () => {
       isMounted = false;
       clearInterval(timer);
-      clearInterval(factTimer);
     };
-  }, [showSplash, speedMode, fetchFromFirestore, processOfflineQueue]);
-
-  const currentFact = SHOE_FACTS[factIndex] || SHOE_FACTS[0];
-  const currentStep = INTRO_STEPS[stepIndex] || INTRO_STEPS[0];
+  }, [showSplash, currentSpeed, fetchFromFirestore, processOfflineQueue]);
 
   const handleSkip = () => {
     sessionStorage.setItem('cordwainer_intro_shown', 'true');
@@ -148,163 +125,112 @@ export default function AppIntroSplash({ forceShow = false, onComplete }: AppInt
 
   if (!showSplash) return null;
 
+  const currentInsight: ShoeInsight = SHOE_INSIGHTS[insightIndex] || SHOE_INSIGHTS[0];
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0, scale: 1.02 }}
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
-        className="fixed inset-0 z-[9999] bg-[#1A1615] text-white flex flex-col items-center justify-between p-4 sm:p-6 md:p-10 select-none overflow-hidden"
+        exit={{ opacity: 0, scale: 0.99 }}
+        transition={{ duration: 0.35, ease: 'easeInOut' }}
+        className="fixed inset-0 z-[9999] bg-[#181514] text-white flex flex-col items-center justify-between p-6 sm:p-10 select-none overflow-hidden"
       >
-        {/* Background Glowing Ambient Orbs */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-brand-accent/15 rounded-full blur-[100px] pointer-events-none animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-amber-600/15 rounded-full blur-[100px] pointer-events-none animate-pulse" style={{ animationDelay: '1000ms' }} />
-
-        {/* Top Bar Controls */}
-        <div className="w-full max-w-4xl flex items-center justify-between gap-4 z-10">
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-[10px] font-mono font-bold text-emerald-300 uppercase tracking-widest flex items-center gap-1">
-              <Zap className="w-3 h-3 fill-emerald-400 text-emerald-400" /> Background Updating
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSpeedMode(prev => prev === 'slow' ? 'standard' : 'slow')}
-              className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted hover:text-white transition-all flex items-center gap-1 border border-white/10"
-              title="Toggle Intro Pace"
-            >
-              <Clock className="w-3 h-3 text-brand-accent" />
-              <span>Pace: {speedMode === 'slow' ? 'Slow & Smooth (3.5s)' : 'Standard (2.0s)'}</span>
-            </button>
-
-            <button
-              onClick={handleSkip}
-              className="px-4 py-1.5 rounded-full bg-brand-accent/20 hover:bg-brand-accent hover:text-brand-dark text-brand-accent text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 border border-brand-accent/40 cursor-pointer"
-            >
-              <span>Skip Intro</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {/* Top Header - Skip button only */}
+        <div className="w-full max-w-2xl flex justify-end items-center z-10">
+          <button
+            onClick={handleSkip}
+            className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer"
+          >
+            <span>Skip</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Central Studio Branding & Progress Card */}
-        <div className="w-full max-w-xl my-auto z-10 space-y-6 text-center">
-          {/* Animated Workshop Badge */}
-          <div className="flex flex-col items-center space-y-3">
-            <motion.div 
-              initial={{ scale: 0.8, rotate: -5 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 0.6, type: 'spring' }}
-              className="relative"
-            >
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-dark via-[#2A2421] to-[#120F0E] flex items-center justify-center shadow-2xl border-2 border-brand-accent/40 relative overflow-hidden">
-                <Footprints className="w-10 h-10 text-brand-accent animate-pulse" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-              </div>
-              <div className="absolute -top-2 -right-2 w-7 h-7 bg-brand-accent rounded-full flex items-center justify-center shadow-lg border-2 border-[#1A1615]">
-                <Sparkles className="w-3.5 h-3.5 text-brand-dark animate-spin" />
-              </div>
-            </motion.div>
+        {/* Central Studio Branding & Fact Box */}
+        <div className="w-full max-w-md my-auto z-10 space-y-6 text-center">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-col items-center space-y-3"
+          >
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#231F1D] flex items-center justify-center border border-brand-accent/30 shadow-2xl relative">
+              <Footprints className="w-8 h-8 sm:w-10 sm:h-10 text-brand-accent" />
+            </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-accent bg-brand-accent/10 px-3 py-1 rounded-full border border-brand-accent/20">
-                MADE IN INDIA • EST. 1898
-              </span>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold tracking-tight text-white pt-2">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight text-white">
                 CORDWAINERS <span className="text-brand-accent">STUDIO</span>
               </h1>
-              <p className="text-xs text-brand-muted/80 font-mono tracking-wider">
-                Artisan Footwear Repair & Luxury Care Hub
+              <p className="text-xs text-brand-muted/80 tracking-wider">
+                Artisan Footwear & Leather Care
               </p>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Progress Percentage Display & Bar */}
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4 relative overflow-hidden">
-            <div className="flex justify-between items-end border-b border-white/10 pb-3">
-              <div className="text-left space-y-0.5">
-                <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" /> Step {stepIndex + 1} of {INTRO_STEPS.length}
-                </span>
-                <p className="text-sm font-bold text-white tracking-wide">
-                  {currentStep.label}
-                </p>
-                <p className="text-[11px] text-brand-muted/80 font-mono">
-                  {currentStep.sub}
-                </p>
-              </div>
-
-              <div className="text-right">
-                <span className="text-2xl sm:text-3xl font-mono font-black text-brand-accent">
-                  {Math.round(progress)}%
-                </span>
-              </div>
-            </div>
-
-            {/* Custom Smooth Progress Track */}
-            <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden p-0.5 border border-white/15 relative">
+          {/* Minimal Progress Bar */}
+          <div className="space-y-2 px-2">
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden p-0 relative">
               <motion.div
-                className="h-full bg-gradient-to-r from-amber-500 via-brand-accent to-emerald-400 rounded-full shadow-lg"
+                className="h-full bg-brand-accent rounded-full"
                 style={{ width: `${progress}%` }}
-                transition={{ ease: 'easeOut' }}
+                transition={{ ease: 'linear' }}
               />
             </div>
-
-            {/* Background Sync Live Metrics */}
-            <div className="flex items-center justify-between text-[10px] font-mono text-brand-muted pt-1">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Sync Status: <strong className="text-white">{syncStatusText}</strong></span>
-              </div>
-              <div>
-                <span>Active Repairs: <strong className="text-amber-300">{repairs?.length || 0} orders</strong></span>
-              </div>
+            
+            <div className="flex justify-between items-center text-[10px] font-mono text-brand-muted/70">
+              <span>Loading workspace...</span>
+              <span>{Math.round(progress)}%</span>
             </div>
           </div>
 
-          {/* Rotating Shoe Care & Craft Fact Card */}
-          <div className="bg-gradient-to-r from-white/5 via-white/10 to-white/5 border border-white/10 rounded-2xl p-4 text-left relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
-              <span className="text-[9.5px] font-mono font-bold uppercase tracking-widest text-amber-300 flex items-center gap-1">
-                <Lightbulb className="w-3 h-3 text-amber-400 fill-amber-400/30" /> Craft & Leather Trivia
-              </span>
-              <span className="text-[9px] font-mono text-brand-muted px-2 py-0.5 rounded bg-white/10">
-                {currentFact.category}
-              </span>
-            </div>
-
+          {/* Clean, Simple Fact / Quote Card */}
+          <div className="pt-2">
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentFact.id}
+                key={insightIndex}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-1"
+                onClick={() => setInsightIndex((prev) => (prev + 1) % SHOE_INSIGHTS.length)}
+                className="bg-[#231F1D]/80 border border-white/10 hover:border-brand-accent/30 rounded-2xl p-4 text-left transition-all cursor-pointer group shadow-lg space-y-2"
+                title="Click for another insight"
               >
-                <h4 className="text-xs font-bold text-white">{currentFact.title}</h4>
-                <p className="text-[11px] text-brand-muted leading-relaxed">
-                  "{currentFact.fact}"
+                <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-brand-accent/90">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    {currentInsight.type === 'quote' ? (
+                      <Quote className="w-3 h-3 text-brand-accent" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 text-brand-accent" />
+                    )}
+                    {currentInsight.category}
+                  </span>
+                  <span className="text-brand-muted/60 text-[9px]">Tap for next</span>
+                </div>
+
+                <p className="text-xs text-white/90 leading-relaxed font-sans">
+                  {currentInsight.type === 'quote' ? `"${currentInsight.text}"` : currentInsight.text}
                 </p>
+
+                {currentInsight.author && (
+                  <p className="text-[10px] text-brand-accent/80 font-medium text-right italic pt-0.5">
+                    — {currentInsight.author}
+                  </p>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Footer Design Credit */}
-        <div className="w-full max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-2 text-center text-[10px] font-mono text-brand-muted/70 pt-4 border-t border-white/10 z-10">
-          <div>
-            <span>Design by <strong className="text-white font-bold">Arvind Kumar Shukla</strong></span>
-          </div>
-          <div>
-            <span>Cordwainers Studio • Full-Stack Realtime Sync Enabled</span>
-          </div>
+        {/* Minimal Footer */}
+        <div className="w-full max-w-2xl text-center text-[11px] text-brand-muted/50 z-10">
+          <span>Cordwainers Studio • Design by Arvind Kumar Shukla</span>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 }
+
 

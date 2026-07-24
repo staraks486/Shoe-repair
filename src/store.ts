@@ -267,6 +267,7 @@ export const useAppStore = create<AppState>()(
         ],
         theme: 'olive',
         autoNotifyPickup: true,
+        introSpeed: 'slow',
         giftCards: [
           {
             id: 'gc-1',

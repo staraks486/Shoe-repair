@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Trash2,
   Clock,
+  Sparkles,
   Database,
   Wifi,
   WifiOff,
@@ -1906,13 +1907,14 @@ export default function Settings() {
                 <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">Atmosphere</h3>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {['light', 'dark', 'olive'].map(theme => (
                   <button
                     key={theme}
+                    type="button"
                     onClick={() => updateSettings({ theme: theme as any })}
                     className={clsx(
-                      "p-6 rounded-[32px] border transition-all text-left group",
+                      "p-6 rounded-[32px] border transition-all text-left group cursor-pointer",
                       settings.theme === theme 
                         ? "bg-brand-dark border-brand-dark shadow-lg scale-[1.02]" 
                         : "bg-white border-brand-border hover:bg-brand-bg"
@@ -1929,6 +1931,105 @@ export default function Settings() {
                     </div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* App Intro & Splash Timing */}
+            <div className="space-y-6 pt-6 border-t border-brand-border/40">
+              <div className="flex items-center justify-between flex-wrap gap-4 border-b border-brand-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-brand-olive" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-brand-dark uppercase tracking-[0.2em]">App Intro & Splash Timing</h3>
+                    <p className="text-[10px] text-brand-muted font-bold uppercase tracking-wider mt-0.5">
+                      Configure initial splash animation speed and loading presentation pace
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-app-intro'));
+                  }}
+                  className="inline-flex items-center gap-2 bg-brand-accent/20 hover:bg-brand-accent hover:text-brand-dark text-brand-accent border border-brand-accent/40 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full transition-all cursor-pointer shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Preview Intro Animation
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  {
+                    id: 'slow',
+                    title: 'Extended & Relaxed',
+                    duration: '6.0s Duration',
+                    desc: 'Extended artisan intro with ample reading time for shoe facts & quotes',
+                    badge: 'Maximum Time'
+                  },
+                  {
+                    id: 'standard',
+                    title: 'Standard Pace',
+                    duration: '4.0s Duration',
+                    desc: 'Balanced loading presentation with comfortable trivia viewing',
+                    badge: 'Recommended'
+                  },
+                  {
+                    id: 'fast',
+                    title: 'Quick Transition',
+                    duration: '2.0s Duration',
+                    desc: 'Quick transition straight into the active workshop workspace',
+                    badge: 'High Speed'
+                  },
+                  {
+                    id: 'off',
+                    title: 'Off / Direct Access',
+                    duration: '0s (Instant)',
+                    desc: 'Bypasses splash screen entirely on initial load',
+                    badge: 'Instant Access'
+                  }
+                ].map(item => {
+                  const isSelected = (settings.introSpeed || 'slow') === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ introSpeed: item.id as any });
+                        setLocalFields(prev => ({ ...prev, introSpeed: item.id as any }));
+                      }}
+                      className={clsx(
+                        "p-5 rounded-[28px] border transition-all text-left flex flex-col justify-between gap-3 group cursor-pointer relative overflow-hidden",
+                        isSelected 
+                          ? "bg-brand-dark text-white border-brand-dark shadow-lg scale-[1.02]" 
+                          : "bg-white border-brand-border text-brand-dark hover:bg-brand-bg/60"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className={clsx("text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border block w-max mb-1.5", 
+                            isSelected ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-brand-bg text-brand-muted border-brand-border")}>
+                            {item.badge}
+                          </span>
+                          <h4 className="text-xs font-black uppercase tracking-wider">{item.title}</h4>
+                        </div>
+                        {isSelected && <CheckCircle className="w-4 h-4 text-brand-accent shrink-0 mt-1" />}
+                      </div>
+
+                      <div>
+                        <span className={clsx("text-xs font-mono font-bold block", isSelected ? "text-brand-accent" : "text-brand-olive")}>
+                          {item.duration}
+                        </span>
+                        <p className={clsx("text-[10px] leading-relaxed mt-1 font-medium", isSelected ? "text-brand-muted/90" : "text-brand-muted")}>
+                          {item.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

@@ -246,6 +246,7 @@ export interface Settings {
   theme: 'light' | 'dark' | 'olive';
   termsAndConditions?: string;
   autoNotifyPickup?: boolean;
+  introSpeed?: 'slow' | 'standard' | 'fast' | 'off';
   giftCards?: GiftCard[];
   userCredentials?: UserCredential[];
 }
