@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store';
 import PhotoManager from '../components/PhotoManager';
+import ShoeSizeChartModal from '../components/ShoeSizeChartModal';
 import { ShoeRepairRequest, RepairPhoto } from '../types';
 import { 
   User, 
@@ -28,6 +29,7 @@ import {
   FileCheck, 
   AlertTriangle,
   Camera,
+  Ruler,
   Download,
   Image as ImageIcon,
   FileText
@@ -205,10 +207,12 @@ export default function NewRepair() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const [shoeModel, setShoeModel] = useState('');
-  const [sizeCategory, setSizeCategory] = useState<'mens' | 'ladies'>('mens');
+  const [sizeCategory, setSizeCategory] = useState<'mens' | 'ladies' | 'kids'>('mens');
   const [shoeSize, setShoeSize] = useState('');
-  const MENS_SIZES = ['UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8', 'UK 8.5', 'UK 9', 'UK 9.5', 'UK 10', 'UK 10.5', 'UK 11', 'UK 12'];
-  const LADIES_SIZES = ['UK 3', 'UK 3.5', 'UK 4', 'UK 4.5', 'UK 5', 'UK 5.5', 'UK 6', 'UK 6.5', 'UK 7', 'UK 7.5', 'UK 8'];
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const MENS_SIZES = ['UK 4', 'UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11', 'UK 12'];
+  const LADIES_SIZES = ['UK 2', 'UK 3', 'UK 4', 'UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'];
+  const KIDS_SIZES = ['UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11', 'UK 12', 'UK 13', 'UK 1', 'UK 2', 'UK 3'];
   const [shoeImage, setShoeImage] = useState('');
   const [beforePhotos, setBeforePhotos] = useState<RepairPhoto[]>([]);
   const [afterPhotos, setAfterPhotos] = useState<RepairPhoto[]>([]);
@@ -1264,16 +1268,24 @@ Thank you for trusting Cordwainers Studio!
                       <div className="sm:col-span-2 space-y-3.5 bg-brand-bg/5 p-4 rounded-xl border border-brand-border/40">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/30 pb-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Size Category</label>
-                            <span className="text-[9.5px] text-brand-muted">Select profile for precise size mapping</span>
+                            <div className="flex items-center gap-2">
+                              <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Footwear Size Category</label>
+                              <button
+                                type="button"
+                                onClick={() => setIsSizeChartOpen(true)}
+                                className="flex items-center gap-1 text-[10px] font-bold text-brand-accent bg-brand-dark px-2.5 py-0.5 rounded-md hover:bg-brand-olive transition-colors shadow-sm"
+                              >
+                                <Ruler className="w-3 h-3" />
+                                <span>Size Chart (Made in India)</span>
+                              </button>
+                            </div>
+                            <span className="text-[9.5px] text-brand-muted">Select profile or open Made in India reference chart for CM / Euro / US mapping</span>
                           </div>
                           
                           <div className="flex bg-brand-bg/25 p-1 rounded-lg border border-brand-border/60 w-fit">
                             <button
                               type="button"
-                              onClick={() => {
-                                setSizeCategory('mens');
-                              }}
+                              onClick={() => setSizeCategory('mens')}
                               className={clsx(
                                 "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all",
                                 sizeCategory === 'mens'
@@ -1285,9 +1297,7 @@ Thank you for trusting Cordwainers Studio!
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                setSizeCategory('ladies');
-                              }}
+                              onClick={() => setSizeCategory('ladies')}
                               className={clsx(
                                 "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all",
                                 sizeCategory === 'ladies'
@@ -1297,14 +1307,35 @@ Thank you for trusting Cordwainers Studio!
                             >
                               Women's
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setSizeCategory('kids')}
+                              className={clsx(
+                                "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all",
+                                sizeCategory === 'kids'
+                                  ? "bg-brand-dark text-white shadow-sm"
+                                  : "text-brand-muted hover:text-brand-dark"
+                              )}
+                            >
+                              Kids'
+                            </button>
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Specific Size (UK/India) *</label>
+                          <div className="flex justify-between items-center">
+                            <label className="block text-[10px] font-bold text-brand-dark uppercase tracking-wider">Specific Size (UK/India) *</label>
+                            <button
+                              type="button"
+                              onClick={() => setIsSizeChartOpen(true)}
+                              className="text-[10px] text-brand-olive hover:underline font-bold"
+                            >
+                              Need CM to Euro conversion?
+                            </button>
+                          </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {(sizeCategory === 'mens' ? MENS_SIZES : LADIES_SIZES).map(size => {
-                              const isSelected = shoeSize === size;
+                            {(sizeCategory === 'mens' ? MENS_SIZES : sizeCategory === 'ladies' ? LADIES_SIZES : KIDS_SIZES).map(size => {
+                              const isSelected = shoeSize === size || shoeSize.startsWith(size);
                               return (
                                 <button
                                   key={size}
@@ -1324,6 +1355,19 @@ Thank you for trusting Cordwainers Studio!
                           </div>
                         </div>
                       </div>
+
+                      {/* Shoe Size Chart Modal Integration */}
+                      <ShoeSizeChartModal
+                        isOpen={isSizeChartOpen}
+                        onClose={() => setIsSizeChartOpen(false)}
+                        initialCategory={sizeCategory === 'mens' ? 'MEN' : sizeCategory === 'ladies' ? 'WOMEN' : 'KIDS'}
+                        onSelectSize={(selectedLabel, cat, row) => {
+                          if (cat === 'MEN') setSizeCategory('mens');
+                          else if (cat === 'WOMEN') setSizeCategory('ladies');
+                          else if (cat === 'KIDS') setSizeCategory('kids');
+                          setShoeSize(`UK ${row.ukIndian}`);
+                        }}
+                      />
                     </div>
 
                       <div>

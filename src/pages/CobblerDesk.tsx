@@ -27,8 +27,10 @@ import {
   CreditCard,
   Check,
   UserPlus,
-  Coins
+  Coins,
+  Ruler
 } from 'lucide-react';
+import ShoeSizeChartModal from '../components/ShoeSizeChartModal';
 import { useAppStore } from '../store';
 import { ShoeRepairRequest, RepairStatus, VoiceNote } from '../types';
 import clsx from 'clsx';
@@ -47,6 +49,7 @@ export default function CobblerDesk() {
   const [selectedRepair, setSelectedRepair] = useState<ShoeRepairRequest | null>(null);
   const [activeTab, setActiveTab] = useState<'assigned' | 'in-progress' | 'completed'>('assigned');
   const [currentView, setCurrentView] = useState<'repairs' | 'cobblers' | 'payments'>('repairs');
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
 
   // Privacy Masking helpers
   const maskPhone = (phone: string) => {
@@ -400,11 +403,25 @@ export default function CobblerDesk() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <button
+            onClick={() => setIsSizeChartOpen(true)}
+            className="px-4 py-3.5 rounded-full bg-brand-dark text-white border border-brand-accent/30 hover:bg-brand-olive transition-all flex items-center gap-2 text-xs font-bold shrink-0 shadow-sm"
+            title="Open Made in India Shoe Size & Material Chart"
+          >
+            <Ruler className="w-4 h-4 text-brand-accent" />
+            <span className="hidden md:inline">Size Chart</span>
+          </button>
           <div className="w-12 h-12 rounded-full bg-brand-olive/10 border border-brand-olive/20 flex items-center justify-center shadow-sm shrink-0">
             <User className="w-6 h-6 text-brand-olive" />
           </div>
         </div>
       </header>
+
+      {/* Shoe Size Chart Modal */}
+      <ShoeSizeChartModal
+        isOpen={isSizeChartOpen}
+        onClose={() => setIsSizeChartOpen(false)}
+      />
 
       {/* Primary Root Views Switcher */}
       <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-2xl border border-brand-border/85 shadow-sm max-w-lg mx-auto mb-6">
