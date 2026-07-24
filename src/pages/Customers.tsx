@@ -167,7 +167,7 @@ export default function Customers() {
         </div>
       </PageHeader>
 
-      {/* Firestore Real-Time Snapshot Diagnostic Overlay */}
+      {/* Real-Time Sync Status Indicator */}
       <div className="bg-brand-dark/95 backdrop-blur text-[#F5F3EC] rounded-2xl md:rounded-3xl p-4 md:p-5 border border-brand-accent/20 shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -178,14 +178,14 @@ export default function Customers() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-xs font-black uppercase tracking-widest text-emerald-400">
-                  Firestore Real-Time Listener Active
+                  Real-Time Customer Sync Active
                 </p>
-                <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  onSnapshot Sync
+                <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
+                  Live Sync
                 </span>
               </div>
               <p className="text-[11px] text-brand-muted/90 font-mono mt-0.5">
-                Node: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Directory Records: <span className="text-white font-bold">{customers.length}</span>
+                Store Location: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Directory Records: <span className="text-white font-bold">{customers.length}</span>
               </p>
             </div>
           </div>
@@ -201,18 +201,18 @@ export default function Customers() {
             <button
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10"
-              title="Trigger explicit snapshot sync ping"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10 cursor-pointer"
+              title="Trigger sync refresh"
             >
               <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand-accent")} />
-              <span>{isRefreshing ? 'Syncing...' : 'Ping Sync'}</span>
+              <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
             </button>
 
             <button
               onClick={() => setShowDiagnostics(!showDiagnostics)}
-              className="text-brand-muted hover:text-white text-[10px] font-mono underline"
+              className="text-brand-muted hover:text-white text-[10px] font-mono underline cursor-pointer"
             >
-              {showDiagnostics ? 'Hide Info' : 'Diagnostic Info'}
+              {showDiagnostics ? 'Hide Details' : 'Sync Details'}
             </button>
           </div>
         </div>
@@ -220,23 +220,23 @@ export default function Customers() {
         {showDiagnostics && (
           <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-mono text-brand-muted">
             <div className="bg-white/5 p-2 rounded-lg">
-              <span className="block text-brand-muted/60 text-[9px]">STORE COLLECTION CHANNEL</span>
-              <span className="text-white font-medium truncate block">stores/{currentStoreId || 'default'}/customers</span>
+              <span className="block text-brand-muted/60 text-[9px]">STORE LOCATION</span>
+              <span className="text-white font-medium truncate block">{currentStoreId || 'default'}</span>
             </div>
             <div className="bg-white/5 p-2 rounded-lg">
-              <span className="block text-brand-muted/60 text-[9px]">ROOT BACKUP CHANNEL</span>
-              <span className="text-white font-medium truncate block">root /customers</span>
+              <span className="block text-brand-muted/60 text-[9px]">DIRECTORY TOTAL</span>
+              <span className="text-white font-medium truncate block">{customers.length} clients</span>
             </div>
             <div className="bg-white/5 p-2 rounded-lg">
-              <span className="block text-brand-muted/60 text-[9px]">OFFLINE QUEUED WRITES</span>
+              <span className="block text-brand-muted/60 text-[9px]">PENDING LOCAL UPDATES</span>
               <span className={clsx("font-bold", pendingCustomerWrites > 0 ? "text-amber-400" : "text-emerald-400")}>
                 {pendingCustomerWrites} pending
               </span>
             </div>
             <div className="bg-white/5 p-2 rounded-lg">
-              <span className="block text-brand-muted/60 text-[9px]">CONNECTION STATUS</span>
+              <span className="block text-brand-muted/60 text-[9px]">SYNC STATUS</span>
               <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Realtime Snapshots OK
+                <CheckCircle2 className="w-3 h-3" /> Sync Connected
               </span>
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function Customers() {
             <thead>
               <tr className="bg-brand-bg/50">
                 <th scope="col" className="px-8 py-5 text-left text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Client Identity</th>
-                <th scope="col" className="px-8 py-5 text-left text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Contact Node</th>
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Contact Info</th>
                 <th scope="col" className="px-8 py-5 text-center text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Engagement</th>
                 <th scope="col" className="px-8 py-5 text-right text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Last Visit</th>
                 <th scope="col" className="px-8 py-5 text-right text-[10px] font-black text-brand-muted uppercase tracking-[0.2em]">Action</th>

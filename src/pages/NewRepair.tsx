@@ -1053,12 +1053,12 @@ Thank you for trusting Cordwainers Studio!
                       <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
                         <User className="w-4 h-4 text-brand-olive" />
                       </div>
-                      <h3 className="text-[11px] font-black text-brand-dark uppercase tracking-[0.2em]">Client Identity Node</h3>
+                      <h3 className="text-[11px] font-black text-brand-dark uppercase tracking-[0.2em]">Client Identity</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="sm:col-span-2 relative">
-                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Mobile Hub *</label>
+                        <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-2 ml-4">Mobile Phone *</label>
                         <div className="relative group">
                           <span className="absolute inset-y-0 left-0 pl-6 flex items-center text-brand-muted group-focus-within:text-brand-accent transition-colors"><Phone className="w-4 h-4" /></span>
                           <input

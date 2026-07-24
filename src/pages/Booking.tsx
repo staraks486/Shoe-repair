@@ -1001,7 +1001,7 @@ Thank you for booking with Cordwainers Studio!
                       <div className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center">
                         <Clock3 className="w-4 h-4 text-brand-olive" />
                       </div>
-                      <h3 className="text-[11px] font-black text-brand-dark uppercase tracking-[0.2em]">Schedule & Payment Node</h3>
+                      <h3 className="text-[11px] font-black text-brand-dark uppercase tracking-[0.2em]">Schedule & Payment Details</h3>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

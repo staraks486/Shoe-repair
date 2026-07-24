@@ -1267,13 +1267,13 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <div className="flex items-center gap-2.5">
                   <Terminal className="w-5 h-5 text-brand-accent" />
                   <div>
-                    <h3 className="font-mono text-sm font-black uppercase tracking-wider text-white">Workshop Telemetry Console</h3>
-                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">Live Dev Tools & State Inspections</p>
+                    <h3 className="font-mono text-sm font-black uppercase tracking-wider text-white">Workshop Status & Diagnostics</h3>
+                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">Live System Status & Activity</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsDevConsoleOpen(false)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1282,26 +1282,26 @@ export default function Layout({ children }: { children: ReactNode }) {
               {/* Telemetry Stats Grid */}
               <div className="p-6 grid grid-cols-2 gap-4 border-b border-white/5 bg-black/20 font-mono text-xs">
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">System Uptime</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Session Duration</span>
                   <p className="text-base font-black text-brand-accent">
                     {Math.floor(systemUptime / 60)}m {systemUptime % 60}s
                   </p>
                 </div>
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Network Ingress</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Connection</span>
                   <p className="text-base font-black text-green-400 flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-                    100% Secure
+                    Encrypted
                   </p>
                 </div>
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Zustand Store</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Active Records</span>
                   <p className="text-sm font-bold text-white">
                     {repairs.length} Repairs, {stores.length} Stores
                   </p>
                 </div>
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Offline Sync Queue</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Pending Syncs</span>
                   <p className="text-sm font-bold text-amber-400">
                     {offlineQueue.length} Pending Actions
                   </p>
@@ -1312,27 +1312,27 @@ export default function Layout({ children }: { children: ReactNode }) {
               <div className="flex-1 p-6 flex flex-col min-h-0 space-y-3">
                 <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-brand-accent animate-pulse" />
-                  Active Diagnostics Logs
+                  Activity & Diagnostics Log
                 </span>
                 
                 <div className="flex-1 bg-black/50 p-4 rounded-2xl border border-white/10 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-2.5 h-full scrollbar-thin">
-                  <p className="text-green-400">[OK] Zustand state store loaded successfully.</p>
+                  <p className="text-green-400">[OK] Application state store initialized.</p>
                   {db ? (
-                    <p className="text-green-400">[OK] Firebase Firestore is connected. Cloud synchronization is active.</p>
+                    <p className="text-green-400">[OK] Cloud database connected. Real-time sync active.</p>
                   ) : (
-                    <p className="text-amber-400 font-bold">[WARN] Firebase is NOT connected. App is in Local-Only Mode. Add VITE_FIREBASE_ env vars on Render.com to enable cross-device sync.</p>
+                    <p className="text-amber-400 font-bold">[WARN] Cloud database offline. Operating in local storage mode.</p>
                   )}
                   {auth ? (
-                    <p className="text-green-400">[OK] Firebase Auth is initialized and active.</p>
+                    <p className="text-green-400">[OK] User authentication initialized and active.</p>
                   ) : (
-                    <p className="text-amber-400 font-bold">[WARN] Firebase Auth is inactive. Mock-only authentication is running.</p>
+                    <p className="text-amber-400 font-bold">[WARN] Authentication running in guest preview mode.</p>
                   )}
-                  <p className="text-slate-400">[INFO] Offline Queue SQLite/IndexedDB sync hook checking integrity...</p>
-                  <p className="text-green-400">[OK] DB Schema validation: No unmapped fields.</p>
-                  <p className="text-slate-400">[INFO] Security inactivity watch started. Timeout: 180s.</p>
-                  <p className="text-brand-accent">[SYSTEM] Privacy Shield status changed. Masking: {isPrivacyMasked ? "ACTIVE" : "INACTIVE"}.</p>
-                  <p className="text-slate-400">[DEBUG] Ingress routing to container port 3000 running stable.</p>
-                  <p className="text-green-400">[OK] Web Push payload templates verified.</p>
+                  <p className="text-slate-400">[INFO] Verifying local sync queue integrity...</p>
+                  <p className="text-green-400">[OK] Data structure validated successfully.</p>
+                  <p className="text-slate-400">[INFO] Inactivity timer active (180s).</p>
+                  <p className="text-brand-accent">[SYSTEM] Privacy Shield status: {isPrivacyMasked ? "ACTIVE" : "INACTIVE"}.</p>
+                  <p className="text-green-400">[OK] Network connection stable.</p>
+                  <p className="text-green-400">[OK] Web notification templates verified.</p>
                 </div>
               </div>
 

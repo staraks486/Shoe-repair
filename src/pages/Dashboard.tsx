@@ -99,7 +99,7 @@ export default function Dashboard() {
         <DashboardCalendar repairs={repairs} onViewRepair={setViewingRepair} onViewAppointment={setViewingAppointment} />
       </section>
       
-      {/* Real-time Firestore Multi-device Sync Status Indicator */}
+      {/* Real-time Multi-device Sync Status Indicator */}
       <div className="bg-brand-dark text-white rounded-2xl md:rounded-3xl p-3.5 md:p-4 border border-brand-accent/20 shadow-md flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="relative flex h-3 w-3">
@@ -109,21 +109,21 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 fill-emerald-400" /> Multi-Device Realtime Snapshot Sync
+                <Zap className="w-3.5 h-3.5 fill-emerald-400" /> Multi-Device Cloud Sync
               </span>
               <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
-                Live Firestore Connected
+                Cloud Store Connected
               </span>
             </div>
             <p className="text-[11px] text-brand-muted/80 font-mono mt-0.5">
-              Active Store Node: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Live Active Repairs: <span className="text-white font-bold">{repairs.length}</span>
+              Store Location: <span className="text-brand-accent font-bold">{currentStoreId || 'default'}</span> | Live Active Repairs: <span className="text-white font-bold">{repairs.length}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <span className="text-[9px] uppercase font-bold text-brand-muted/70 block">Last Firestore Snapshot Received</span>
+            <span className="text-[9px] uppercase font-bold text-brand-muted/70 block">Last Cloud Update Received</span>
             <span className="text-xs font-mono font-medium text-emerald-300">
               {lastSyncTime ? format(new Date(lastSyncTime), 'HH:mm:ss a (PPP)') : 'Listening for live updates...'}
             </span>
@@ -132,11 +132,11 @@ export default function Dashboard() {
           <button
             onClick={handleManualSync}
             disabled={isRefreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10"
-            title="Ping Firestore Snapshot"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/10 cursor-pointer"
+            title="Refresh Cloud Data"
           >
             <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand-accent")} />
-            <span>{isRefreshing ? 'Syncing...' : 'Ping Sync'}</span>
+            <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
           </button>
         </div>
       </div>
